@@ -1329,7 +1329,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
       "1. פתח/י את הקישור: " + url + "\n" +
       "2. התחבר/י עם חשבון Google בכתובת: " + email + "\n\n" +
       "בברכה";
-    return "mailto:" + encodeURIComponent(email) + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    return "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(email) +
+      "&su=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
   }
   function renderShareList(){
     db.collection("sites").doc(currentUser.uid).get().then(function(doc){
@@ -1337,7 +1338,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
       var wrap = document.getElementById("shareList");
       wrap.innerHTML = emails.length ? emails.map(function(em){
         return '<div class="share-row"><span>'+escapeHtml(em)+'</span><span style="display:flex;gap:6px;">'+
-          '<a class="ghost-btn" style="text-decoration:none;padding:4px 10px;font-size:0.76rem;" href="'+inviteMailto(em)+'">שלח הזמנה במייל</a>'+
+          '<a class="ghost-btn" target="_blank" rel="noopener" style="text-decoration:none;padding:4px 10px;font-size:0.76rem;" href="'+inviteMailto(em)+'">שלח הזמנה במייל</a>'+
           '<button type="button" data-remove-share="'+escapeHtml(em)+'">הסרה</button></span></div>';
       }).join("") : '<div class="empty">עדיין לא שיתפת עם אף אחד.</div>';
     });
