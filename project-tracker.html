@@ -1319,12 +1319,26 @@ input,select,textarea{font-family:inherit;color:inherit;}
     renderShareList();
   }
   function closeShareModal(){ document.getElementById("shareOverlay").hidden = true; }
+  function inviteMailto(email){
+    var ownerName = (currentUser && (currentUser.displayName || currentUser.email)) || "";
+    var url = location.href.split("#")[0];
+    var subject = "הזמנה לאתר ניהול הפרויקטים";
+    var body = "שלום,\n\n" +
+      ownerName + " שיתף/שיתפה אותך באתר לניהול פרויקטים הנדסיים - כלי למעקב אחר פרויקטים, משימות, שירות ואספקה ועוד.\n\n" +
+      "כדי להיכנס:\n" +
+      "1. פתח/י את הקישור: " + url + "\n" +
+      "2. התחבר/י עם חשבון Google בכתובת: " + email + "\n\n" +
+      "בברכה";
+    return "mailto:" + encodeURIComponent(email) + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+  }
   function renderShareList(){
     db.collection("sites").doc(currentUser.uid).get().then(function(doc){
       var emails = (doc.data()||{}).sharedEmails || [];
       var wrap = document.getElementById("shareList");
       wrap.innerHTML = emails.length ? emails.map(function(em){
-        return '<div class="share-row"><span>'+escapeHtml(em)+'</span><button type="button" data-remove-share="'+escapeHtml(em)+'">הסרה</button></div>';
+        return '<div class="share-row"><span>'+escapeHtml(em)+'</span><span style="display:flex;gap:6px;">'+
+          '<a class="ghost-btn" style="text-decoration:none;padding:4px 10px;font-size:0.76rem;" href="'+inviteMailto(em)+'">שלח הזמנה במייל</a>'+
+          '<button type="button" data-remove-share="'+escapeHtml(em)+'">הסרה</button></span></div>';
       }).join("") : '<div class="empty">עדיין לא שיתפת עם אף אחד.</div>';
     });
   }
