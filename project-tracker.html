@@ -145,6 +145,14 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .hdr h1{font-size:1.5rem;margin:0;letter-spacing:-0.01em;text-wrap:balance;}
 .hdr p{margin:2px 0 0;color:var(--ink-soft);font-size:0.83rem;}
 .mgr-toggle{display:flex;align-items:center;gap:8px;}
+.user-badge{font-size:0.82rem;color:var(--ink-soft);display:flex;align-items:center;gap:7px;}
+.user-badge img{width:26px;height:26px;border-radius:50%;flex:none;}
+.site-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;cursor:pointer;text-align:right;}
+.site-row:hover{border-color:var(--accent);}
+.site-row .n{font-weight:600;font-size:0.9rem;}
+.site-row .r{font-size:0.76rem;color:var(--ink-soft);}
+.share-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:0.85rem;}
+.share-row button{background:transparent;border:1px solid var(--pay-unpaid);color:var(--pay-unpaid);border-radius:6px;padding:4px 10px;font-size:0.76rem;}
 .pill-btn{
   display:inline-flex;align-items:center;gap:7px;
   background:var(--surface);border:1px solid var(--border);
@@ -286,6 +294,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
 
 /* view switch */
 .app-shell{display:flex;align-items:stretch;min-height:100vh;}
+.app-shell[hidden]{display:none;}
 .sidebar{
   flex:none;width:236px;background:var(--surface);border-left:1px solid var(--border);
   padding:20px 14px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;
@@ -420,7 +429,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
 }
 </style>
 
-<div class="app-shell">
+<div class="app-shell" id="appShell" hidden>
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-hd">
       <svg class="mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -451,10 +460,10 @@ input,select,textarea{font-family:inherit;color:inherit;}
       </div>
     </div>
     <div class="mgr-toggle">
-      <button class="pill-btn" id="mgrBtn" type="button">
-        <span class="pill-dot"></span>
-        <span id="mgrBtnText">מצב צוות</span>
-      </button>
+      <span id="userBadge" class="user-badge"></span>
+      <button class="ghost-btn" id="shareBtn" type="button" hidden>שיתוף האתר</button>
+      <button class="ghost-btn" id="switchSiteBtn" type="button" hidden>החלפת אתר</button>
+      <button class="ghost-btn" id="signOutBtn" type="button">התנתקות</button>
     </div>
   </div>
 
@@ -761,16 +770,39 @@ input,select,textarea{font-family:inherit;color:inherit;}
 </div><!-- /wrap -->
 </div><!-- /app-shell -->
 
-<div class="overlay" id="pinOverlay" hidden>
+<div class="overlay" id="loginOverlay">
+  <div class="modal" style="text-align:center;">
+    <svg class="mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:48px;height:48px;margin:0 auto 14px;">
+      <path d="M6 32 L20 8 L34 32 Z" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="20" cy="21" r="3.2" stroke="var(--accent)" stroke-width="2"/>
+      <path d="M14 32 H26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <h2>ניהול פרויקטים</h2>
+    <p>התחבר עם Google כדי להמשיך. ההתחברות הראשונה יוצרת עבורך אתר משלך.</p>
+    <button type="button" class="primary" id="googleSignInBtn" style="width:100%;padding:11px;margin-top:8px;">התחברות עם Google</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<div class="overlay" id="siteSwitcherOverlay" hidden>
   <div class="modal">
-    <h2 id="pinTitle">כניסת מנהל</h2>
-    <p id="pinDesc">הזן את סיסמת המנהל.</p>
-    <input type="password" id="pinInput" inputmode="numeric" maxlength="8" placeholder="••••">
-    <div class="err" id="pinErr"></div>
-    <button type="button" class="ghost-btn" id="pinForgotBtn" hidden style="width:100%;margin-bottom:10px;">שכחתי את הסיסמה - איפוס</button>
+    <h2>בחירת אתר</h2>
+    <p>יש לך גישה ליותר מאתר אחד - איזה לפתוח?</p>
+    <div id="siteList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px;"></div>
+  </div>
+</div>
+
+<div class="overlay" id="shareOverlay" hidden>
+  <div class="modal wide">
+    <h2>שיתוף האתר</h2>
+    <p>הוסף כתובות אימייל של אנשים שיוכלו לראות את האתר שלך במצב צוות.</p>
+    <div class="add-row" style="margin-bottom:14px;">
+      <input type="email" id="shareEmailInput" placeholder="name@gmail.com">
+      <button type="button" id="shareAddBtn">+ הוספה</button>
+    </div>
+    <div id="shareList" style="display:flex;flex-direction:column;gap:6px;"></div>
     <div class="modal-actions">
-      <button type="button" id="pinCancel">ביטול</button>
-      <button type="button" class="primary" id="pinOk">אישור</button>
+      <button type="button" id="shareCloseBtn">סגירה</button>
     </div>
   </div>
 </div>
@@ -930,9 +962,29 @@ input,select,textarea{font-family:inherit;color:inherit;}
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script>
 (function(){
   "use strict";
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyCZxoHWFvY6c-sM1BRUXnwObU4qGTLPQwI",
+    authDomain: "handasa-a1c67.firebaseapp.com",
+    projectId: "handasa-a1c67",
+    storageBucket: "handasa-a1c67.firebasestorage.app",
+    messagingSenderId: "219477330845",
+    appId: "1:219477330845:web:b734558de90560e554bd74"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+
+  var currentUser = null;
+  var currentSiteId = null;
+  var mySites = [];
+  var siteUnsubscribers = [];
 
   var QUADRANTS = {
     uq:{label:"חשוב ודחוף", token:"--q-uq"},
@@ -949,50 +1001,28 @@ input,select,textarea{font-family:inherit;color:inherit;}
     {n:5,label:"הושלם"}
   ];
 
-  var STORE_KEY = "engProjects_v1";
-  var PIN_KEY = "engMgrPin_v1";
-
   var projects = [];
   var managerMode = false;
   var selectedId = null;
   var openQPickerId = null;
   var filters = {search:"", quadrant:"all", status:"all", sort:"due", group:false};
-  var pinMode = null; // "set" | "enter"
 
   function uid(){ return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-  function load(){
-    try{
-      var raw = localStorage.getItem(STORE_KEY);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
-    return null;
+  function isFocusedWithin(containerId){
+    var el = document.activeElement;
+    return !!(el && el.closest && el.closest("#"+containerId) && (el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT"));
   }
-  function save(){
-    localStorage.setItem(STORE_KEY, JSON.stringify(projects));
-  }
-  function seed(){
-    var today = new Date();
-    function plusDays(n){ var d = new Date(today); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
-    projects = [
-      {id:uid(), name:'משרד עו"ד כהן - תוספת קומה', address:"רחוב הרצל 12, חיפה", phone:"0501234567", employee:"דני", dueDate:plusDays(5), quadrant:"uq", status:2, notes:"לתאם עם הלקוח מדידה בשטח לפני המשך שרטוט.", price:8000, paid:3000},
-      {id:uid(), name:"וילה פרטית - משפחת לוי", address:"רחוב האלון 4, כפר סבא", phone:"0522345678", employee:"", dueDate:plusDays(20), quadrant:"u", status:1, notes:"להתחיל שרטוט לאחר אישור היתר בנייה.", price:15000, paid:0},
-      {id:uid(), name:'מחסן תעשייתי - חברת נגר בע"מ', address:"אזור תעשייה נשר", phone:"", employee:"רונית", dueDate:plusDays(2), quadrant:"q", status:4, notes:"", price:6000, paid:6000},
-      {id:uid(), name:"עדכון תיק ארכיון ישן", address:"", phone:"", employee:"", dueDate:"", quadrant:"n", status:5, notes:"", price:0, paid:0}
-    ];
-    save();
-  }
-
-  function init(){
-    var loaded = load();
-    if(loaded && loaded.length){ projects = loaded; }
-    else { seed(); }
-    if(projects.length) selectedId = projects[0].id;
-    renderChips();
-    renderStats();
-    renderList();
-    renderDetail();
-    bindStatic();
+  function projectsCol(){ return db.collection("sites").doc(currentSiteId).collection("projects"); }
+  function attachProjectsListener(){
+    var unsub = projectsCol().onSnapshot(function(snap){
+      projects = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+      if(!selectedId && projects.length) selectedId = projects[0].id;
+      renderStats();
+      renderList();
+      if(!isFocusedWithin("detailPanel")) renderDetail();
+    });
+    siteUnsubscribers.push(unsub);
   }
 
   function fmtMoney(n){
@@ -1202,123 +1232,114 @@ input,select,textarea{font-family:inherit;color:inherit;}
 
   /* ---------- mutations ---------- */
   function addProject(name){
-    var p = {id:uid(), name:name, address:"", phone:"", employee:"", dueDate:"", quadrant:"n", status:1, notes:"", price:0, paid:0};
-    projects.unshift(p);
-    save();
-    selectedId = p.id;
-    renderStats();
-    renderList();
-    renderDetail();
-    return p.id;
+    var ref = projectsCol().doc();
+    var id = ref.id;
+    ref.set({name:name, address:"", phone:"", employee:"", dueDate:"", quadrant:"n", status:1, notes:"", price:0, paid:0});
+    selectedId = id;
+    return id;
   }
   function deleteProject(id){
-    projects = projects.filter(function(p){return p.id!==id;});
-    if(selectedId===id) selectedId = projects.length ? projects[0].id : null;
-    save();
-    renderStats();
-    renderList();
-    renderDetail();
+    projectsCol().doc(id).delete();
+    if(selectedId===id) selectedId = null;
   }
   function setField(id, field, value){
-    var p = projects.find(function(x){return x.id===id;});
-    if(!p) return;
-    if(field==="price" || field==="paid") p[field] = Number(value)||0;
-    else p[field] = value;
-    save();
+    var patch = {};
+    patch[field] = (field==="price"||field==="paid") ? (Number(value)||0) : value;
+    projectsCol().doc(id).update(patch);
   }
   function setQuadrant(id, val){
-    var p = projects.find(function(x){return x.id===id;});
-    if(!p) return;
-    p.quadrant = val;
     openQPickerId = null;
-    save();
-    renderList();
-    if(selectedId===id) renderDetail();
+    projectsCol().doc(id).update({quadrant: val});
   }
   function setStatus(id, val){
-    var p = projects.find(function(x){return x.id===id;});
-    if(!p) return;
-    p.status = Number(val);
-    save();
-    renderStats();
-    renderList();
-    if(selectedId===id) renderDetail();
+    projectsCol().doc(id).update({status: Number(val)});
   }
 
-  /* ---------- manager mode / pin ---------- */
-  function getPin(){ return localStorage.getItem(PIN_KEY); }
-  function openPinModal(mode){
-    pinMode = mode;
-    var overlay = document.getElementById("pinOverlay");
-    var title = document.getElementById("pinTitle");
-    var desc = document.getElementById("pinDesc");
-    document.getElementById("pinInput").value = "";
-    document.getElementById("pinErr").textContent = "";
-    if(mode==="set"){
-      title.textContent = "הגדרת סיסמת מנהל";
-      desc.textContent = "זו הפעם הראשונה - בחר קוד (מספרים) שישמש אותך בעתיד לכניסת מנהל.";
-      document.getElementById("pinForgotBtn").hidden = true;
-    } else {
-      title.textContent = "כניסת מנהל";
-      desc.textContent = "הזן את סיסמת המנהל כדי לראות מחירים ותשלומים.";
-      document.getElementById("pinForgotBtn").hidden = false;
-    }
-    overlay.hidden = false;
-    document.getElementById("pinInput").focus();
+  /* ---------- auth / sites / sharing ---------- */
+  function updateUserBadge(){
+    var el = document.getElementById("userBadge");
+    if(!currentUser){ el.innerHTML = ""; return; }
+    el.innerHTML = (currentUser.photoURL ? '<img src="'+currentUser.photoURL+'" alt="">' : "") +
+      '<span>'+escapeHtml(currentUser.displayName || currentUser.email)+'</span>';
   }
-  function forgotPin(){
-    if(!confirm("לאפס את סיסמת המנהל? תצטרך/י להגדיר סיסמה חדשה, וכל מי שיודע את הסיסמה הישנה כבר לא יוכל להשתמש בה.")) return;
-    localStorage.removeItem(PIN_KEY);
-    openPinModal("set");
-  }
-  function closePinModal(){
-    document.getElementById("pinOverlay").hidden = true;
-    pinMode = null;
-  }
-  function confirmPin(){
-    var val = document.getElementById("pinInput").value.trim();
-    if(!val){ document.getElementById("pinErr").textContent = "יש להזין קוד."; return; }
-    if(pinMode==="set"){
-      localStorage.setItem(PIN_KEY, val);
-      managerMode = true;
-      closePinModal();
-      updateMgrBtn();
-      renderStats();
-      renderDetail();
-      renderLeadsTable();
-      applyAccessMode();
-    } else {
-      if(val===getPin()){
-        managerMode = true;
-        closePinModal();
-        updateMgrBtn();
-        renderStats();
-        renderDetail();
-        renderLeadsTable();
-        applyAccessMode();
-      } else {
-        document.getElementById("pinErr").textContent = "קוד שגוי, נסה שוב.";
+
+  function resolveSites(){
+    var myRef = db.collection("sites").doc(currentUser.uid);
+    myRef.get().then(function(doc){
+      if(!doc.exists){
+        return myRef.set({
+          ownerUid: currentUser.uid,
+          ownerEmail: currentUser.email,
+          ownerName: currentUser.displayName || currentUser.email,
+          sharedEmails: [],
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function(){ seedCatalogForNewSite(currentUser.uid); });
       }
-    }
+    }).then(function(){
+      return db.collection("sites").where("sharedEmails", "array-contains", currentUser.email).get();
+    }).then(function(snap){
+      mySites = [{id: currentUser.uid, label: "האתר שלי", isOwner: true}];
+      snap.forEach(function(doc){
+        if(doc.id === currentUser.uid) return;
+        var d = doc.data();
+        mySites.push({id: doc.id, label: "אתר של " + (d.ownerName || d.ownerEmail), isOwner: false});
+      });
+      if(mySites.length === 1){
+        selectSite(mySites[0].id);
+      } else {
+        renderSiteList();
+        document.getElementById("siteSwitcherOverlay").hidden = false;
+      }
+    }).catch(function(err){
+      document.getElementById("loginErr").textContent = "שגיאה בטעינת האתרים: " + err.message;
+    });
   }
-  function updateMgrBtn(){
-    var btn = document.getElementById("mgrBtn");
-    var txt = document.getElementById("mgrBtnText");
-    if(managerMode){ btn.classList.add("on"); txt.textContent = "מצב מנהל — יציאה"; }
-    else { btn.classList.remove("on"); txt.textContent = "מצב צוות"; }
+
+  function renderSiteList(){
+    document.getElementById("siteList").innerHTML = mySites.map(function(s){
+      return '<button type="button" class="site-row" data-select-site="'+s.id+'"><span class="n">'+escapeHtml(s.label)+'</span><span class="r">'+(s.isOwner?"מנהל":"צוות")+'</span></button>';
+    }).join("");
   }
-  function toggleManagerMode(){
-    if(managerMode){
-      managerMode = false;
-      updateMgrBtn();
-      renderStats();
-      renderDetail();
-      renderLeadsTable();
-      applyAccessMode();
-      return;
-    }
-    if(getPin()) openPinModal("enter");
-    else openPinModal("set");
+
+  function selectSite(siteId){
+    detachSiteData();
+    currentSiteId = siteId;
+    managerMode = (siteId === currentUser.uid);
+    document.getElementById("siteSwitcherOverlay").hidden = true;
+    document.getElementById("switchSiteBtn").hidden = mySites.length <= 1;
+    document.getElementById("shareBtn").hidden = !managerMode;
+    document.getElementById("appShell").hidden = false;
+    attachSiteData();
+    showView("projects");
+    applyAccessMode();
+  }
+
+  function openShareModal(){
+    document.getElementById("shareOverlay").hidden = false;
+    renderShareList();
+  }
+  function closeShareModal(){ document.getElementById("shareOverlay").hidden = true; }
+  function renderShareList(){
+    db.collection("sites").doc(currentUser.uid).get().then(function(doc){
+      var emails = (doc.data()||{}).sharedEmails || [];
+      var wrap = document.getElementById("shareList");
+      wrap.innerHTML = emails.length ? emails.map(function(em){
+        return '<div class="share-row"><span>'+escapeHtml(em)+'</span><button type="button" data-remove-share="'+escapeHtml(em)+'">הסרה</button></div>';
+      }).join("") : '<div class="empty">עדיין לא שיתפת עם אף אחד.</div>';
+    });
+  }
+  function addShareEmail(){
+    var input = document.getElementById("shareEmailInput");
+    var email = input.value.trim().toLowerCase();
+    if(!email || email.indexOf("@")===-1){ alert("כתובת אימייל לא תקינה."); return; }
+    db.collection("sites").doc(currentUser.uid).update({
+      sharedEmails: firebase.firestore.FieldValue.arrayUnion(email)
+    }).then(function(){ input.value=""; renderShareList(); });
+  }
+  function removeShareEmail(email){
+    db.collection("sites").doc(currentUser.uid).update({
+      sharedEmails: firebase.firestore.FieldValue.arrayRemove(email)
+    }).then(renderShareList);
   }
 
   function applyAccessMode(){
@@ -1355,12 +1376,16 @@ input,select,textarea{font-family:inherit;color:inherit;}
         var data = JSON.parse(reader.result);
         if(!Array.isArray(data)) throw new Error("bad format");
         if(!confirm("ייבוא יחליף את כל הנתונים הקיימים ב-"+data.length+" פרויקטים מהקובץ. להמשיך?")) return;
-        projects = data;
-        save();
-        selectedId = projects.length ? projects[0].id : null;
-        renderStats();
-        renderList();
-        renderDetail();
+        var batch = db.batch();
+        projects.forEach(function(p){ batch.delete(projectsCol().doc(p.id)); });
+        data.forEach(function(p){
+          var d = Object.assign({}, p);
+          var id = d.id || uid();
+          delete d.id;
+          batch.set(projectsCol().doc(id), d);
+        });
+        batch.commit();
+        selectedId = null;
       }catch(e){
         alert("קובץ לא תקין. יש לבחור קובץ גיבוי JSON שיוצא מהמערכת הזו.");
       }
@@ -1406,15 +1431,33 @@ input,select,textarea{font-family:inherit;color:inherit;}
       renderList();
     });
 
-    document.getElementById("mgrBtn").addEventListener("click", toggleManagerMode);
-    document.getElementById("pinCancel").addEventListener("click", closePinModal);
-    document.getElementById("pinOk").addEventListener("click", confirmPin);
-    document.getElementById("pinForgotBtn").addEventListener("click", forgotPin);
-    document.getElementById("pinInput").addEventListener("keydown", function(e){
-      if(e.key==="Enter") confirmPin();
+    document.getElementById("googleSignInBtn").addEventListener("click", function(){
+      document.getElementById("loginErr").textContent = "";
+      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(err){
+        document.getElementById("loginErr").textContent = "שגיאת התחברות: " + err.message;
+      });
     });
-    document.getElementById("pinOverlay").addEventListener("click", function(e){
-      if(e.target.id==="pinOverlay") closePinModal();
+    document.getElementById("signOutBtn").addEventListener("click", function(){ auth.signOut(); });
+    document.getElementById("switchSiteBtn").addEventListener("click", function(){
+      renderSiteList();
+      document.getElementById("siteSwitcherOverlay").hidden = false;
+    });
+    document.getElementById("siteList").addEventListener("click", function(e){
+      var btn = e.target.closest("[data-select-site]");
+      if(btn) selectSite(btn.getAttribute("data-select-site"));
+    });
+    document.getElementById("shareBtn").addEventListener("click", openShareModal);
+    document.getElementById("shareCloseBtn").addEventListener("click", closeShareModal);
+    document.getElementById("shareOverlay").addEventListener("click", function(e){
+      if(e.target.id==="shareOverlay") closeShareModal();
+    });
+    document.getElementById("shareAddBtn").addEventListener("click", addShareEmail);
+    document.getElementById("shareEmailInput").addEventListener("keydown", function(e){
+      if(e.key==="Enter") addShareEmail();
+    });
+    document.getElementById("shareList").addEventListener("click", function(e){
+      var btn = e.target.closest("[data-remove-share]");
+      if(btn) removeShareEmail(btn.getAttribute("data-remove-share"));
     });
 
     document.getElementById("exportBtn").addEventListener("click", exportData);
@@ -1791,26 +1834,19 @@ input,select,textarea{font-family:inherit;color:inherit;}
   }
 
   /* ---------- sales / leads ---------- */
-  var LEADS_KEY = "engLeads_v1";
   var leads = [];
   var editingLeadId = null;
   var openLeadMenuId = null;
-  var currentView = "sales";
+  var currentView = "projects";
 
-  function loadLeads(){
-    try{
-      var raw = localStorage.getItem(LEADS_KEY);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
-    return null;
-  }
-  function saveLeads(){ localStorage.setItem(LEADS_KEY, JSON.stringify(leads)); }
-  function seedLeads(){
-    leads = [
-      {id:uid(), name:"יוסי אברהם", phone:"0501112233", whatsapp:"0501112233", email:"yossi.example@mail.com", address:"רחוב הדקל 8, מודיעין", customerType:"חדש", type:"פרטי", workType:"בניה", source:"אדריכל/ית", inquiryDate:new Date().toISOString().slice(0,10), advance:0, vatIncluded:false, amount:0},
-      {id:uid(), name:"מירב כהן", phone:"0529998877", whatsapp:"", email:"", address:"שדרות הזית 3, ראשון לציון", customerType:"קיים", type:"פרטי", workType:"תוספת", source:"המלצה", inquiryDate:new Date().toISOString().slice(0,10), advance:500, vatIncluded:true, amount:4200}
-    ];
-    saveLeads();
+  function leadsCol(){ return db.collection("sites").doc(currentSiteId).collection("leads"); }
+  function attachLeadsListener(){
+    var unsub = leadsCol().onSnapshot(function(snap){
+      leads = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+      refreshActiveLeadSubTab();
+      if(!isFocusedWithin("clientActiveProjects")) renderActiveProjectCards("clientActiveProjects");
+    });
+    siteUnsubscribers.push(unsub);
   }
 
   function showView(view){
@@ -1939,46 +1975,27 @@ input,select,textarea{font-family:inherit;color:inherit;}
     };
     if(editingLeadId){
       var l = leads.find(function(x){return x.id===editingLeadId;});
-      if(l){
-        if(l.quoteLines && l.quoteLines.length) data.amount = quoteLinesTotal(l.quoteLines);
-        Object.assign(l, data);
-      }
+      if(l && l.quoteLines && l.quoteLines.length) data.amount = quoteLinesTotal(l.quoteLines);
+      leadsCol().doc(editingLeadId).update(data);
     } else {
-      data.id = uid();
       data.quoteLines = [];
-      leads.unshift(data);
+      leadsCol().add(data);
     }
-    saveLeads();
-    renderLeadsTable();
     closeLeadModal();
   }
   function deleteLead(id){
-    leads = leads.filter(function(l){return l.id!==id;});
+    leadsCol().doc(id).delete();
     openLeadMenuId = null;
-    saveLeads();
-    renderLeadsTable();
   }
   function convertLeadToProject(){
     if(!editingLeadId) return;
     var l = leads.find(function(x){return x.id===editingLeadId;});
     if(!l) return;
     if(!confirm('ליצור פרויקט הפקה חדש עבור "'+l.name+'"? הפרויקט ייווצר במעקב הפרויקטים עם פרטי הקשר של הליד.')) return;
-    var p = {id:uid(), name:l.name, address:l.address||"", phone:l.phone||"", employee:"", dueDate:"", quadrant:"n", status:1, notes:"", price:l.amount||0, paid:l.advance||0};
-    projects.unshift(p);
-    save();
-    selectedId = p.id;
-    renderStats();
-    renderList();
-    renderDetail();
+    selectedId = addProject(l.name);
+    projectsCol().doc(selectedId).update({address:l.address||"", phone:l.phone||"", price:l.amount||0, paid:l.advance||0});
     closeLeadModal();
     showView("projects");
-  }
-
-  function initSales(){
-    var loaded = loadLeads();
-    if(loaded && loaded.length){ leads = loaded; }
-    else { seedLeads(); }
-    renderLeadsTable();
   }
 
   /* ---------- production tasks board ---------- */
@@ -2009,31 +2026,37 @@ input,select,textarea{font-family:inherit;color:inherit;}
     {n:4, label:"הדפסה", color:"#d97f2b"}
   ];
 
-  var BOARDS_KEY = "engTaskBoards_v1";
   var taskBoards = {};
   var openProjects = {};
   var openStages = {};
   var openTaskNotes = {};
   var editingBoardId = null;
 
-  function loadBoards(){
-    try{
-      var raw = localStorage.getItem(BOARDS_KEY);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
-    return {};
+  function taskBoardsCol(){ return db.collection("sites").doc(currentSiteId).collection("taskBoards"); }
+  function attachTasksListener(){
+    var unsub = taskBoardsCol().onSnapshot(function(snap){
+      taskBoards = {};
+      snap.forEach(function(d){ taskBoards[d.id] = d.data(); });
+      if(!isFocusedWithin("tasksList")) renderTasksView();
+    });
+    siteUnsubscribers.push(unsub);
   }
-  function saveBoards(){ localStorage.setItem(BOARDS_KEY, JSON.stringify(taskBoards)); }
 
   function getTaskState(pid, tid){
-    if(!taskBoards[pid]) taskBoards[pid] = {};
-    if(!taskBoards[pid][tid]) taskBoards[pid][tid] = {included:true, done:false, elapsedSec:0, running:false, notes:""};
-    return taskBoards[pid][tid];
+    var board = taskBoards[pid] || {};
+    return board[tid] || {included:true, done:false, elapsedSec:0, running:false, runStartedAt:null, notes:""};
   }
   function setTaskState(pid, tid, patch){
-    var st = getTaskState(pid, tid);
-    Object.assign(st, patch);
-    saveBoards();
+    var merged = Object.assign({}, getTaskState(pid, tid), patch);
+    var update = {};
+    update[tid] = merged;
+    if(!taskBoards[pid]) taskBoards[pid] = {};
+    taskBoards[pid][tid] = merged;
+    taskBoardsCol().doc(pid).set(update, {merge:true});
+  }
+  function liveElapsed(st){
+    if(!st.running || !st.runStartedAt) return st.elapsedSec;
+    return st.elapsedSec + (Date.now() - new Date(st.runStartedAt).getTime())/1000;
   }
 
   function fmtMMSS(totalSec){
@@ -2045,53 +2068,51 @@ input,select,textarea{font-family:inherit;color:inherit;}
   function toggleTaskTimer(pid, tid){
     var st = getTaskState(pid, tid);
     if(st.running){
-      st.running = false;
+      setTaskState(pid, tid, {running:false, runStartedAt:null, elapsedSec:liveElapsed(st)});
     } else {
       Object.keys(taskBoards).forEach(function(ppid){
         Object.keys(taskBoards[ppid]).forEach(function(ttid){
-          if(taskBoards[ppid][ttid].running) taskBoards[ppid][ttid].running = false;
+          var t = taskBoards[ppid][ttid];
+          if(t.running) setTaskState(ppid, ttid, {running:false, runStartedAt:null, elapsedSec:liveElapsed(t)});
         });
       });
-      st.running = true;
+      setTaskState(pid, tid, {running:true, runStartedAt:new Date().toISOString()});
     }
-    saveBoards();
     renderTasksView();
   }
   function resetTaskTimer(pid, tid){
-    setTaskState(pid, tid, {elapsedSec:0, running:false});
+    setTaskState(pid, tid, {elapsedSec:0, running:false, runStartedAt:null});
     renderTasksView();
   }
 
   setInterval(function(){
-    var changed = false;
     Object.keys(taskBoards).forEach(function(pid){
       Object.keys(taskBoards[pid]).forEach(function(tid){
         var st = taskBoards[pid][tid];
         if(st.running){
-          st.elapsedSec += 1;
-          changed = true;
           var el = document.getElementById("timer-"+pid+"-"+tid);
           if(el){
             var def = TASK_CATALOG.find(function(t){return t.id===tid;});
             var est = def ? def.est*60 : 0;
-            el.textContent = fmtMMSS(Math.max(0,est-st.elapsedSec))+" נותר / "+fmtMMSS(est)+" / "+fmtMMSS(st.elapsedSec);
+            var elapsed = liveElapsed(st);
+            el.textContent = fmtMMSS(Math.max(0,est-elapsed))+" נותר / "+fmtMMSS(est)+" / "+fmtMMSS(elapsed);
           }
         }
       });
     });
-    if(changed) saveBoards();
   }, 1000);
 
   function taskRowHtml(pid, def, editMode){
     var st = getTaskState(pid, def.id);
     if(!editMode && !st.included) return "";
     var est = def.est*60;
+    var elapsed = liveElapsed(st);
     var notesOpen = !!openTaskNotes[pid+":"+def.id];
     var html = '<div class="task-row'+(st.included?"":" excluded")+(st.done?" done":"")+'">'+
       '<div class="task-row-top">'+
         '<input type="checkbox" data-t-done data-proj="'+pid+'" data-task="'+def.id+'"'+(st.done?" checked":"")+'>'+
         '<span class="t-label">'+escapeHtml(def.label)+'</span>'+
-        '<span class="t-timer" id="timer-'+pid+'-'+def.id+'">'+fmtMMSS(Math.max(0,est-st.elapsedSec))+" נותר / "+fmtMMSS(est)+" / "+fmtMMSS(st.elapsedSec)+'</span>'+
+        '<span class="t-timer" id="timer-'+pid+'-'+def.id+'">'+fmtMMSS(Math.max(0,est-elapsed))+" נותר / "+fmtMMSS(est)+" / "+fmtMMSS(elapsed)+'</span>'+
         '<button type="button" class="t-btn play'+(st.running?" running":"")+'" data-t-play data-proj="'+pid+'" data-task="'+def.id+'" title="'+(st.running?"עצור":"הפעל")+'">'+(st.running?"⏸":"▶")+'</button>'+
         '<button type="button" class="t-btn" data-t-reset data-proj="'+pid+'" data-task="'+def.id+'" title="איפוס">↺</button>'+
       '</div>'+
@@ -2155,11 +2176,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
     container.innerHTML = projects.map(projectTaskCardHtml).join("");
   }
 
-  function initTasks(){
-    taskBoards = loadBoards() || {};
-    renderTasksView();
-  }
-
   /* ---------- service & supply ---------- */
   var SERVICE_SECTIONS = [
     {id:"site", icon:"📍", title:"בדיקת שטח", masterLabel:"בדיקת שטח בוצעה",
@@ -2203,29 +2219,31 @@ input,select,textarea{font-family:inherit;color:inherit;}
       ]}
   ];
 
-  var SERVICE_KEY = "engServiceState_v1";
   var serviceState = {};
   var openServiceProjects = {};
 
-  function loadServiceState(){
-    try{
-      var raw = localStorage.getItem(SERVICE_KEY);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
-    return {};
+  function serviceStateCol(){ return db.collection("sites").doc(currentSiteId).collection("serviceState"); }
+  function attachServiceListener(){
+    var unsub = serviceStateCol().onSnapshot(function(snap){
+      serviceState = {};
+      snap.forEach(function(d){ serviceState[d.id] = d.data(); });
+      renderServiceView();
+    });
+    siteUnsubscribers.push(unsub);
   }
-  function saveServiceState(){ localStorage.setItem(SERVICE_KEY, JSON.stringify(serviceState)); }
   function isServiceChecked(pid, key){
     return !!(serviceState[pid] && serviceState[pid][key]);
   }
   function setServiceItem(pid, key, val){
     if(!serviceState[pid]) serviceState[pid] = {};
     serviceState[pid][key] = val;
-    saveServiceState();
+    var update = {};
+    update[key] = val;
+    serviceStateCol().doc(pid).set(update, {merge:true});
   }
 
   function serviceSectionHtml(pid, section){
-    var masterKey = section.id+".master";
+    var masterKey = section.id+"__master";
     var masterChecked = isServiceChecked(pid, masterKey);
     var rows = "";
     section.items.forEach(function(it){
@@ -2233,7 +2251,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
         rows += '<div class="svc-group-lbl">'+escapeHtml(it.group)+'</div>';
         return;
       }
-      var key = section.id+"."+it.id;
+      var key = section.id+"__"+it.id;
       var checked = isServiceChecked(pid, key);
       rows += '<div class="svc-item'+(checked?" done":"")+'">'+
         '<input type="checkbox" data-svc-item data-proj="'+pid+'" data-key="'+key+'"'+(checked?" checked":"")+'>'+
@@ -2273,11 +2291,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
     container.innerHTML = active.map(serviceProjectCardHtml).join("");
   }
 
-  function initService(){
-    serviceState = loadServiceState() || {};
-    renderServiceView();
-  }
-
   /* ---------- clients / bare projects (shared active-project card grid) ---------- */
   function renderActiveProjectCards(containerId){
     var container = document.getElementById(containerId);
@@ -2297,26 +2310,25 @@ input,select,textarea{font-family:inherit;color:inherit;}
   }
 
   /* ---------- price catalog ---------- */
-  var CATALOG_KEY = "enginePriceCatalog_v1";
   var priceCatalog = [];
   var editingCatalogId = null;
 
-  function loadCatalog(){
-    try{
-      var raw = localStorage.getItem(CATALOG_KEY);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
-    return null;
+  function catalogCol(){ return db.collection("sites").doc(currentSiteId).collection("priceCatalog"); }
+  function attachCatalogListener(){
+    var unsub = catalogCol().onSnapshot(function(snap){
+      priceCatalog = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+      renderCatalogTable();
+    });
+    siteUnsubscribers.push(unsub);
   }
-  function saveCatalog(){ localStorage.setItem(CATALOG_KEY, JSON.stringify(priceCatalog)); }
-  function seedCatalog(){
-    priceCatalog = [
-      {id:uid(), name:"תקרה/רצפה", defaultPrice:1500, unit:"יח'"},
-      {id:uid(), name:"מרפסת/זיז", defaultPrice:2500, unit:"יח'"},
-      {id:uid(), name:"סקיצה נוספת", defaultPrice:300, unit:""},
-      {id:uid(), name:"ביקור נוסף בשטח", defaultPrice:250, unit:""}
-    ];
-    saveCatalog();
+  function seedCatalogForNewSite(siteId){
+    var col = db.collection("sites").doc(siteId).collection("priceCatalog");
+    [
+      {name:"תקרה/רצפה", defaultPrice:1500, unit:"יח'"},
+      {name:"מרפסת/זיז", defaultPrice:2500, unit:"יח'"},
+      {name:"סקיצה נוספת", defaultPrice:300, unit:""},
+      {name:"ביקור נוסף בשטח", defaultPrice:250, unit:""}
+    ].forEach(function(item){ col.add(item); });
   }
   function renderCatalogTable(){
     var tbody = document.getElementById("catalogTbody");
@@ -2359,26 +2371,14 @@ input,select,textarea{font-family:inherit;color:inherit;}
       unit:document.getElementById("pf-unit").value.trim()
     };
     if(editingCatalogId){
-      var c = priceCatalog.find(function(x){return x.id===editingCatalogId;});
-      if(c) Object.assign(c, data);
+      catalogCol().doc(editingCatalogId).update(data);
     } else {
-      data.id = uid();
-      priceCatalog.push(data);
+      catalogCol().add(data);
     }
-    saveCatalog();
-    renderCatalogTable();
     closeCatalogModal();
   }
   function deleteCatalogItem(id){
-    priceCatalog = priceCatalog.filter(function(c){return c.id!==id;});
-    saveCatalog();
-    renderCatalogTable();
-  }
-  function initCatalog(){
-    var loaded = loadCatalog();
-    if(loaded && loaded.length){ priceCatalog = loaded; }
-    else { seedCatalog(); }
-    renderCatalogTable();
+    catalogCol().doc(id).delete();
   }
 
   /* ---------- quote editor (per-lead) ---------- */
@@ -2426,14 +2426,11 @@ input,select,textarea{font-family:inherit;color:inherit;}
     editingQuoteLeadId = null;
   }
   function saveQuoteForm(){
-    var lead = leads.find(function(x){return x.id===editingQuoteLeadId;});
-    if(!lead) return;
-    lead.quoteLines = quoteDraftLines.filter(function(l){ return (l.name && l.name.trim()) || l.catalogId; });
-    lead.quoteUpdatedAt = new Date().toISOString();
-    if(lead.quoteLines.length) lead.amount = quoteLinesTotal(lead.quoteLines);
-    saveLeads();
-    renderLeadsTable();
-    renderQuotesTable();
+    if(!editingQuoteLeadId) return;
+    var quoteLines = quoteDraftLines.filter(function(l){ return (l.name && l.name.trim()) || l.catalogId; });
+    var patch = {quoteLines: quoteLines, quoteUpdatedAt: new Date().toISOString()};
+    if(quoteLines.length) patch.amount = quoteLinesTotal(quoteLines);
+    leadsCol().doc(editingQuoteLeadId).update(patch);
     closeQuoteModal();
   }
   function quoteSummaryText(lead){
@@ -2468,15 +2465,21 @@ input,select,textarea{font-family:inherit;color:inherit;}
     {id:"arch", label:"אדריכלות"},
     {id:"plan", label:"תכנון"}
   ];
-  var VAT_KEY = "engVatRate_v1";
   var vatRatePercent = 18;
 
-  function loadVatRate(){
-    var raw = localStorage.getItem(VAT_KEY);
-    var n = raw!=null ? Number(raw) : NaN;
-    return isNaN(n) ? null : n;
+  function vatRateDocRef(){ return db.collection("sites").doc(currentSiteId).collection("settings").doc("vatRate"); }
+  function attachVatRateListener(){
+    var unsub = vatRateDocRef().onSnapshot(function(doc){
+      var data = doc.data();
+      vatRatePercent = (data && typeof data.value==="number") ? data.value : 18;
+      if(document.activeElement !== document.getElementById("vatRateInput")){
+        document.getElementById("vatRateInput").value = vatRatePercent;
+      }
+      renderNegotiationTable();
+    });
+    siteUnsubscribers.push(unsub);
   }
-  function saveVatRate(){ localStorage.setItem(VAT_KEY, String(vatRatePercent)); }
+  function saveVatRate(){ vatRateDocRef().set({value: vatRatePercent}); }
 
   function ensureLeadExtras(l){
     if(!l.needsAssessment) l.needsAssessment = {text:"", clientUnderstood:"", assessedAt:null};
@@ -2538,11 +2541,11 @@ input,select,textarea{font-family:inherit;color:inherit;}
     if(!l) return;
     ensureLeadExtras(l);
     var dt = document.getElementById("nf-assessedAt").value;
-    l.needsAssessment.assessedAt = dt || l.needsAssessment.assessedAt || new Date().toISOString().slice(0,16);
-    l.needsAssessment.clientUnderstood = document.getElementById("nf-clientUnderstood").value;
-    l.needsAssessment.text = document.getElementById("nf-text").value;
-    saveLeads();
-    renderNeedsTable();
+    leadsCol().doc(editingNeedsLeadId).update({needsAssessment: {
+      assessedAt: dt || l.needsAssessment.assessedAt || new Date().toISOString().slice(0,16),
+      clientUnderstood: document.getElementById("nf-clientUnderstood").value,
+      text: document.getElementById("nf-text").value
+    }});
     closeNeedsModal();
   }
 
@@ -2615,16 +2618,14 @@ input,select,textarea{font-family:inherit;color:inherit;}
       'מקדמה ('+pct+'%): '+fmtMoney(sums.advExcl)+' ללא מע"מ / '+fmtMoney(sums.advIncl)+' כולל מע"מ  —  יתרה ('+sums.remPercent+'%): '+fmtMoney(sums.remExcl)+' ללא מע"מ / '+fmtMoney(sums.remIncl)+' כולל מע"מ';
   }
   function saveNegotiationForm(){
-    var l = leads.find(function(x){return x.id===editingNegotiationLeadId;});
-    if(!l) return;
-    ensureLeadExtras(l);
-    l.negotiation.approvedAt = document.getElementById("ngf-approvedAt").value;
-    l.negotiation.advancePercent = Number(document.getElementById("ngf-advancePercent").value)||0;
-    l.negotiation.paymentMethod = document.getElementById("ngf-paymentMethod").value;
-    l.negotiation.advancePaidDate = document.getElementById("ngf-advancePaidDate").value;
-    l.negotiation.advancePaid = document.getElementById("ngf-advancePaid").checked;
-    saveLeads();
-    renderNegotiationTable();
+    if(!editingNegotiationLeadId) return;
+    leadsCol().doc(editingNegotiationLeadId).update({negotiation: {
+      approvedAt: document.getElementById("ngf-approvedAt").value,
+      advancePercent: Number(document.getElementById("ngf-advancePercent").value)||0,
+      paymentMethod: document.getElementById("ngf-paymentMethod").value,
+      advancePaidDate: document.getElementById("ngf-advancePaidDate").value,
+      advancePaid: document.getElementById("ngf-advancePaid").checked
+    }});
     closeNegotiationModal();
   }
 
@@ -2690,41 +2691,33 @@ input,select,textarea{font-family:inherit;color:inherit;}
     editingDocsLeadId = null;
   }
   function saveDocsForm(){
-    var l = leads.find(function(x){return x.id===editingDocsLeadId;});
-    if(!l) return;
-    ensureLeadExtras(l);
+    if(!editingDocsLeadId) return;
+    var documents = {};
     DOC_CATEGORIES.forEach(function(c){
       var checkbox = document.querySelector('[data-doc-received="'+c.id+'"]');
       var linkInput = document.querySelector('[data-doc-link="'+c.id+'"]');
       var received = checkbox ? checkbox.checked : false;
       var link = linkInput ? linkInput.value.trim() : "";
-      l.documents[c.id] = {received:received, link:link, updatedAt: received ? new Date().toISOString() : null};
+      documents[c.id] = {received:received, link:link, updatedAt: received ? new Date().toISOString() : null};
     });
-    saveLeads();
-    renderDocsTable();
+    leadsCol().doc(editingDocsLeadId).update({documents: documents});
     closeDocsModal();
   }
 
   /* ---------- calls / inquiries ---------- */
-  var CALLS_KEY = "engCalls_v1";
   var calls = [];
   var editingCallId = null;
   var openCallMenuId = null;
   var callsFilters = {search:"", status:"all"};
 
-  function loadCalls(){
-    try{
-      var raw = localStorage.getItem(CALLS_KEY);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
-    return null;
-  }
-  function saveCalls(){ localStorage.setItem(CALLS_KEY, JSON.stringify(calls)); }
-  function seedCalls(){
-    calls = [
-      {id:uid(), name:"משה לוי", phone:"0501234000", dateTime:new Date().toISOString().slice(0,16), callerType:"לקוח קיים", subject:"סטטוס פרויקט", handledBy:"", status:"חדש", followUp:false, followUpDate:"", notes:""}
-    ];
-    saveCalls();
+  function callsCol(){ return db.collection("sites").doc(currentSiteId).collection("calls"); }
+  function attachCallsListener(){
+    var unsub = callsCol().onSnapshot(function(snap){
+      calls = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+      renderCallsChips();
+      renderCallsTable();
+    });
+    siteUnsubscribers.push(unsub);
   }
   function callBadge(status){
     var cls = status==="טופל" ? "pay-paid" : status==="ממתין למעקב" ? "pay-partial" : "status";
@@ -2811,58 +2804,58 @@ input,select,textarea{font-family:inherit;color:inherit;}
       notes:document.getElementById("cf-notes").value
     };
     if(editingCallId){
-      var c = calls.find(function(x){return x.id===editingCallId;});
-      if(c) Object.assign(c, data);
+      callsCol().doc(editingCallId).update(data);
     } else {
-      data.id = uid();
-      calls.unshift(data);
+      callsCol().add(data);
     }
-    saveCalls();
-    renderCallsTable();
     closeCallModal();
   }
   function deleteCall(id){
-    calls = calls.filter(function(c){return c.id!==id;});
+    callsCol().doc(id).delete();
     openCallMenuId = null;
-    saveCalls();
-    renderCallsTable();
   }
   function convertCallToLead(){
     if(!editingCallId) return;
     var c = calls.find(function(x){return x.id===editingCallId;});
     if(!c) return;
     if(!confirm('ליצור ליד חדש עבור "'+c.name+'"?')) return;
-    var lead = {id:uid(), name:c.name, phone:c.phone||"", whatsapp:"", email:"", address:"",
+    leadsCol().add({name:c.name, phone:c.phone||"", whatsapp:"", email:"", address:"",
       customerType:c.callerType==="לקוח קיים"?"קיים":"חדש", type:"", workType:"", source:"טלפון",
-      inquiryDate:new Date().toISOString().slice(0,10), advance:0, amount:0, vatIncluded:false, quoteLines:[]};
-    leads.unshift(lead);
-    saveLeads();
-    renderLeadsTable();
+      inquiryDate:new Date().toISOString().slice(0,10), advance:0, amount:0, vatIncluded:false, quoteLines:[]});
     closeCallModal();
     showView("sales");
   }
-  function initCalls(){
-    var loaded = loadCalls();
-    if(loaded && loaded.length){ calls = loaded; }
-    else { seedCalls(); }
-    renderCallsChips();
-    renderCallsTable();
+  /* ---------- site data lifecycle ---------- */
+  function attachSiteData(){
+    attachProjectsListener();
+    attachLeadsListener();
+    attachTasksListener();
+    attachServiceListener();
+    attachCatalogListener();
+    attachCallsListener();
+    attachVatRateListener();
+    renderActiveProjectCards("clientActiveProjects");
+    renderActiveProjectCards("bareActiveProjects");
+  }
+  function detachSiteData(){
+    siteUnsubscribers.forEach(function(u){ u(); });
+    siteUnsubscribers = [];
   }
 
-  init();
-  initSales();
-  initTasks();
-  initService();
-  initCatalog();
-  initCalls();
-  renderActiveProjectCards("clientActiveProjects");
-  renderActiveProjectCards("bareActiveProjects");
-  (function initVatRate(){
-    var loaded = loadVatRate();
-    if(loaded!=null) vatRatePercent = loaded;
-    document.getElementById("vatRateInput").value = vatRatePercent;
-  })();
-  showView("projects");
-  applyAccessMode();
+  bindStatic();
+  auth.onAuthStateChanged(function(user){
+    currentUser = user;
+    if(!user){
+      detachSiteData();
+      currentSiteId = null;
+      document.getElementById("appShell").hidden = true;
+      document.getElementById("siteSwitcherOverlay").hidden = true;
+      document.getElementById("loginOverlay").hidden = false;
+      return;
+    }
+    document.getElementById("loginOverlay").hidden = true;
+    updateUserBadge();
+    resolveSites();
+  });
 })();
 </script>
