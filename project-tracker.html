@@ -260,9 +260,12 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .wh-clock-btn.in:hover{background:#188045;}
 .wh-clock-btn.out{background:#c0472c;}
 .wh-clock-btn.out:hover{background:#a13c25;}
-.wh-clock-btn:disabled{background:var(--surface-2);color:var(--ink-faint);cursor:default;}
+.wh-card-hint2{color:var(--ink-faint);font-size:0.78rem;margin-bottom:12px;}
+.wh-sessions{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.wh-session-row{display:flex;gap:8px;align-items:center;}
+.wh-session-row input[type="time"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
 .wh-card-manual{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:0.85rem;border-top:1px dashed var(--border);padding-top:12px;}
-.wh-card-manual input[type="time"], .wh-card-manual input[type="text"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
+.wh-card-manual input[type="text"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
 .wh-note-lbl{flex:1;min-width:160px;}
 .wh-note-lbl input{width:100%;}
 .wh-card-total{margin-top:12px;font-weight:700;font-size:0.95rem;color:var(--accent);}
@@ -841,9 +844,10 @@ input,select,textarea{font-family:inherit;color:inherit;}
         <button type="button" class="wh-clock-btn in" id="whClockInBtn">כניסה עכשיו</button>
         <button type="button" class="wh-clock-btn out" id="whClockOutBtn">יציאה עכשיו</button>
       </div>
+      <div class="wh-card-hint2">אפשר ללחוץ כניסה/יציאה כמה פעמים באותו יום (למשל אם יוצאים וחוזרים) - כל לחיצה מתווספת כקטע נפרד.</div>
+      <div id="whSessionsList" class="wh-sessions"></div>
       <div class="wh-card-manual">
-        <label>כניסה: <input type="time" id="whCheckIn"></label>
-        <label>יציאה: <input type="time" id="whCheckOut"></label>
+        <button type="button" class="ghost-btn" id="whAddSessionBtn">+ הוספת קטע ידני</button>
         <label class="wh-note-lbl">הערה: <input type="text" id="whNote" placeholder="אופציונלי"></label>
         <button type="button" class="pill-btn" id="whSaveBtn">שמירה</button>
       </div>
@@ -862,7 +866,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
       <div class="wh-summary" id="whSummary"></div>
       <table class="leads-table" id="whTable">
         <thead>
-          <tr><th>תאריך</th><th>כניסה</th><th>יציאה</th><th>שעות</th><th>הערה</th><th></th></tr>
+          <tr><th>תאריך</th><th>קטעים (כניסה-יציאה)</th><th>שעות</th><th>הערה</th><th></th></tr>
         </thead>
         <tbody id="whTbody"></tbody>
       </table>
@@ -1825,9 +1829,26 @@ input,select,textarea{font-family:inherit;color:inherit;}
     document.getElementById("whCardDate").addEventListener("change", function(e){
       loadCardForDate(e.target.value || todayStr());
     });
-    document.getElementById("whClockInBtn").addEventListener("click", function(){ clockNow("checkIn"); });
-    document.getElementById("whClockOutBtn").addEventListener("click", function(){ clockNow("checkOut"); });
+    document.getElementById("whClockInBtn").addEventListener("click", clockIn);
+    document.getElementById("whClockOutBtn").addEventListener("click", clockOut);
     document.getElementById("whSaveBtn").addEventListener("click", saveCardManual);
+    document.getElementById("whAddSessionBtn").addEventListener("click", function(){
+      var wrap = document.getElementById("whSessionsList");
+      var emptyMsg = wrap.querySelector(".mr-empty");
+      if(emptyMsg) wrap.innerHTML = "";
+      wrap.insertAdjacentHTML("beforeend",
+        '<div class="wh-session-row"><input type="time" class="wh-s-in"><span>-</span><input type="time" class="wh-s-out">'+
+        '<button type="button" class="danger-btn" data-session-del="1">מחיקה</button></div>');
+    });
+    document.getElementById("whSessionsList").addEventListener("click", function(e){
+      var btn = e.target.closest("[data-session-del]");
+      if(!btn) return;
+      btn.closest(".wh-session-row").remove();
+      var wrap = document.getElementById("whSessionsList");
+      if(!wrap.querySelector(".wh-session-row")){
+        wrap.innerHTML = '<div class="mr-empty">אין קטעים ליום זה. לחצו "כניסה עכשיו" או הוסיפו קטע ידני.</div>';
+      }
+    });
     document.getElementById("whMonth").addEventListener("change", renderWorkHoursView);
     document.getElementById("whExportCsvBtn").addEventListener("click", exportWorkHoursCsv);
     document.getElementById("whPrintBtn").addEventListener("click", function(){ window.print(); });
@@ -3084,12 +3105,15 @@ input,select,textarea{font-family:inherit;color:inherit;}
   function todayStr(){ return new Date().toISOString().slice(0,10); }
   function nowTimeStr(){ return new Date().toTimeString().slice(0,5); }
 
-  function computeHours(checkIn, checkOut){
+  function computeSegmentHours(checkIn, checkOut){
     if(!checkIn || !checkOut) return 0;
     var a = checkIn.split(":"), b = checkOut.split(":");
     var mins = (Number(b[0])*60+Number(b[1])) - (Number(a[0])*60+Number(a[1]));
     if(isNaN(mins) || mins<=0) return 0;
     return Math.round((mins/60)*100)/100;
+  }
+  function computeDayHours(sessions){
+    return Math.round((sessions||[]).reduce(function(sum,s){ return sum+computeSegmentHours(s.checkIn,s.checkOut); },0)*100)/100;
   }
 
   function attachWorkHoursListener(){
@@ -3112,38 +3136,75 @@ input,select,textarea{font-family:inherit;color:inherit;}
   function setMyHourlyRate(val){
     workHoursDocRef().set({hourlyRate: Number(val)||0}, {merge:true});
   }
-  function saveWorkHourEntry(date, patch){
-    var p = Object.assign({date:date}, patch);
-    workHoursEntriesCol().doc(date).set(p, {merge:true});
+  function getWorkHourEntry(date){
+    return myWorkEntries.find(function(x){ return x.id===date; }) || {};
   }
   function deleteWorkHourEntry(date){
     workHoursEntriesCol().doc(date).delete();
   }
 
-  function clockNow(field){
+  function clockIn(){
     var date = document.getElementById("whCardDate").value || todayStr();
-    var patch = {}; patch[field] = nowTimeStr();
-    saveWorkHourEntry(date, patch);
+    var sessions = (getWorkHourEntry(date).sessions || []).slice();
+    sessions.push({checkIn: nowTimeStr(), checkOut:""});
+    workHoursEntriesCol().doc(date).set({date:date, sessions:sessions}, {merge:true});
+  }
+  function clockOut(){
+    var date = document.getElementById("whCardDate").value || todayStr();
+    var sessions = (getWorkHourEntry(date).sessions || []).slice();
+    if(sessions.length){
+      sessions[sessions.length-1] = Object.assign({}, sessions[sessions.length-1], {checkOut: nowTimeStr()});
+    } else {
+      sessions.push({checkIn:"", checkOut: nowTimeStr()});
+    }
+    workHoursEntriesCol().doc(date).set({date:date, sessions:sessions}, {merge:true});
+  }
+
+  function readSessionsFromDom(){
+    var rows = document.querySelectorAll("#whSessionsList .wh-session-row");
+    var out = [];
+    rows.forEach(function(row){
+      var ci = row.querySelector(".wh-s-in").value;
+      var co = row.querySelector(".wh-s-out").value;
+      if(ci || co) out.push({checkIn:ci||"", checkOut:co||""});
+    });
+    return out;
   }
   function saveCardManual(){
     var date = document.getElementById("whCardDate").value || todayStr();
-    saveWorkHourEntry(date, {
-      checkIn: document.getElementById("whCheckIn").value || "",
-      checkOut: document.getElementById("whCheckOut").value || "",
+    workHoursEntriesCol().doc(date).set({
+      date: date,
+      sessions: readSessionsFromDom(),
       note: document.getElementById("whNote").value.trim()
-    });
+    }, {merge:true});
+  }
+
+  function renderSessionsList(sessions){
+    var wrap = document.getElementById("whSessionsList");
+    wrap.innerHTML = sessions.length ? sessions.map(function(s){
+      return '<div class="wh-session-row">'+
+        '<input type="time" class="wh-s-in" value="'+(s.checkIn||"")+'">'+
+        '<span>-</span>'+
+        '<input type="time" class="wh-s-out" value="'+(s.checkOut||"")+'">'+
+        '<button type="button" class="danger-btn" data-session-del="1">מחיקה</button>'+
+      '</div>';
+    }).join("") : '<div class="mr-empty">אין קטעים ליום זה. לחצו "כניסה עכשיו" או הוסיפו קטע ידני.</div>';
   }
 
   function loadCardForDate(date){
-    var e = myWorkEntries.find(function(x){ return x.id===date; }) || {};
-    document.getElementById("whCheckIn").value = e.checkIn || "";
-    document.getElementById("whCheckOut").value = e.checkOut || "";
-    document.getElementById("whNote").value = e.note || "";
+    var e = getWorkHourEntry(date);
+    var sessions = e.sessions || [];
+    if(!isFocusedWithin("whSessionsList")) renderSessionsList(sessions);
+    if(document.activeElement !== document.getElementById("whNote")){
+      document.getElementById("whNote").value = e.note || "";
+    }
     document.getElementById("whCardHint").textContent = date===todayStr() ? "(היום)" : "";
-    document.getElementById("whClockInBtn").disabled = !!e.checkIn;
-    document.getElementById("whClockOutBtn").disabled = !e.checkIn || !!e.checkOut;
-    var hours = computeHours(e.checkIn, e.checkOut);
+    var hours = computeDayHours(sessions);
     document.getElementById("whCardTotal").textContent = hours ? ("סה\"כ ליום זה: "+hours+" שעות") : "";
+  }
+
+  function sessionsSummary(sessions){
+    return (sessions||[]).map(function(s){ return (s.checkIn||"?")+"-"+(s.checkOut||"?"); }).join(", ") || "-";
   }
 
   function renderWorkHoursView(){
@@ -3158,20 +3219,20 @@ input,select,textarea{font-family:inherit;color:inherit;}
     var rows = myWorkEntries.filter(function(e){ return (e.date||"").slice(0,7)===month; })
       .sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); });
 
-    var totalHours = rows.reduce(function(s,e){ return s+computeHours(e.checkIn,e.checkOut); }, 0);
+    var totalHours = rows.reduce(function(s,e){ return s+computeDayHours(e.sessions); }, 0);
     var totalPay = totalHours * (myHourlyRate||0);
 
     document.getElementById("whSummary").textContent =
       "סה\"כ שעות בחודש: "+totalHours+" | מגיע לך: "+fmtMoney(totalPay);
 
     document.getElementById("whTbody").innerHTML = rows.length ? rows.map(function(e){
-      return '<tr class="wh-hist-row" data-wh-load="'+e.date+'"><td>'+fmtDate(e.date)+'</td><td>'+(e.checkIn||"")+'</td><td>'+(e.checkOut||"")+'</td><td>'+computeHours(e.checkIn,e.checkOut)+'</td><td>'+escapeHtml(e.note||"")+'</td>'+
+      return '<tr class="wh-hist-row" data-wh-load="'+e.date+'"><td>'+fmtDate(e.date)+'</td><td>'+sessionsSummary(e.sessions)+'</td><td>'+computeDayHours(e.sessions)+'</td><td>'+escapeHtml(e.note||"")+'</td>'+
         '<td><button type="button" class="danger-btn" data-wh-del="'+e.date+'">מחיקה</button></td></tr>';
-    }).join("") : '<tr><td colspan="6" class="mr-empty">אין רישומים בחודש הנבחר.</td></tr>';
+    }).join("") : '<tr><td colspan="5" class="mr-empty">אין רישומים בחודש הנבחר.</td></tr>';
 
     var subject = "דוח שעות עבודה - "+month;
     var body = "שלום,\n\nדוח שעות עבודה לחודש "+month+":\n\n"+
-      rows.map(function(e){ return fmtDate(e.date)+" - "+(e.checkIn||"?")+" עד "+(e.checkOut||"?")+" ("+computeHours(e.checkIn,e.checkOut)+" שעות)"+(e.note?" - "+e.note:""); }).join("\n")+
+      rows.map(function(e){ return fmtDate(e.date)+" - "+sessionsSummary(e.sessions)+" ("+computeDayHours(e.sessions)+" שעות)"+(e.note?" - "+e.note:""); }).join("\n")+
       "\n\nסה\"כ שעות: "+totalHours+"\nתעריף לשעה: "+fmtMoney(myHourlyRate||0)+"\nסה\"כ לתשלום: "+fmtMoney(totalPay)+
       "\n\nבברכה";
     var emailBtn = document.getElementById("whEmailBtn");
@@ -3185,16 +3246,17 @@ input,select,textarea{font-family:inherit;color:inherit;}
     var month = monthInput.value || new Date().toISOString().slice(0,7);
     var rows = myWorkEntries.filter(function(e){ return (e.date||"").slice(0,7)===month; })
       .sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); });
-    var lines = ["תאריך,כניסה,יציאה,שעות,הערה"];
+    var lines = ["תאריך,קטעים,שעות,הערה"];
     rows.forEach(function(e){
+      var segs = '"'+sessionsSummary(e.sessions).replace(/"/g,'""')+'"';
       var note = '"'+String(e.note||"").replace(/"/g,'""')+'"';
-      lines.push(e.date+","+(e.checkIn||"")+","+(e.checkOut||"")+","+computeHours(e.checkIn,e.checkOut)+","+note);
+      lines.push(e.date+","+segs+","+computeDayHours(e.sessions)+","+note);
     });
-    var totalHours = rows.reduce(function(s,e){ return s+computeHours(e.checkIn,e.checkOut); }, 0);
+    var totalHours = rows.reduce(function(s,e){ return s+computeDayHours(e.sessions); }, 0);
     lines.push("");
-    lines.push("סה\"כ שעות,"+totalHours+",,,");
-    lines.push("תעריף לשעה,"+(myHourlyRate||0)+",,,");
-    lines.push("סה\"כ לתשלום,"+(totalHours*(myHourlyRate||0))+",,,");
+    lines.push("סה\"כ שעות,"+totalHours+",,");
+    lines.push("תעריף לשעה,"+(myHourlyRate||0)+",,");
+    lines.push("סה\"כ לתשלום,"+(totalHours*(myHourlyRate||0))+",,");
     var csv = "﻿"+lines.join("\r\n");
     var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
     var url = URL.createObjectURL(blob);
