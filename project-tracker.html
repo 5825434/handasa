@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ניהול פרויקטים הנדסיים</title>
 <style>
 :root{
@@ -240,8 +245,11 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .monthly-report-title{font-weight:700;}
 .monthly-report-body{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
 .monthly-report-charts{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;}
-.monthly-report-charts svg{width:260px;height:150px;flex:none;}
-#monthlyReportPie{width:170px;height:170px;}
+.monthly-report-charts svg{width:100%;max-width:260px;height:auto;}
+#monthlyReportPie{max-width:170px;}
+@media (max-width:480px){
+  .monthly-report-charts svg{max-width:100%;}
+}
 .monthly-report-list{flex:1;min-width:220px;max-height:220px;overflow:auto;font-size:0.82rem;}
 .monthly-report-list .mr-row{padding:5px 0;border-bottom:1px solid var(--border);}
 .monthly-report-list .mr-empty{color:var(--ink-faint);padding:8px 0;}
@@ -260,9 +268,12 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .wh-clock-btn.in:hover{background:#188045;}
 .wh-clock-btn.out{background:#c0472c;}
 .wh-clock-btn.out:hover{background:#a13c25;}
+@media (max-width:480px){
+  .wh-card-buttons{flex-direction:column;}
+}
 .wh-card-hint2{color:var(--ink-faint);font-size:0.78rem;margin-bottom:12px;}
 .wh-sessions{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
-.wh-session-row{display:flex;gap:8px;align-items:center;}
+.wh-session-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .wh-session-row input[type="time"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
 .wh-card-manual{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:0.85rem;border-top:1px dashed var(--border);padding-top:12px;}
 .wh-card-manual input[type="text"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
@@ -369,6 +380,10 @@ input,select,textarea{font-family:inherit;color:inherit;}
   .sidebar{width:100%;height:auto;position:static;border-left:none;border-bottom:1px solid var(--border);}
   .sidebar-nav{flex-direction:row;flex-wrap:wrap;gap:6px;}
   .vs-btn{width:auto;}
+}
+@media (max-width:480px){
+  .wrap{padding:16px 10px 60px;}
+  .hdr h1{font-size:1.25rem;}
 }
 
 /* sales / leads */
@@ -483,6 +498,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
   .quote-line{grid-template-columns:1fr 1fr;}
 }
 </style>
+</head>
+<body>
 
 <div class="app-shell" id="appShell" hidden>
   <aside class="sidebar" id="sidebar">
@@ -874,12 +891,14 @@ input,select,textarea{font-family:inherit;color:inherit;}
 
     <div id="whPrintArea">
       <div class="wh-summary" id="whSummary"></div>
-      <table class="leads-table" id="whTable">
-        <thead>
-          <tr><th>תאריך</th><th>קטעים (כניסה-יציאה)</th><th>שעות</th><th>הערה</th><th></th></tr>
-        </thead>
-        <tbody id="whTbody"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table class="leads-table" id="whTable">
+          <thead>
+            <tr><th>תאריך</th><th>קטעים (כניסה-יציאה)</th><th>שעות</th><th>הערה</th><th></th></tr>
+          </thead>
+          <tbody id="whTbody"></tbody>
+        </table>
+      </div>
     </div>
   </div><!-- /viewWorkHours -->
 
@@ -3390,3 +3409,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
 </script>
 
 <footer class="site-footer">© נוצר ע"י תכנון נכון · T0527697956@GMAIL.COM</footer>
+
+</body>
+</html>
