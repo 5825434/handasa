@@ -281,6 +281,10 @@ input,select,textarea{font-family:inherit;color:inherit;}
 }
 
 .site-footer{text-align:center;font-size:0.76rem;color:var(--ink-faint);padding:14px 10px;border-top:1px solid var(--border);}
+
+.demo-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#f5a623;color:#3a2600;font-size:0.85rem;font-weight:600;padding:10px 16px;margin:0 0 12px;border-radius:8px;}
+.demo-banner[hidden]{display:none;}
+.demo-banner .pill-btn{background:#3a2600;color:#fff;}
 @media print{ .site-footer{display:none;} }
 
 .qpop{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 12px;border-top:1px dashed var(--border);margin-top:1px;padding-top:10px;}
@@ -513,10 +517,16 @@ input,select,textarea{font-family:inherit;color:inherit;}
     </div>
     <div class="mgr-toggle">
       <span id="userBadge" class="user-badge"></span>
+      <button class="ghost-btn" id="demoModeBtn" type="button">תצוגת דמו</button>
       <button class="ghost-btn" id="shareBtn" type="button" hidden>שיתוף האתר</button>
       <button class="ghost-btn" id="switchSiteBtn" type="button" hidden>החלפת אתר</button>
       <button class="ghost-btn" id="signOutBtn" type="button">התנתקות</button>
     </div>
+  </div>
+
+  <div class="demo-banner" id="demoBanner" hidden>
+    <span>🔶 מצב תצוגת דמו פעיל - כל הנתונים המוצגים הם לדוגמה בלבד ולא נשמרים בשום מקום.</span>
+    <button type="button" class="pill-btn" id="demoExitBtn">חזרה לנתונים האמיתיים</button>
   </div>
 
   <div id="viewProjects">
@@ -1104,6 +1114,9 @@ input,select,textarea{font-family:inherit;color:inherit;}
   var siteUnsubscribers = [];
   var myHourlyRate = 0;
   var myWorkEntries = [];
+  var demoMode = false;
+  var realProjects = null;
+  var realLeads = null;
 
   var QUADRANTS = {
     uq:{label:"חשוב ודחוף", token:"--q-uq"},
@@ -1135,7 +1148,9 @@ input,select,textarea{font-family:inherit;color:inherit;}
   function projectsCol(){ return db.collection("sites").doc(currentSiteId).collection("projects"); }
   function attachProjectsListener(){
     var unsub = projectsCol().onSnapshot(function(snap){
-      projects = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+      var data = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+      if(demoMode){ realProjects = data; return; }
+      projects = data;
       if(!selectedId && projects.length) selectedId = projects[0].id;
       renderStats();
       renderList();
@@ -1667,6 +1682,10 @@ input,select,textarea{font-family:inherit;color:inherit;}
       var btn = e.target.closest("[data-select-site]");
       if(btn) selectSite(btn.getAttribute("data-select-site"));
     });
+    document.getElementById("demoModeBtn").addEventListener("click", function(){
+      demoMode ? disableDemoMode() : enableDemoMode();
+    });
+    document.getElementById("demoExitBtn").addEventListener("click", disableDemoMode);
     document.getElementById("shareBtn").addEventListener("click", openShareModal);
     document.getElementById("shareCloseBtn").addEventListener("click", closeShareModal);
     document.getElementById("shareOverlay").addEventListener("click", function(e){
@@ -2113,7 +2132,9 @@ input,select,textarea{font-family:inherit;color:inherit;}
   function leadsCol(){ return db.collection("sites").doc(currentSiteId).collection("leads"); }
   function attachLeadsListener(){
     var unsub = leadsCol().onSnapshot(function(snap){
-      leads = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+      var data = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+      if(demoMode){ realLeads = data; return; }
+      leads = data;
       refreshActiveLeadSubTab();
       if(!isFocusedWithin("clientActiveProjects")) renderActiveProjectCards("clientActiveProjects");
     });
@@ -3099,6 +3120,62 @@ input,select,textarea{font-family:inherit;color:inherit;}
     showView("sales");
   }
 
+  /* ---------- demo mode (client-side only, never written to Firestore) ---------- */
+  function isoPlusDays(n){
+    var d = new Date();
+    d.setDate(d.getDate()+n);
+    return d.toISOString().slice(0,10);
+  }
+  function buildDemoProjects(){
+    return [
+      {id:"demo-p1", name:"משרד כהן ושות׳", address:"רחוב הרצל 12, תל אביב", phone:"050-1234567", employee:"דני", dueDate:isoPlusDays(9), quadrant:"uq", status:3, notes:"לתאם ביקור באתר", price:45000, paid:20000, statusDates:{"1":isoPlusDays(-20),"2":isoPlusDays(-10),"3":isoPlusDays(-2)}},
+      {id:"demo-p2", name:"וילת לוי", address:"שדרות רוטשילד 5, הרצליה", phone:"052-9876543", employee:"מיכל", dueDate:isoPlusDays(20), quadrant:"u", status:1, notes:"", price:120000, paid:0, statusDates:{"1":isoPlusDays(-3)}},
+      {id:"demo-p3", name:"בניין מגורים - קבוצת רכישה", address:"האלון 8, מודיעין", phone:"054-5551234", employee:"דני", dueDate:isoPlusDays(-2), quadrant:"q", status:4, notes:"להדפיס תוכניות סופיות", price:280000, paid:280000, statusDates:{"1":isoPlusDays(-40),"2":isoPlusDays(-30),"3":isoPlusDays(-15),"4":isoPlusDays(-1)}},
+      {id:"demo-p4", name:"הרחבת בית פרטי", address:"הדקל 3, רעננה", phone:"053-1112233", employee:"מיכל", dueDate:isoPlusDays(30), quadrant:"n", status:2, notes:"ממתין לאישור היתר", price:65000, paid:15000, statusDates:{"1":isoPlusDays(-12),"2":isoPlusDays(-4)}},
+      {id:"demo-p5", name:"מחסן תעשייתי", address:"אזור התעשייה, נתניה", phone:"050-7778899", employee:"דני", dueDate:"", quadrant:"n", status:5, notes:"הפרויקט הושלם", price:95000, paid:95000, statusDates:{"1":isoPlusDays(-60),"2":isoPlusDays(-50),"3":isoPlusDays(-35),"4":isoPlusDays(-20),"5":isoPlusDays(-5)}}
+    ];
+  }
+  function buildDemoLeads(){
+    return [
+      {id:"demo-l1", name:"אבי גולן", phone:"050-1111111", whatsapp:"050-1111111", email:"avi@example.com", address:"הנביאים 4, חיפה", customerType:"חדש", type:"פרטי", workType:"תוספת בניה", source:"אתר אינטרנט", inquiryDate:isoPlusDays(-3), advance:0, amount:18000, vatIncluded:true, quoteLines:[]},
+      {id:"demo-l2", name:"רונית שגיא", phone:"052-2222222", whatsapp:"", email:"", address:"החורש 9, כפר סבא", customerType:"קיים", type:"עסקי", workType:"שרטוט קונסטרוקציה", source:"המלצה", inquiryDate:isoPlusDays(-10), advance:2000, amount:24000, vatIncluded:true, quoteLines:[]}
+    ];
+  }
+  function rerenderEverything(){
+    renderStats();
+    renderList();
+    if(!isFocusedWithin("detailPanel")) renderDetail();
+    renderActiveProjectCards("clientActiveProjects");
+    renderActiveProjectCards("bareActiveProjects");
+    refreshActiveLeadSubTab();
+    renderTasksView();
+    renderServiceView();
+    var mrPanel = document.getElementById("monthlyReport");
+    if(mrPanel && !mrPanel.hidden) renderMonthlyReport();
+  }
+  function enableDemoMode(){
+    if(demoMode) return;
+    demoMode = true;
+    realProjects = projects;
+    realLeads = leads;
+    projects = buildDemoProjects();
+    leads = buildDemoLeads();
+    document.getElementById("demoBanner").hidden = false;
+    document.getElementById("demoModeBtn").textContent = "סיום תצוגת דמו";
+    rerenderEverything();
+  }
+  function disableDemoMode(){
+    if(!demoMode) return;
+    demoMode = false;
+    projects = realProjects || [];
+    leads = realLeads || [];
+    realProjects = null;
+    realLeads = null;
+    document.getElementById("demoBanner").hidden = true;
+    document.getElementById("demoModeBtn").textContent = "תצוגת דמו";
+    rerenderEverything();
+  }
+
   /* ---------- work hours (private per-user, clock-in/clock-out) ---------- */
   function workHoursDocRef(){ return db.collection("sites").doc(currentSiteId).collection("workHours").doc(currentUser.uid); }
   function workHoursEntriesCol(){ return workHoursDocRef().collection("entries"); }
@@ -3287,6 +3364,11 @@ input,select,textarea{font-family:inherit;color:inherit;}
     siteUnsubscribers = [];
     myHourlyRate = 0;
     myWorkEntries = [];
+    demoMode = false;
+    realProjects = null;
+    realLeads = null;
+    document.getElementById("demoBanner").hidden = true;
+    document.getElementById("demoModeBtn").textContent = "תצוגת דמו";
   }
 
   bindStatic();
