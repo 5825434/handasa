@@ -249,8 +249,26 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .mr-legend span.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:6px;}
 
 .wh-rate-row{margin-bottom:12px;font-size:0.9rem;}
-.wh-add-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
-.wh-add-row input{padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
+
+.wh-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px;}
+.wh-card-date-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:0.9rem;}
+.wh-card-date-row input[type="date"]{padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
+.wh-card-hint{color:var(--ink-faint);font-size:0.8rem;}
+.wh-card-buttons{display:flex;gap:14px;margin-bottom:14px;}
+.wh-clock-btn{flex:1;padding:18px 10px;font-size:1.05rem;font-weight:700;border-radius:12px;border:none;cursor:pointer;color:#fff;}
+.wh-clock-btn.in{background:#1f9d55;}
+.wh-clock-btn.in:hover{background:#188045;}
+.wh-clock-btn.out{background:#c0472c;}
+.wh-clock-btn.out:hover{background:#a13c25;}
+.wh-clock-btn:disabled{background:var(--surface-2);color:var(--ink-faint);cursor:default;}
+.wh-card-manual{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:0.85rem;border-top:1px dashed var(--border);padding-top:12px;}
+.wh-card-manual input[type="time"], .wh-card-manual input[type="text"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
+.wh-note-lbl{flex:1;min-width:160px;}
+.wh-note-lbl input{width:100%;}
+.wh-card-total{margin-top:12px;font-weight:700;font-size:0.95rem;color:var(--accent);}
+.wh-hist-row{cursor:pointer;}
+.wh-hist-row:hover{background:var(--surface-2);}
+
 .wh-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
 .wh-summary{font-size:1rem;font-weight:700;padding:10px 14px;background:var(--accent-soft);color:var(--accent);border-radius:8px;margin-bottom:12px;}
 @media print{
@@ -814,12 +832,23 @@ input,select,textarea{font-family:inherit;color:inherit;}
       <label>תעריף לשעה (₪): <input type="number" id="whRate" min="0" step="1" style="width:90px;"></label>
     </div>
 
-    <form class="wh-add-row" id="whAddForm">
-      <input type="date" id="whDate" required>
-      <input type="number" id="whHours" placeholder="שעות" min="0" step="0.25" required style="width:90px;">
-      <input type="text" id="whNote" placeholder="הערה (אופציונלי)">
-      <button type="submit">+ הוספת רישום</button>
-    </form>
+    <div class="wh-card">
+      <div class="wh-card-date-row">
+        <label>תאריך: <input type="date" id="whCardDate"></label>
+        <span class="wh-card-hint" id="whCardHint"></span>
+      </div>
+      <div class="wh-card-buttons">
+        <button type="button" class="wh-clock-btn in" id="whClockInBtn">כניסה עכשיו</button>
+        <button type="button" class="wh-clock-btn out" id="whClockOutBtn">יציאה עכשיו</button>
+      </div>
+      <div class="wh-card-manual">
+        <label>כניסה: <input type="time" id="whCheckIn"></label>
+        <label>יציאה: <input type="time" id="whCheckOut"></label>
+        <label class="wh-note-lbl">הערה: <input type="text" id="whNote" placeholder="אופציונלי"></label>
+        <button type="button" class="pill-btn" id="whSaveBtn">שמירה</button>
+      </div>
+      <div class="wh-card-total" id="whCardTotal"></div>
+    </div>
 
     <div class="wh-toolbar">
       <label>חודש: <input type="month" id="whMonth"></label>
@@ -833,7 +862,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
       <div class="wh-summary" id="whSummary"></div>
       <table class="leads-table" id="whTable">
         <thead>
-          <tr><th>תאריך</th><th>שעות</th><th>הערה</th><th></th></tr>
+          <tr><th>תאריך</th><th>כניסה</th><th>יציאה</th><th>שעות</th><th>הערה</th><th></th></tr>
         </thead>
         <tbody id="whTbody"></tbody>
       </table>
@@ -1793,22 +1822,27 @@ input,select,textarea{font-family:inherit;color:inherit;}
     document.getElementById("whRate").addEventListener("change", function(e){
       setMyHourlyRate(e.target.value);
     });
-    document.getElementById("whAddForm").addEventListener("submit", function(e){
-      e.preventDefault();
-      var date = document.getElementById("whDate").value;
-      var hours = document.getElementById("whHours").value;
-      var note = document.getElementById("whNote").value.trim();
-      if(!date || !hours) return;
-      addWorkHourEntry(date, hours, note);
-      e.target.reset();
+    document.getElementById("whCardDate").addEventListener("change", function(e){
+      loadCardForDate(e.target.value || todayStr());
     });
+    document.getElementById("whClockInBtn").addEventListener("click", function(){ clockNow("checkIn"); });
+    document.getElementById("whClockOutBtn").addEventListener("click", function(){ clockNow("checkOut"); });
+    document.getElementById("whSaveBtn").addEventListener("click", saveCardManual);
     document.getElementById("whMonth").addEventListener("change", renderWorkHoursView);
     document.getElementById("whExportCsvBtn").addEventListener("click", exportWorkHoursCsv);
     document.getElementById("whPrintBtn").addEventListener("click", function(){ window.print(); });
     document.getElementById("whTbody").addEventListener("click", function(e){
-      var btn = e.target.closest("[data-wh-del]");
-      if(!btn) return;
-      if(confirm("למחוק את הרישום?")) deleteWorkHourEntry(btn.getAttribute("data-wh-del"));
+      var delBtn = e.target.closest("[data-wh-del]");
+      if(delBtn){
+        if(confirm("למחוק את הרישום?")) deleteWorkHourEntry(delBtn.getAttribute("data-wh-del"));
+        return;
+      }
+      var row = e.target.closest("[data-wh-load]");
+      if(row){
+        var date = row.getAttribute("data-wh-load");
+        document.getElementById("whCardDate").value = date;
+        loadCardForDate(date);
+      }
     });
 
     /* needs assessment */
@@ -3044,9 +3078,19 @@ input,select,textarea{font-family:inherit;color:inherit;}
     showView("sales");
   }
 
-  /* ---------- work hours (private per-user) ---------- */
+  /* ---------- work hours (private per-user, clock-in/clock-out) ---------- */
   function workHoursDocRef(){ return db.collection("sites").doc(currentSiteId).collection("workHours").doc(currentUser.uid); }
   function workHoursEntriesCol(){ return workHoursDocRef().collection("entries"); }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function nowTimeStr(){ return new Date().toTimeString().slice(0,5); }
+
+  function computeHours(checkIn, checkOut){
+    if(!checkIn || !checkOut) return 0;
+    var a = checkIn.split(":"), b = checkOut.split(":");
+    var mins = (Number(b[0])*60+Number(b[1])) - (Number(a[0])*60+Number(a[1]));
+    if(isNaN(mins) || mins<=0) return 0;
+    return Math.round((mins/60)*100)/100;
+  }
 
   function attachWorkHoursListener(){
     var unsub1 = workHoursDocRef().onSnapshot(function(doc){
@@ -3068,14 +3112,45 @@ input,select,textarea{font-family:inherit;color:inherit;}
   function setMyHourlyRate(val){
     workHoursDocRef().set({hourlyRate: Number(val)||0}, {merge:true});
   }
-  function addWorkHourEntry(date, hours, note){
-    workHoursEntriesCol().add({date:date, hours:Number(hours)||0, note:note||""});
+  function saveWorkHourEntry(date, patch){
+    var p = Object.assign({date:date}, patch);
+    workHoursEntriesCol().doc(date).set(p, {merge:true});
   }
-  function deleteWorkHourEntry(id){
-    workHoursEntriesCol().doc(id).delete();
+  function deleteWorkHourEntry(date){
+    workHoursEntriesCol().doc(date).delete();
+  }
+
+  function clockNow(field){
+    var date = document.getElementById("whCardDate").value || todayStr();
+    var patch = {}; patch[field] = nowTimeStr();
+    saveWorkHourEntry(date, patch);
+  }
+  function saveCardManual(){
+    var date = document.getElementById("whCardDate").value || todayStr();
+    saveWorkHourEntry(date, {
+      checkIn: document.getElementById("whCheckIn").value || "",
+      checkOut: document.getElementById("whCheckOut").value || "",
+      note: document.getElementById("whNote").value.trim()
+    });
+  }
+
+  function loadCardForDate(date){
+    var e = myWorkEntries.find(function(x){ return x.id===date; }) || {};
+    document.getElementById("whCheckIn").value = e.checkIn || "";
+    document.getElementById("whCheckOut").value = e.checkOut || "";
+    document.getElementById("whNote").value = e.note || "";
+    document.getElementById("whCardHint").textContent = date===todayStr() ? "(היום)" : "";
+    document.getElementById("whClockInBtn").disabled = !!e.checkIn;
+    document.getElementById("whClockOutBtn").disabled = !e.checkIn || !!e.checkOut;
+    var hours = computeHours(e.checkIn, e.checkOut);
+    document.getElementById("whCardTotal").textContent = hours ? ("סה\"כ ליום זה: "+hours+" שעות") : "";
   }
 
   function renderWorkHoursView(){
+    var cardDateInput = document.getElementById("whCardDate");
+    if(!cardDateInput.value) cardDateInput.value = todayStr();
+    loadCardForDate(cardDateInput.value);
+
     var monthInput = document.getElementById("whMonth");
     if(!monthInput.value) monthInput.value = new Date().toISOString().slice(0,7);
     var month = monthInput.value;
@@ -3083,20 +3158,20 @@ input,select,textarea{font-family:inherit;color:inherit;}
     var rows = myWorkEntries.filter(function(e){ return (e.date||"").slice(0,7)===month; })
       .sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); });
 
-    var totalHours = rows.reduce(function(s,e){ return s+(Number(e.hours)||0); }, 0);
+    var totalHours = rows.reduce(function(s,e){ return s+computeHours(e.checkIn,e.checkOut); }, 0);
     var totalPay = totalHours * (myHourlyRate||0);
 
     document.getElementById("whSummary").textContent =
       "סה\"כ שעות בחודש: "+totalHours+" | מגיע לך: "+fmtMoney(totalPay);
 
     document.getElementById("whTbody").innerHTML = rows.length ? rows.map(function(e){
-      return '<tr><td>'+fmtDate(e.date)+'</td><td>'+e.hours+'</td><td>'+escapeHtml(e.note||"")+'</td>'+
-        '<td><button type="button" class="danger-btn" data-wh-del="'+e.id+'">מחיקה</button></td></tr>';
-    }).join("") : '<tr><td colspan="4" class="mr-empty">אין רישומים בחודש הנבחר.</td></tr>';
+      return '<tr class="wh-hist-row" data-wh-load="'+e.date+'"><td>'+fmtDate(e.date)+'</td><td>'+(e.checkIn||"")+'</td><td>'+(e.checkOut||"")+'</td><td>'+computeHours(e.checkIn,e.checkOut)+'</td><td>'+escapeHtml(e.note||"")+'</td>'+
+        '<td><button type="button" class="danger-btn" data-wh-del="'+e.date+'">מחיקה</button></td></tr>';
+    }).join("") : '<tr><td colspan="6" class="mr-empty">אין רישומים בחודש הנבחר.</td></tr>';
 
     var subject = "דוח שעות עבודה - "+month;
     var body = "שלום,\n\nדוח שעות עבודה לחודש "+month+":\n\n"+
-      rows.map(function(e){ return fmtDate(e.date)+" - "+e.hours+" שעות"+(e.note?" ("+e.note+")":""); }).join("\n")+
+      rows.map(function(e){ return fmtDate(e.date)+" - "+(e.checkIn||"?")+" עד "+(e.checkOut||"?")+" ("+computeHours(e.checkIn,e.checkOut)+" שעות)"+(e.note?" - "+e.note:""); }).join("\n")+
       "\n\nסה\"כ שעות: "+totalHours+"\nתעריף לשעה: "+fmtMoney(myHourlyRate||0)+"\nסה\"כ לתשלום: "+fmtMoney(totalPay)+
       "\n\nבברכה";
     var emailBtn = document.getElementById("whEmailBtn");
@@ -3110,16 +3185,16 @@ input,select,textarea{font-family:inherit;color:inherit;}
     var month = monthInput.value || new Date().toISOString().slice(0,7);
     var rows = myWorkEntries.filter(function(e){ return (e.date||"").slice(0,7)===month; })
       .sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); });
-    var lines = ["תאריך,שעות,הערה"];
+    var lines = ["תאריך,כניסה,יציאה,שעות,הערה"];
     rows.forEach(function(e){
       var note = '"'+String(e.note||"").replace(/"/g,'""')+'"';
-      lines.push(e.date+","+e.hours+","+note);
+      lines.push(e.date+","+(e.checkIn||"")+","+(e.checkOut||"")+","+computeHours(e.checkIn,e.checkOut)+","+note);
     });
-    var totalHours = rows.reduce(function(s,e){ return s+(Number(e.hours)||0); }, 0);
+    var totalHours = rows.reduce(function(s,e){ return s+computeHours(e.checkIn,e.checkOut); }, 0);
     lines.push("");
-    lines.push("סה\"כ שעות,"+totalHours+",");
-    lines.push("תעריף לשעה,"+(myHourlyRate||0)+",");
-    lines.push("סה\"כ לתשלום,"+(totalHours*(myHourlyRate||0))+",");
+    lines.push("סה\"כ שעות,"+totalHours+",,,");
+    lines.push("תעריף לשעה,"+(myHourlyRate||0)+",,,");
+    lines.push("סה\"כ לתשלום,"+(totalHours*(myHourlyRate||0))+",,,");
     var csv = "﻿"+lines.join("\r\n");
     var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
     var url = URL.createObjectURL(blob);
