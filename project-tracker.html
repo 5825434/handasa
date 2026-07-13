@@ -274,7 +274,9 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .wh-card-hint2{color:var(--ink-faint);font-size:0.78rem;margin-bottom:12px;}
 .wh-sessions{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
 .wh-session-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.wh-session-row input[type="time"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
+.wh-time-group{display:flex;align-items:center;gap:2px;}
+.wh-time-group input[type="number"]{width:46px;padding:7px 4px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);text-align:center;}
+.wh-time-sep{color:var(--ink-faint);}
 .wh-card-manual{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:0.85rem;border-top:1px dashed var(--border);padding-top:12px;}
 .wh-card-manual input[type="text"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
 .wh-note-lbl{flex:1;min-width:160px;}
@@ -1874,9 +1876,19 @@ input,select,textarea{font-family:inherit;color:inherit;}
       var wrap = document.getElementById("whSessionsList");
       var emptyMsg = wrap.querySelector(".mr-empty");
       if(emptyMsg) wrap.innerHTML = "";
-      wrap.insertAdjacentHTML("beforeend",
-        '<div class="wh-session-row"><input type="time" class="wh-s-in"><span>-</span><input type="time" class="wh-s-out">'+
-        '<button type="button" class="danger-btn" data-session-del="1">מחיקה</button></div>');
+      wrap.insertAdjacentHTML("beforeend", sessionRowHtml("",""));
+    });
+    document.getElementById("whSessionsList").addEventListener("keydown", function(e){
+      if(e.key!=="Enter") return;
+      var t = e.target;
+      if(t.classList.contains("wh-s-in-h") || t.classList.contains("wh-s-in-m")){
+        e.preventDefault();
+        var row = t.closest(".wh-session-row");
+        row.querySelector(".wh-s-out-h").focus();
+      } else if(t.classList.contains("wh-s-out-h") || t.classList.contains("wh-s-out-m")){
+        e.preventDefault();
+        saveCardManual();
+      }
     });
     document.getElementById("whSessionsList").addEventListener("click", function(e){
       var btn = e.target.closest("[data-session-del]");
@@ -3201,15 +3213,25 @@ input,select,textarea{font-family:inherit;color:inherit;}
   function todayStr(){ return new Date().toISOString().slice(0,10); }
   function nowTimeStr(){ return new Date().toTimeString().slice(0,5); }
 
-  function computeSegmentHours(checkIn, checkOut){
+  function computeSegmentMinutes(checkIn, checkOut){
     if(!checkIn || !checkOut) return 0;
     var a = checkIn.split(":"), b = checkOut.split(":");
     var mins = (Number(b[0])*60+Number(b[1])) - (Number(a[0])*60+Number(a[1]));
-    if(isNaN(mins) || mins<=0) return 0;
-    return Math.round((mins/60)*100)/100;
+    return (isNaN(mins) || mins<=0) ? 0 : mins;
+  }
+  function computeDayMinutes(sessions){
+    return (sessions||[]).reduce(function(sum,s){ return sum+computeSegmentMinutes(s.checkIn,s.checkOut); },0);
   }
   function computeDayHours(sessions){
-    return Math.round((sessions||[]).reduce(function(sum,s){ return sum+computeSegmentHours(s.checkIn,s.checkOut); },0)*100)/100;
+    return Math.round((computeDayMinutes(sessions)/60)*100)/100;
+  }
+  function formatMinutesHM(totalMinutes){
+    totalMinutes = Math.round(totalMinutes||0);
+    var h = Math.floor(totalMinutes/60), m = totalMinutes%60;
+    var parts = [];
+    if(h) parts.push(h+" "+(h===1?"שעה":"שעות"));
+    if(m || !h) parts.push(m+" "+(m===1?"דקה":"דקות"));
+    return parts.join(" ו-");
   }
 
   function attachWorkHoursListener(){
@@ -3256,13 +3278,44 @@ input,select,textarea{font-family:inherit;color:inherit;}
     workHoursEntriesCol().doc(date).set({date:date, sessions:sessions}, {merge:true});
   }
 
+  function splitTime(t){
+    if(!t) return {h:"",m:""};
+    var p = t.split(":");
+    return {h:Number(p[0]), m:Number(p[1])};
+  }
+  function padNum(n){ n=String(n); return n.length<2 ? ("0"+n) : n; }
+  function combineTime(h,m){
+    if(h===""||h===null||h===undefined||m===""||m===null||m===undefined) return "";
+    var hh = Number(h), mm = Number(m);
+    if(isNaN(hh)||isNaN(mm)) return "";
+    hh = Math.max(0,Math.min(23,Math.round(hh)));
+    mm = Math.max(0,Math.min(59,Math.round(mm)));
+    return padNum(hh)+":"+padNum(mm);
+  }
+  function sessionRowHtml(checkIn, checkOut){
+    var ci = splitTime(checkIn), co = splitTime(checkOut);
+    return '<div class="wh-session-row">'+
+      '<span class="wh-time-group">'+
+        '<input type="number" class="wh-s-in-h" min="0" max="23" placeholder="שע\'" value="'+ci.h+'">'+
+        '<span class="wh-time-sep">:</span>'+
+        '<input type="number" class="wh-s-in-m" min="0" max="59" placeholder="דק\'" value="'+ci.m+'">'+
+      '</span>'+
+      '<span class="wh-time-sep">-</span>'+
+      '<span class="wh-time-group">'+
+        '<input type="number" class="wh-s-out-h" min="0" max="23" placeholder="שע\'" value="'+co.h+'">'+
+        '<span class="wh-time-sep">:</span>'+
+        '<input type="number" class="wh-s-out-m" min="0" max="59" placeholder="דק\'" value="'+co.m+'">'+
+      '</span>'+
+      '<button type="button" class="danger-btn" data-session-del="1">מחיקה</button>'+
+    '</div>';
+  }
   function readSessionsFromDom(){
     var rows = document.querySelectorAll("#whSessionsList .wh-session-row");
     var out = [];
     rows.forEach(function(row){
-      var ci = row.querySelector(".wh-s-in").value;
-      var co = row.querySelector(".wh-s-out").value;
-      if(ci || co) out.push({checkIn:ci||"", checkOut:co||""});
+      var ci = combineTime(row.querySelector(".wh-s-in-h").value, row.querySelector(".wh-s-in-m").value);
+      var co = combineTime(row.querySelector(".wh-s-out-h").value, row.querySelector(".wh-s-out-m").value);
+      if(ci || co) out.push({checkIn:ci, checkOut:co});
     });
     return out;
   }
@@ -3278,12 +3331,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
   function renderSessionsList(sessions){
     var wrap = document.getElementById("whSessionsList");
     wrap.innerHTML = sessions.length ? sessions.map(function(s){
-      return '<div class="wh-session-row">'+
-        '<input type="time" class="wh-s-in" value="'+(s.checkIn||"")+'">'+
-        '<span>-</span>'+
-        '<input type="time" class="wh-s-out" value="'+(s.checkOut||"")+'">'+
-        '<button type="button" class="danger-btn" data-session-del="1">מחיקה</button>'+
-      '</div>';
+      return sessionRowHtml(s.checkIn, s.checkOut);
     }).join("") : '<div class="mr-empty">אין קטעים ליום זה. לחצו "כניסה עכשיו" או הוסיפו קטע ידני.</div>';
   }
 
@@ -3295,8 +3343,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
       document.getElementById("whNote").value = e.note || "";
     }
     document.getElementById("whCardHint").textContent = date===todayStr() ? "(היום)" : "";
-    var hours = computeDayHours(sessions);
-    document.getElementById("whCardTotal").textContent = hours ? ("סה\"כ ליום זה: "+hours+" שעות") : "";
+    var mins = computeDayMinutes(sessions);
+    document.getElementById("whCardTotal").textContent = mins ? ("סה\"כ ליום זה: "+formatMinutesHM(mins)) : "";
   }
 
   function sessionsSummary(sessions){
@@ -3315,21 +3363,22 @@ input,select,textarea{font-family:inherit;color:inherit;}
     var rows = myWorkEntries.filter(function(e){ return (e.date||"").slice(0,7)===month; })
       .sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); });
 
-    var totalHours = rows.reduce(function(s,e){ return s+computeDayHours(e.sessions); }, 0);
+    var totalMinutes = rows.reduce(function(s,e){ return s+computeDayMinutes(e.sessions); }, 0);
+    var totalHours = Math.round((totalMinutes/60)*100)/100;
     var totalPay = totalHours * (myHourlyRate||0);
 
     document.getElementById("whSummary").textContent =
-      "סה\"כ שעות בחודש: "+totalHours+" | מגיע לך: "+fmtMoney(totalPay);
+      "סה\"כ שעות בחודש: "+formatMinutesHM(totalMinutes)+" | מגיע לך: "+fmtMoney(totalPay);
 
     document.getElementById("whTbody").innerHTML = rows.length ? rows.map(function(e){
-      return '<tr class="wh-hist-row" data-wh-load="'+e.date+'"><td>'+fmtDate(e.date)+'</td><td>'+sessionsSummary(e.sessions)+'</td><td>'+computeDayHours(e.sessions)+'</td><td>'+escapeHtml(e.note||"")+'</td>'+
+      return '<tr class="wh-hist-row" data-wh-load="'+e.date+'"><td>'+fmtDate(e.date)+'</td><td>'+sessionsSummary(e.sessions)+'</td><td>'+formatMinutesHM(computeDayMinutes(e.sessions))+'</td><td>'+escapeHtml(e.note||"")+'</td>'+
         '<td><button type="button" class="danger-btn" data-wh-del="'+e.date+'">מחיקה</button></td></tr>';
     }).join("") : '<tr><td colspan="5" class="mr-empty">אין רישומים בחודש הנבחר.</td></tr>';
 
     var subject = "דוח שעות עבודה - "+month;
     var body = "שלום,\n\nדוח שעות עבודה לחודש "+month+":\n\n"+
-      rows.map(function(e){ return fmtDate(e.date)+" - "+sessionsSummary(e.sessions)+" ("+computeDayHours(e.sessions)+" שעות)"+(e.note?" - "+e.note:""); }).join("\n")+
-      "\n\nסה\"כ שעות: "+totalHours+"\nתעריף לשעה: "+fmtMoney(myHourlyRate||0)+"\nסה\"כ לתשלום: "+fmtMoney(totalPay)+
+      rows.map(function(e){ return fmtDate(e.date)+" - "+sessionsSummary(e.sessions)+" ("+formatMinutesHM(computeDayMinutes(e.sessions))+")"+(e.note?" - "+e.note:""); }).join("\n")+
+      "\n\nסה\"כ שעות: "+formatMinutesHM(totalMinutes)+"\nתעריף לשעה: "+fmtMoney(myHourlyRate||0)+"\nסה\"כ לתשלום: "+fmtMoney(totalPay)+
       "\n\nבברכה";
     var emailBtn = document.getElementById("whEmailBtn");
     var myEmail = (currentUser && currentUser.email) || "";
