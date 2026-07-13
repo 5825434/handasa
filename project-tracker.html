@@ -231,6 +231,36 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .badge.due{background:var(--surface-2);color:var(--ink-soft);}
 .badge.due.late{background:var(--pay-unpaid-soft);color:var(--pay-unpaid);}
 .badge.status{background:var(--accent-soft);color:var(--accent);font-weight:600;min-width:1.4em;text-align:center;}
+.mini-progress{display:flex;gap:2px;width:64px;flex:none;}
+.mini-progress span{flex:1;height:6px;border-radius:3px;background:var(--surface-2);}
+
+.monthly-report{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:14px;}
+.monthly-report[hidden]{display:none;}
+.monthly-report-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.monthly-report-title{font-weight:700;}
+.monthly-report-body{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
+.monthly-report-charts{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;}
+.monthly-report-charts svg{width:260px;height:150px;flex:none;}
+#monthlyReportPie{width:170px;height:170px;}
+.monthly-report-list{flex:1;min-width:220px;max-height:220px;overflow:auto;font-size:0.82rem;}
+.monthly-report-list .mr-row{padding:5px 0;border-bottom:1px solid var(--border);}
+.monthly-report-list .mr-empty{color:var(--ink-faint);padding:8px 0;}
+.mr-legend{display:flex;flex-direction:column;gap:4px;font-size:0.76rem;margin-top:6px;}
+.mr-legend span.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:6px;}
+
+.wh-rate-row{margin-bottom:12px;font-size:0.9rem;}
+.wh-add-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.wh-add-row input{padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
+.wh-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.wh-summary{font-size:1rem;font-weight:700;padding:10px 14px;background:var(--accent-soft);color:var(--accent);border-radius:8px;margin-bottom:12px;}
+@media print{
+  body *{visibility:hidden;}
+  #whPrintArea, #whPrintArea *{visibility:visible;}
+  #whPrintArea{position:absolute;top:0;right:0;left:0;width:100%;}
+}
+
+.site-footer{text-align:center;font-size:0.76rem;color:var(--ink-faint);padding:14px 10px;border-top:1px solid var(--border);}
+@media print{ .site-footer{display:none;} }
 
 .qpop{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 12px;border-top:1px dashed var(--border);margin-top:1px;padding-top:10px;}
 
@@ -448,6 +478,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
       <button type="button" class="vs-btn" data-view="clients" data-manager-only>לקוחות</button>
       <button type="button" class="vs-btn" data-view="projectsBare" data-manager-only>פרויקטים</button>
       <button type="button" class="vs-btn" data-view="projects">ניהול פרויקטים</button>
+      <button type="button" class="vs-btn" data-view="workHours">שעות עבודה</button>
     </nav>
   </aside>
 
@@ -486,6 +517,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
       <button class="ghost-btn" id="exportBtn" type="button">ייצוא גיבוי</button>
       <button class="ghost-btn" id="importBtn" type="button">ייבוא גיבוי</button>
       <input type="file" id="importFile" accept="application/json" hidden>
+      <button class="ghost-btn" id="monthlyReportBtn" type="button">דוח השלמות חודשי</button>
     </div>
     <div class="filter-group">
       <div class="filter-group-lbl">לפי חשיבות ודחיפות</div>
@@ -494,6 +526,20 @@ input,select,textarea{font-family:inherit;color:inherit;}
     <div class="filter-group">
       <div class="filter-group-lbl">לפי התקדמות (שרטוט / קורות ועמודים / ברזל / הדפסה)</div>
       <div class="chipset" id="statusChips"></div>
+    </div>
+  </div>
+
+  <div class="monthly-report" id="monthlyReport" hidden>
+    <div class="monthly-report-hd">
+      <div class="monthly-report-title">דוח השלמות חודשי</div>
+      <input type="month" id="monthlyReportMonth">
+    </div>
+    <div class="monthly-report-body">
+      <div class="monthly-report-charts">
+        <svg id="monthlyReportBar" viewBox="0 0 320 180"></svg>
+        <svg id="monthlyReportPie" viewBox="0 0 200 200"></svg>
+      </div>
+      <div id="monthlyReportList" class="monthly-report-list"></div>
     </div>
   </div>
 
@@ -756,6 +802,44 @@ input,select,textarea{font-family:inherit;color:inherit;}
     </div>
   </div><!-- /viewClients -->
 
+  <div id="viewWorkHours" hidden>
+    <div class="sales-hd">
+      <div>
+        <h2>שעות עבודה</h2>
+        <p>הרישום כאן אישי - רק את/ה יכול/ה לראות את השעות והתעריף שלך. אף משתמש אחר, כולל המנהל, אינו יכול לצפות בנתונים אלה.</p>
+      </div>
+    </div>
+
+    <div class="wh-rate-row">
+      <label>תעריף לשעה (₪): <input type="number" id="whRate" min="0" step="1" style="width:90px;"></label>
+    </div>
+
+    <form class="wh-add-row" id="whAddForm">
+      <input type="date" id="whDate" required>
+      <input type="number" id="whHours" placeholder="שעות" min="0" step="0.25" required style="width:90px;">
+      <input type="text" id="whNote" placeholder="הערה (אופציונלי)">
+      <button type="submit">+ הוספת רישום</button>
+    </form>
+
+    <div class="wh-toolbar">
+      <label>חודש: <input type="month" id="whMonth"></label>
+      <div class="spacer"></div>
+      <button type="button" class="ghost-btn" id="whExportCsvBtn">ייצוא ל-CSV (אקסל)</button>
+      <button type="button" class="ghost-btn" id="whPrintBtn">הדפסה / PDF</button>
+      <a class="ghost-btn" id="whEmailBtn" target="_blank" rel="noopener">שלח למייל שלי</a>
+    </div>
+
+    <div id="whPrintArea">
+      <div class="wh-summary" id="whSummary"></div>
+      <table class="leads-table" id="whTable">
+        <thead>
+          <tr><th>תאריך</th><th>שעות</th><th>הערה</th><th></th></tr>
+        </thead>
+        <tbody id="whTbody"></tbody>
+      </table>
+    </div>
+  </div><!-- /viewWorkHours -->
+
   <div id="viewProjectsBare" hidden>
     <div class="sales-hd">
       <div>
@@ -985,6 +1069,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
   var currentSiteId = null;
   var mySites = [];
   var siteUnsubscribers = [];
+  var myHourlyRate = 0;
+  var myWorkEntries = [];
 
   var QUADRANTS = {
     uq:{label:"חשוב ודחוף", token:"--q-uq"},
@@ -994,11 +1080,11 @@ input,select,textarea{font-family:inherit;color:inherit;}
   };
   var QORDER = ["uq","u","q","n"];
   var STATUSES = [
-    {n:1,label:"שרטוט"},
-    {n:2,label:"קורות ועמודים"},
-    {n:3,label:"ברזל"},
-    {n:4,label:"הדפסה"},
-    {n:5,label:"הושלם"}
+    {n:1,label:"שרטוט",color:"#2f6fb0"},
+    {n:2,label:"קורות ועמודים",color:"#2f8f5b"},
+    {n:3,label:"ברזל",color:"#7c5cbf"},
+    {n:4,label:"הדפסה",color:"#d97f2b"},
+    {n:5,label:"הושלם",color:"#1f9d55"}
   ];
 
   var projects = [];
@@ -1021,6 +1107,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
       renderStats();
       renderList();
       if(!isFocusedWithin("detailPanel")) renderDetail();
+      var mrPanel = document.getElementById("monthlyReport");
+      if(mrPanel && !mrPanel.hidden) renderMonthlyReport();
     });
     siteUnsubscribers.push(unsub);
   }
@@ -1139,12 +1227,88 @@ input,select,textarea{font-family:inherit;color:inherit;}
           '<div class="row-sub">'+escapeHtml(p.address||"")+'</div>'+
         '</div>'+
         '<div class="row-badges">'+
+          miniProgressBar(p.status)+
           '<span class="badge status">'+p.status+'</span>'+
           (p.dueDate?'<span class="badge due'+(late?" late":"")+'">'+fmtDate(p.dueDate)+'</span>':'')+
         '</div>'+
       '</div>'+
       qpop+
     '</div>';
+  }
+
+  function miniProgressBar(status){
+    return '<div class="mini-progress">'+STATUSES.map(function(s){
+      var on = s.n<=status;
+      return '<span style="'+(on?'background:'+s.color:'')+'"></span>';
+    }).join("")+'</div>';
+  }
+
+  function renderMonthlyReport(){
+    var monthInput = document.getElementById("monthlyReportMonth");
+    if(!monthInput.value) monthInput.value = new Date().toISOString().slice(0,7);
+    var month = monthInput.value; // "YYYY-MM"
+
+    var counts = STATUSES.map(function(){ return 0; });
+    var rows = [];
+    projects.forEach(function(p){
+      var dates = p.statusDates || {};
+      STATUSES.forEach(function(s){
+        var d = dates[s.n] || dates[String(s.n)];
+        if(d && d.slice(0,7)===month){
+          counts[s.n-1]++;
+          rows.push({name:p.name||"(ללא שם)", label:s.label, date:d});
+        }
+      });
+    });
+    rows.sort(function(a,b){ return a.date<b.date ? -1 : (a.date>b.date?1:0); });
+
+    var listEl = document.getElementById("monthlyReportList");
+    listEl.innerHTML = rows.length ? rows.map(function(r){
+      return '<div class="mr-row">'+escapeHtml(r.name)+' - הגיע לשלב <b>'+escapeHtml(r.label)+'</b> ב-'+fmtDate(r.date)+'</div>';
+    }).join("") : '<div class="mr-empty">אין השלמות שלבים בחודש הנבחר.</div>';
+
+    var maxCount = Math.max.apply(null, counts.concat([1]));
+    var barW = 320, barH = 180, pad = 24, slotW = (barW-pad*2)/STATUSES.length;
+    var bars = STATUSES.map(function(s,i){
+      var h = (counts[i]/maxCount) * (barH-40);
+      var x = pad + i*slotW + slotW*0.15;
+      var w = slotW*0.7;
+      var y = barH-24-h;
+      return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+s.color+'" rx="3"></rect>'+
+             '<text x="'+(x+w/2)+'" y="'+(y-4)+'" text-anchor="middle" font-size="11" fill="var(--ink)">'+counts[i]+'</text>'+
+             '<text x="'+(x+w/2)+'" y="'+(barH-8)+'" text-anchor="middle" font-size="9" fill="var(--ink-faint)">'+(i+1)+'</text>';
+    }).join("");
+    document.getElementById("monthlyReportBar").innerHTML = bars;
+
+    var total = counts.reduce(function(a,b){return a+b;},0);
+    var pieSvg = "", legend = "";
+    if(total===0){
+      pieSvg = '<circle cx="100" cy="100" r="80" fill="var(--surface-2)"></circle>';
+      legend = '<div class="mr-empty">אין נתונים להצגה</div>';
+    } else {
+      var cx=100, cy=100, r=80, startAngle=-90;
+      STATUSES.forEach(function(s,i){
+        if(!counts[i]) return;
+        var angle = (counts[i]/total)*360;
+        var endAngle = startAngle+angle;
+        var x1 = cx + r*Math.cos(startAngle*Math.PI/180);
+        var y1 = cy + r*Math.sin(startAngle*Math.PI/180);
+        var x2 = cx + r*Math.cos(endAngle*Math.PI/180);
+        var y2 = cy + r*Math.sin(endAngle*Math.PI/180);
+        var large = angle>180 ? 1 : 0;
+        pieSvg += '<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+large+' 1 '+x2+','+y2+' Z" fill="'+s.color+'"></path>';
+        legend += '<div><span class="dot" style="background:'+s.color+'"></span>'+s.label+' ('+counts[i]+')</div>';
+        startAngle = endAngle;
+      });
+    }
+    document.getElementById("monthlyReportPie").innerHTML = pieSvg;
+    var existingLegend = document.getElementById("monthlyReportLegend");
+    if(existingLegend) existingLegend.remove();
+    var legendEl = document.createElement("div");
+    legendEl.id = "monthlyReportLegend";
+    legendEl.className = "mr-legend";
+    legendEl.innerHTML = legend;
+    document.getElementById("monthlyReportPie").insertAdjacentElement("afterend", legendEl);
   }
 
   function renderList(){
@@ -1197,7 +1361,9 @@ input,select,textarea{font-family:inherit;color:inherit;}
 
     var steps = STATUSES.map(function(s){
       var cls = s.n<p.status ? "done" : (s.n===p.status ? "current" : "");
-      return '<button type="button" class="step '+cls+'" data-setstatus="'+p.id+'" data-sval="'+s.n+'">'+s.n+"."+"<br>"+s.label+'</button>';
+      var style = cls==="current" ? ' style="background:'+s.color+';border-color:'+s.color+';color:#fff;"' :
+                  cls==="done" ? ' style="background:'+s.color+'22;border-color:'+s.color+';color:'+s.color+';"' : '';
+      return '<button type="button" class="step '+cls+'" data-setstatus="'+p.id+'" data-sval="'+s.n+'"'+style+'>'+s.n+"."+"<br>"+s.label+'</button>';
     }).join("");
 
     var payBlock;
@@ -1252,7 +1418,14 @@ input,select,textarea{font-family:inherit;color:inherit;}
     projectsCol().doc(id).update({quadrant: val});
   }
   function setStatus(id, val){
-    projectsCol().doc(id).update({status: Number(val)});
+    var p = projects.find(function(x){return x.id===id;});
+    var patch = {status: Number(val)};
+    var dates = (p && p.statusDates) ? Object.assign({},p.statusDates) : {};
+    if(!dates[val]){
+      dates[val] = new Date().toISOString().slice(0,10);
+      patch.statusDates = dates;
+    }
+    projectsCol().doc(id).update(patch);
   }
 
   /* ---------- auth / sites / sharing ---------- */
@@ -1484,6 +1657,13 @@ input,select,textarea{font-family:inherit;color:inherit;}
       e.target.value = "";
     });
 
+    document.getElementById("monthlyReportBtn").addEventListener("click", function(){
+      var panel = document.getElementById("monthlyReport");
+      panel.hidden = !panel.hidden;
+      if(!panel.hidden) renderMonthlyReport();
+    });
+    document.getElementById("monthlyReportMonth").addEventListener("change", renderMonthlyReport);
+
     /* list pane: selection + quick quadrant popover */
     var listEl = document.getElementById("projectList");
     listEl.addEventListener("click", function(e){
@@ -1608,6 +1788,27 @@ input,select,textarea{font-family:inherit;color:inherit;}
       saveVatRate();
       renderNegotiationTable();
       if(!document.getElementById("negotiationOverlay").hidden) renderNegotiationPreview();
+    });
+
+    document.getElementById("whRate").addEventListener("change", function(e){
+      setMyHourlyRate(e.target.value);
+    });
+    document.getElementById("whAddForm").addEventListener("submit", function(e){
+      e.preventDefault();
+      var date = document.getElementById("whDate").value;
+      var hours = document.getElementById("whHours").value;
+      var note = document.getElementById("whNote").value.trim();
+      if(!date || !hours) return;
+      addWorkHourEntry(date, hours, note);
+      e.target.reset();
+    });
+    document.getElementById("whMonth").addEventListener("change", renderWorkHoursView);
+    document.getElementById("whExportCsvBtn").addEventListener("click", exportWorkHoursCsv);
+    document.getElementById("whPrintBtn").addEventListener("click", function(){ window.print(); });
+    document.getElementById("whTbody").addEventListener("click", function(e){
+      var btn = e.target.closest("[data-wh-del]");
+      if(!btn) return;
+      if(confirm("למחוק את הרישום?")) deleteWorkHourEntry(btn.getAttribute("data-wh-del"));
     });
 
     /* needs assessment */
@@ -1874,6 +2075,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
     document.getElementById("viewProjectsBare").hidden = view!=="projectsBare";
     document.getElementById("viewCalls").hidden = view!=="calls";
     document.getElementById("viewPriceCatalog").hidden = view!=="priceCatalog";
+    document.getElementById("viewWorkHours").hidden = view!=="workHours";
     document.querySelectorAll(".vs-btn").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-view")===view);
     });
@@ -1885,6 +2087,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
     if(view==="calls"){ renderCallsChips(); renderCallsTable(); }
     if(view==="priceCatalog") renderCatalogTable();
     if(view==="sales") refreshActiveLeadSubTab();
+    if(view==="workHours") renderWorkHoursView();
   }
 
   function refreshActiveLeadSubTab(){
@@ -2840,6 +3043,95 @@ input,select,textarea{font-family:inherit;color:inherit;}
     closeCallModal();
     showView("sales");
   }
+
+  /* ---------- work hours (private per-user) ---------- */
+  function workHoursDocRef(){ return db.collection("sites").doc(currentSiteId).collection("workHours").doc(currentUser.uid); }
+  function workHoursEntriesCol(){ return workHoursDocRef().collection("entries"); }
+
+  function attachWorkHoursListener(){
+    var unsub1 = workHoursDocRef().onSnapshot(function(doc){
+      var data = doc.data();
+      myHourlyRate = (data && typeof data.hourlyRate==="number") ? data.hourlyRate : 0;
+      if(document.activeElement !== document.getElementById("whRate")){
+        var rateEl = document.getElementById("whRate");
+        if(rateEl) rateEl.value = myHourlyRate || "";
+      }
+      if(currentView==="workHours") renderWorkHoursView();
+    });
+    var unsub2 = workHoursEntriesCol().onSnapshot(function(snap){
+      myWorkEntries = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+      if(currentView==="workHours") renderWorkHoursView();
+    });
+    siteUnsubscribers.push(unsub1, unsub2);
+  }
+
+  function setMyHourlyRate(val){
+    workHoursDocRef().set({hourlyRate: Number(val)||0}, {merge:true});
+  }
+  function addWorkHourEntry(date, hours, note){
+    workHoursEntriesCol().add({date:date, hours:Number(hours)||0, note:note||""});
+  }
+  function deleteWorkHourEntry(id){
+    workHoursEntriesCol().doc(id).delete();
+  }
+
+  function renderWorkHoursView(){
+    var monthInput = document.getElementById("whMonth");
+    if(!monthInput.value) monthInput.value = new Date().toISOString().slice(0,7);
+    var month = monthInput.value;
+
+    var rows = myWorkEntries.filter(function(e){ return (e.date||"").slice(0,7)===month; })
+      .sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); });
+
+    var totalHours = rows.reduce(function(s,e){ return s+(Number(e.hours)||0); }, 0);
+    var totalPay = totalHours * (myHourlyRate||0);
+
+    document.getElementById("whSummary").textContent =
+      "סה\"כ שעות בחודש: "+totalHours+" | מגיע לך: "+fmtMoney(totalPay);
+
+    document.getElementById("whTbody").innerHTML = rows.length ? rows.map(function(e){
+      return '<tr><td>'+fmtDate(e.date)+'</td><td>'+e.hours+'</td><td>'+escapeHtml(e.note||"")+'</td>'+
+        '<td><button type="button" class="danger-btn" data-wh-del="'+e.id+'">מחיקה</button></td></tr>';
+    }).join("") : '<tr><td colspan="4" class="mr-empty">אין רישומים בחודש הנבחר.</td></tr>';
+
+    var subject = "דוח שעות עבודה - "+month;
+    var body = "שלום,\n\nדוח שעות עבודה לחודש "+month+":\n\n"+
+      rows.map(function(e){ return fmtDate(e.date)+" - "+e.hours+" שעות"+(e.note?" ("+e.note+")":""); }).join("\n")+
+      "\n\nסה\"כ שעות: "+totalHours+"\nתעריף לשעה: "+fmtMoney(myHourlyRate||0)+"\nסה\"כ לתשלום: "+fmtMoney(totalPay)+
+      "\n\nבברכה";
+    var emailBtn = document.getElementById("whEmailBtn");
+    var myEmail = (currentUser && currentUser.email) || "";
+    emailBtn.href = "https://mail.google.com/mail/?view=cm&fs=1&to="+encodeURIComponent(myEmail)+
+      "&su="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);
+  }
+
+  function exportWorkHoursCsv(){
+    var monthInput = document.getElementById("whMonth");
+    var month = monthInput.value || new Date().toISOString().slice(0,7);
+    var rows = myWorkEntries.filter(function(e){ return (e.date||"").slice(0,7)===month; })
+      .sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); });
+    var lines = ["תאריך,שעות,הערה"];
+    rows.forEach(function(e){
+      var note = '"'+String(e.note||"").replace(/"/g,'""')+'"';
+      lines.push(e.date+","+e.hours+","+note);
+    });
+    var totalHours = rows.reduce(function(s,e){ return s+(Number(e.hours)||0); }, 0);
+    lines.push("");
+    lines.push("סה\"כ שעות,"+totalHours+",");
+    lines.push("תעריף לשעה,"+(myHourlyRate||0)+",");
+    lines.push("סה\"כ לתשלום,"+(totalHours*(myHourlyRate||0))+",");
+    var csv = "﻿"+lines.join("\r\n");
+    var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "שעות-עבודה-"+month+".csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+  }
+
   /* ---------- site data lifecycle ---------- */
   function attachSiteData(){
     attachProjectsListener();
@@ -2849,12 +3141,15 @@ input,select,textarea{font-family:inherit;color:inherit;}
     attachCatalogListener();
     attachCallsListener();
     attachVatRateListener();
+    attachWorkHoursListener();
     renderActiveProjectCards("clientActiveProjects");
     renderActiveProjectCards("bareActiveProjects");
   }
   function detachSiteData(){
     siteUnsubscribers.forEach(function(u){ u(); });
     siteUnsubscribers = [];
+    myHourlyRate = 0;
+    myWorkEntries = [];
   }
 
   bindStatic();
@@ -2874,3 +3169,5 @@ input,select,textarea{font-family:inherit;color:inherit;}
   });
 })();
 </script>
+
+<footer class="site-footer">© נוצר ע"י תכנון נכון · T0527697956@GMAIL.COM</footer>
