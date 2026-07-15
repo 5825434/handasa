@@ -499,6 +499,12 @@ input,select,textarea{font-family:inherit;color:inherit;}
 @media (max-width:640px){
   .quote-line{grid-template-columns:1fr 1fr;}
 }
+
+.negotiation-fields{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:0.82rem;}
+.negotiation-fields label{display:flex;flex-direction:column;gap:4px;color:var(--ink-soft);}
+.negotiation-fields input{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
+.job-tab-body{margin-top:12px;}
+.quote-lines-wrap{display:flex;flex-direction:column;gap:8px;}
 </style>
 </head>
 <body>
@@ -514,6 +520,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
       <span>ניהול פרויקטים</span>
     </div>
     <nav class="sidebar-nav" id="viewSwitch">
+      <button type="button" class="vs-btn" data-view="clientsNew">לקוחות (חדש - בטא)</button>
       <button type="button" class="vs-btn" data-view="sales">מכירות</button>
       <button type="button" class="vs-btn" data-view="priceCatalog" data-manager-only>מחירון</button>
       <button type="button" class="vs-btn" data-view="tasks">משימות (הפקת תוכניות)</button>
@@ -607,6 +614,29 @@ input,select,textarea{font-family:inherit;color:inherit;}
     </div>
   </div>
   </div><!-- /viewProjects -->
+
+  <div id="viewClientsNew" hidden>
+    <div class="sales-hd">
+      <div>
+        <h2>לקוחות</h2>
+        <p>כרטיס אחד לכל לקוח - פרטי קשר, התקדמות, משימות, שירות ומסמכים במקום אחד. גרסת בטא - הטאבים הישנים עדיין זמינים בינתיים.</p>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-row">
+        <div class="search-box"><input type="text" id="clientsNewSearch" placeholder="חיפוש לפי שם, טלפון או כתובת..."></div>
+      </div>
+    </div>
+    <form class="add-row" id="clientsNewAddForm">
+      <input type="text" id="clientsNewAddName" placeholder="שם לקוח חדש..." required>
+      <button type="submit">+ לקוח חדש</button>
+      <button type="button" class="ghost-btn" id="migrateOldDataBtn" data-manager-only>ייבוא לקוחות מהמבנה הישן (מכירות+פרויקטים)</button>
+    </form>
+    <div class="board">
+      <div class="list-pane"><div id="clientsNewList"></div></div>
+      <div class="detail-pane"><div class="detail-card" id="clientsNewDetail"></div></div>
+    </div>
+  </div><!-- /viewClientsNew -->
 
   <div id="viewSales" hidden>
     <div class="sales-hd">
@@ -1159,6 +1189,23 @@ input,select,textarea{font-family:inherit;color:inherit;}
   var selectedId = null;
   var openQPickerId = null;
   var filters = {search:"", quadrant:"all", status:"all", sort:"due", group:false};
+
+  var JOB_STAGES = [
+    {n:1,label:"היכרות",color:"#8b97a3"},
+    {n:2,label:"הצעת מחיר",color:"#c9a227"},
+    {n:3,label:"משא ומתן",color:"#b3432e"},
+    {n:4,label:"שרטוט",color:"#2f6fb0"},
+    {n:5,label:"קורות ועמודים",color:"#2f8f5b"},
+    {n:6,label:"ברזל",color:"#7c5cbf"},
+    {n:7,label:"הדפסה",color:"#d97f2b"},
+    {n:8,label:"הושלם",color:"#1f9d55"}
+  ];
+  var clients = [];
+  var realClientsNew = null;
+  var selectedClientId = null;
+  var selectedJobId = null;
+  var clientJobTab = "progress";
+  var clientFilters = {search:""};
 
   function uid(){ return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -1920,6 +1967,195 @@ input,select,textarea{font-family:inherit;color:inherit;}
       }
     });
 
+    /* clients (new unified client-card model) */
+    document.getElementById("clientsNewSearch").addEventListener("input", function(e){
+      clientFilters.search = e.target.value;
+      renderClientsNewList();
+    });
+    document.getElementById("clientsNewAddForm").addEventListener("submit", function(e){
+      e.preventDefault();
+      var input = document.getElementById("clientsNewAddName");
+      var name = input.value.trim();
+      if(!name) return;
+      addClientNew(name);
+      input.value = "";
+      renderClientsNewList();
+      renderClientsNewDetail();
+    });
+    document.getElementById("migrateOldDataBtn").addEventListener("click", migrateOldDataToClients);
+    document.getElementById("clientsNewList").addEventListener("click", function(e){
+      var row = e.target.closest("[data-select-client]");
+      if(!row) return;
+      selectedClientId = row.getAttribute("data-select-client");
+      selectedJobId = null;
+      clientJobTab = "progress";
+      renderClientsNewList();
+      renderClientsNewDetail();
+    });
+    var clientsNewDetailEl = document.getElementById("clientsNewDetail");
+    clientsNewDetailEl.addEventListener("click", function(e){
+      var delClient = e.target.closest("[data-del-client]");
+      if(delClient){
+        if(confirm("למחוק את הלקוח וכל העבודות שלו? הפעולה אינה הפיכה.")) deleteClientNew(delClient.getAttribute("data-del-client"));
+        return;
+      }
+      var selJob = e.target.closest("[data-select-job]");
+      if(selJob){
+        selectedJobId = selJob.getAttribute("data-select-job");
+        clientJobTab = "progress";
+        renderClientsNewDetail();
+        return;
+      }
+      if(e.target.closest("#clientsNewAddJobBtn")){
+        addJobToClient(selectedClientId, "עבודה חדשה");
+        clientJobTab = "progress";
+        return;
+      }
+      var jobTabBtn = e.target.closest("[data-job-tab]");
+      if(jobTabBtn){
+        clientJobTab = jobTabBtn.getAttribute("data-job-tab");
+        renderClientsNewDetail();
+        return;
+      }
+      var stageBtn = e.target.closest("[data-set-job-stage]");
+      if(stageBtn){
+        setJobStage(selectedClientId, selectedJobId, stageBtn.getAttribute("data-set-job-stage"));
+        return;
+      }
+      var delJob = e.target.closest("[data-del-job]");
+      if(delJob){
+        if(confirm("למחוק את העבודה? הפעולה אינה הפיכה.")) deleteJob(selectedClientId, delJob.getAttribute("data-del-job"));
+        return;
+      }
+      if(e.target.closest("#jobAddQuoteLineBtn")){
+        var jobQ = getSelectedJob();
+        if(jobQ) setJobField(selectedClientId, selectedJobId, "quoteLines", (jobQ.quoteLines||[]).concat([{name:"", qty:1, unitPrice:0}]));
+        return;
+      }
+      var delQLine = e.target.closest("[data-del-qline]");
+      if(delQLine){
+        var jobQ2 = getSelectedJob();
+        if(jobQ2){
+          var idx2 = Number(delQLine.getAttribute("data-del-qline"));
+          setJobField(selectedClientId, selectedJobId, "quoteLines", (jobQ2.quoteLines||[]).filter(function(x,i){return i!==idx2;}));
+        }
+        return;
+      }
+      var stageToggle = e.target.closest("[data-stage-toggle]");
+      if(stageToggle){
+        var skey = stageToggle.getAttribute("data-stage-toggle");
+        openStages[skey] = !openStages[skey];
+        renderClientsNewDetail();
+        return;
+      }
+      var editBtn = e.target.closest("[data-task-edit]");
+      if(editBtn){
+        var epid = editBtn.getAttribute("data-task-edit");
+        editingBoardId = editingBoardId===epid ? null : epid;
+        renderClientsNewDetail();
+        return;
+      }
+      var playBtn = e.target.closest("[data-t-play]");
+      if(playBtn){
+        e.stopPropagation();
+        toggleTaskTimer(playBtn.getAttribute("data-proj"), playBtn.getAttribute("data-task"));
+        renderClientsNewDetail();
+        return;
+      }
+      var resetBtn = e.target.closest("[data-t-reset]");
+      if(resetBtn){
+        e.stopPropagation();
+        resetTaskTimer(resetBtn.getAttribute("data-proj"), resetBtn.getAttribute("data-task"));
+        renderClientsNewDetail();
+        return;
+      }
+      var notesToggle = e.target.closest("[data-t-notes-toggle]");
+      if(notesToggle){
+        e.stopPropagation();
+        var nkey = notesToggle.getAttribute("data-t-notes-toggle");
+        openTaskNotes[nkey] = !openTaskNotes[nkey];
+        renderClientsNewDetail();
+        return;
+      }
+    });
+    clientsNewDetailEl.addEventListener("change", function(e){
+      var doneBox = e.target.closest("[data-t-done]");
+      if(doneBox){
+        setTaskState(doneBox.getAttribute("data-proj"), doneBox.getAttribute("data-task"), {done:doneBox.checked});
+        renderClientsNewDetail();
+        return;
+      }
+      var incBox = e.target.closest("[data-t-include]");
+      if(incBox){
+        setTaskState(incBox.getAttribute("data-proj"), incBox.getAttribute("data-task"), {included:incBox.checked});
+        renderClientsNewDetail();
+        return;
+      }
+      var svcBox = e.target.closest("[data-svc-item]");
+      if(svcBox){
+        setServiceItem(svcBox.getAttribute("data-proj"), svcBox.getAttribute("data-key"), svcBox.checked);
+        renderClientsNewDetail();
+        return;
+      }
+      handleClientFieldChange(e);
+    });
+    clientsNewDetailEl.addEventListener("input", function(e){
+      var notesArea = e.target.closest("[data-t-note-field]");
+      if(notesArea){
+        setTaskState(notesArea.getAttribute("data-proj"), notesArea.getAttribute("data-task"), {notes:notesArea.value});
+        return;
+      }
+      handleClientFieldChange(e);
+    });
+    function handleClientFieldChange(e){
+      var cf = e.target.getAttribute("data-cfield");
+      if(cf && selectedClientId){ setClientField(selectedClientId, cf, e.target.value); return; }
+      if(!selectedClientId || !selectedJobId) return;
+      var jf = e.target.getAttribute("data-jfield");
+      if(jf){
+        var val = (jf==="price"||jf==="paid") ? (Number(e.target.value)||0) : e.target.value;
+        setJobField(selectedClientId, selectedJobId, jf, val);
+        return;
+      }
+      var qf = e.target.getAttribute("data-qfield");
+      if(qf){
+        var idx = Number(e.target.getAttribute("data-qidx"));
+        var job = getSelectedJob();
+        if(!job) return;
+        var lines = (job.quoteLines||[]).slice();
+        var line = Object.assign({}, lines[idx]);
+        line[qf] = (qf==="qty"||qf==="unitPrice") ? (Number(e.target.value)||0) : e.target.value;
+        lines[idx] = line;
+        setJobField(selectedClientId, selectedJobId, "quoteLines", lines);
+        var row = e.target.closest(".quote-line");
+        var totalEl = row ? row.querySelector(".line-total") : null;
+        if(totalEl) totalEl.textContent = fmtMoney(quoteLineTotal(line));
+        var summaryEl = row ? row.parentElement.querySelector("[data-quote-summary]") : null;
+        if(summaryEl) summaryEl.textContent = 'סה"כ הצעה: '+fmtMoney(quoteLinesTotal(lines));
+        return;
+      }
+      var negf = e.target.getAttribute("data-negfield");
+      if(negf){
+        var job2 = getSelectedJob();
+        if(!job2) return;
+        var neg = Object.assign({}, job2.negotiation||{});
+        if(e.target.type==="checkbox") neg[negf] = e.target.checked;
+        else if(negf==="advancePercent") neg[negf] = Number(e.target.value)||0;
+        else neg[negf] = e.target.value;
+        setJobField(selectedClientId, selectedJobId, "negotiation", neg);
+        return;
+      }
+      var df = e.target.getAttribute("data-docfield");
+      if(df){
+        var job3 = getSelectedJob();
+        if(!job3) return;
+        var docs = Object.assign({}, job3.documents||{});
+        docs[df] = e.target.value;
+        setJobField(selectedClientId, selectedJobId, "documents", docs);
+        return;
+      }
+    }
+
     /* needs assessment */
     document.getElementById("needsTbody").addEventListener("click", function(e){
       var btn = e.target.closest("[data-needs-edit]");
@@ -2100,12 +2336,14 @@ input,select,textarea{font-family:inherit;color:inherit;}
       if(playBtn){
         e.stopPropagation();
         toggleTaskTimer(playBtn.getAttribute("data-proj"), playBtn.getAttribute("data-task"));
+        renderTasksView();
         return;
       }
       var resetBtn = e.target.closest("[data-t-reset]");
       if(resetBtn){
         e.stopPropagation();
         resetTaskTimer(resetBtn.getAttribute("data-proj"), resetBtn.getAttribute("data-task"));
+        renderTasksView();
         return;
       }
       var notesToggle = e.target.closest("[data-t-notes-toggle]");
@@ -2187,6 +2425,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
     document.getElementById("viewCalls").hidden = view!=="calls";
     document.getElementById("viewPriceCatalog").hidden = view!=="priceCatalog";
     document.getElementById("viewWorkHours").hidden = view!=="workHours";
+    document.getElementById("viewClientsNew").hidden = view!=="clientsNew";
     document.querySelectorAll(".vs-btn").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-view")===view);
     });
@@ -2199,6 +2438,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
     if(view==="priceCatalog") renderCatalogTable();
     if(view==="sales") refreshActiveLeadSubTab();
     if(view==="workHours") renderWorkHoursView();
+    if(view==="clientsNew"){ renderClientsNewList(); renderClientsNewDetail(); }
   }
 
   function refreshActiveLeadSubTab(){
@@ -2407,11 +2647,9 @@ input,select,textarea{font-family:inherit;color:inherit;}
       });
       setTaskState(pid, tid, {running:true, runStartedAt:new Date().toISOString()});
     }
-    renderTasksView();
   }
   function resetTaskTimer(pid, tid){
     setTaskState(pid, tid, {elapsedSec:0, running:false, runStartedAt:null});
-    renderTasksView();
   }
 
   setInterval(function(){
@@ -3188,27 +3426,361 @@ input,select,textarea{font-family:inherit;color:inherit;}
     var mrPanel = document.getElementById("monthlyReport");
     if(mrPanel && !mrPanel.hidden) renderMonthlyReport();
   }
+  function buildDemoClientsNew(){
+    var job1 = newJobObj("בית פרטי");
+    job1.stage = 5; job1.price = 45000; job1.paid = 20000; job1.dueDate = isoPlusDays(9);
+    var job2 = newJobObj("וילה - שלב תכנון");
+    job2.stage = 2; job2.price = 120000; job2.paid = 0;
+    return [
+      {id:"demo-c1", name:"משרד כהן ושות׳", phone:"050-1234567", whatsapp:"", email:"", address:"רחוב הרצל 12, תל אביב",
+        customerType:"קיים", source:"המלצה", notes:"", jobs:[job1]},
+      {id:"demo-c2", name:"רונית שגיא", phone:"052-2222222", whatsapp:"", email:"", address:"החורש 9, כפר סבא",
+        customerType:"חדש", source:"אתר אינטרנט", notes:"", jobs:[job2]}
+    ];
+  }
   function enableDemoMode(){
     if(demoMode) return;
     demoMode = true;
     realProjects = projects;
     realLeads = leads;
+    realClientsNew = clients;
     projects = buildDemoProjects();
     leads = buildDemoLeads();
+    clients = buildDemoClientsNew();
+    selectedClientId = clients[0].id;
+    selectedJobId = null;
     document.getElementById("demoBanner").hidden = false;
     document.getElementById("demoModeBtn").textContent = "סיום תצוגת דמו";
     rerenderEverything();
+    renderClientsNewList();
+    renderClientsNewDetail();
   }
   function disableDemoMode(){
     if(!demoMode) return;
     demoMode = false;
     projects = realProjects || [];
     leads = realLeads || [];
+    clients = realClientsNew || [];
     realProjects = null;
     realLeads = null;
+    realClientsNew = null;
+    selectedClientId = null;
+    selectedJobId = null;
     document.getElementById("demoBanner").hidden = true;
     document.getElementById("demoModeBtn").textContent = "תצוגת דמו";
     rerenderEverything();
+    renderClientsNewList();
+    renderClientsNewDetail();
+  }
+
+  /* ---------- clients (new unified client-card model) ---------- */
+  function clientsCol(){ return db.collection("sites").doc(currentSiteId).collection("clients"); }
+  function attachClientsListener(){
+    var unsub = clientsCol().onSnapshot(function(snap){
+      var data = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; if(!o.jobs) o.jobs=[]; return o; });
+      if(demoMode){ realClientsNew = data; return; }
+      clients = data;
+      if(!selectedClientId && clients.length) selectedClientId = clients[0].id;
+      renderClientsNewList();
+      if(!isFocusedWithin("clientsNewDetail")) renderClientsNewDetail();
+    });
+    siteUnsubscribers.push(unsub);
+  }
+  function getClientNew(id){ return clients.find(function(c){ return c.id===id; }); }
+  function getSelectedJob(){
+    var c = getClientNew(selectedClientId);
+    if(!c) return null;
+    return (c.jobs||[]).find(function(j){ return j.id===selectedJobId; }) || null;
+  }
+  function addClientNew(name){
+    var ref = clientsCol().doc();
+    ref.set({name:name, phone:"", whatsapp:"", email:"", address:"", customerType:"", source:"",
+      createdAt:new Date().toISOString().slice(0,10), notes:"", jobs:[]});
+    selectedClientId = ref.id;
+    selectedJobId = null;
+    return ref.id;
+  }
+  function deleteClientNew(id){
+    clientsCol().doc(id).delete();
+    if(selectedClientId===id){ selectedClientId = null; selectedJobId = null; }
+  }
+  function setClientField(id, field, value){
+    var patch = {}; patch[field] = value;
+    clientsCol().doc(id).update(patch);
+  }
+  function newJobObj(title){
+    return {id:uid(), title:title||"עבודה חדשה", stage:1, stageDates:{}, quadrant:"n", dueDate:"",
+      quoteLines:[], negotiation:{}, documents:{}, price:0, paid:0, notes:""};
+  }
+  function addJobToClient(clientId, title){
+    var c = getClientNew(clientId);
+    if(!c) return;
+    var job = newJobObj(title);
+    var jobs = (c.jobs||[]).concat([job]);
+    clientsCol().doc(clientId).update({jobs:jobs});
+    selectedJobId = job.id;
+  }
+  function updateJob(clientId, jobId, patchFn){
+    var c = getClientNew(clientId);
+    if(!c) return;
+    var jobs = (c.jobs||[]).map(function(j){
+      if(j.id!==jobId) return j;
+      var copy = Object.assign({}, j);
+      patchFn(copy);
+      return copy;
+    });
+    clientsCol().doc(clientId).update({jobs:jobs});
+  }
+  function setJobField(clientId, jobId, field, value){
+    updateJob(clientId, jobId, function(j){ j[field] = value; });
+  }
+  function setJobStage(clientId, jobId, val){
+    updateJob(clientId, jobId, function(j){
+      j.stage = Number(val);
+      var dates = j.stageDates || {};
+      if(!dates[val]){
+        dates = Object.assign({}, dates);
+        dates[val] = new Date().toISOString().slice(0,10);
+      }
+      j.stageDates = dates;
+    });
+  }
+  function deleteJob(clientId, jobId){
+    var c = getClientNew(clientId);
+    if(!c) return;
+    var jobs = (c.jobs||[]).filter(function(j){ return j.id!==jobId; });
+    clientsCol().doc(clientId).update({jobs:jobs});
+    if(selectedJobId===jobId) selectedJobId = jobs.length ? jobs[0].id : null;
+  }
+
+  function clientMaxStage(c){
+    var jobs = c.jobs||[];
+    if(!jobs.length) return 0;
+    return Math.max.apply(null, jobs.map(function(j){ return j.stage||1; }));
+  }
+  function clientsNewMiniBar(maxStage){
+    return '<div class="mini-progress">'+JOB_STAGES.map(function(s){
+      return '<span style="'+(s.n<=maxStage?"background:"+s.color:"")+'"></span>';
+    }).join("")+'</div>';
+  }
+  function clientListRowHtml(c){
+    var selected = selectedClientId===c.id;
+    var jobs = c.jobs||[];
+    return '<div class="list-row'+(selected?" selected":"")+'" data-select-client="'+c.id+'">'+
+      '<div class="list-row-main">'+
+        '<div class="row-main"><div class="row-name">'+escapeHtml(c.name||"(ללא שם)")+'</div>'+
+        '<div class="row-sub">'+escapeHtml(c.phone||"")+(jobs.length?" · "+jobs.length+" עבודות":"")+'</div></div>'+
+        '<div class="row-badges">'+clientsNewMiniBar(clientMaxStage(c))+'</div>'+
+      '</div>'+
+    '</div>';
+  }
+  function renderClientsNewList(){
+    var container = document.getElementById("clientsNewList");
+    if(!container) return;
+    var q = (clientFilters.search||"").trim().toLowerCase();
+    var list = clients.filter(function(c){
+      if(!q) return true;
+      return (c.name||"").toLowerCase().indexOf(q)!==-1 || (c.phone||"").indexOf(q)!==-1 ||
+        (c.address||"").toLowerCase().indexOf(q)!==-1;
+    });
+    container.innerHTML = list.length ? list.map(clientListRowHtml).join("") :
+      '<div class="empty">אין לקוחות תואמים. הוסף לקוח חדש למעלה.</div>';
+  }
+
+  function jobSubTabsHtml(){
+    var tabs = [
+      {id:"progress", label:"פרטים והתקדמות"},
+      {id:"tasks", label:"משימות"},
+      {id:"service", label:"שירות ואספקה"},
+      {id:"documents", label:"מסמכים"}
+    ];
+    return '<div class="lead-tabs" id="clientJobSubTabs">'+tabs.map(function(t){
+      return '<button type="button" class="ltab'+(clientJobTab===t.id?" active":"")+'" data-job-tab="'+t.id+'">'+t.label+'</button>';
+    }).join("")+'</div>';
+  }
+  function jobProgressTabHtml(job){
+    var steps = JOB_STAGES.map(function(s){
+      var cls = s.n<job.stage ? "done" : (s.n===job.stage ? "current" : "");
+      var style = cls==="current" ? ' style="background:'+s.color+';border-color:'+s.color+';color:#fff;"' :
+                  cls==="done" ? ' style="background:'+s.color+'22;border-color:'+s.color+';color:'+s.color+';"' : '';
+      return '<button type="button" class="step '+cls+'" data-set-job-stage="'+s.n+'"'+style+'>'+s.n+"."+"<br>"+s.label+'</button>';
+    }).join("");
+
+    var qLines = job.quoteLines||[];
+    var quoteRows = qLines.map(function(l,i){
+      return '<div class="quote-line"><input type="text" data-qfield="name" data-qidx="'+i+'" value="'+escapeHtml(l.name||"")+'" placeholder="שם פריט">'+
+        '<input type="number" data-qfield="qty" data-qidx="'+i+'" value="'+(l.qty||1)+'" min="0">'+
+        '<input type="number" data-qfield="unitPrice" data-qidx="'+i+'" value="'+(l.unitPrice||0)+'" min="0">'+
+        '<div class="line-total">'+fmtMoney(quoteLineTotal(l))+'</div>'+
+        '<button type="button" class="del-line" data-del-qline="'+i+'">✕</button></div>';
+    }).join("");
+
+    var neg = job.negotiation||{};
+    var negotiationBlock = managerMode ?
+      '<div class="field full"><label>משא ומתן</label><div class="negotiation-fields">'+
+        '<label>אושר בתאריך <input type="date" data-negfield="approvedAt" value="'+(neg.approvedAt||"")+'"></label>'+
+        '<label>אחוז מקדמה <input type="number" data-negfield="advancePercent" value="'+(neg.advancePercent||0)+'"></label>'+
+        '<label>אמצעי תשלום <input type="text" data-negfield="paymentMethod" value="'+escapeHtml(neg.paymentMethod||"")+'"></label>'+
+        '<label>מקדמה שולמה בתאריך <input type="date" data-negfield="advancePaidDate" value="'+(neg.advancePaidDate||"")+'"></label>'+
+        '<label><input type="checkbox" data-negfield="advancePaid"'+(neg.advancePaid?" checked":"")+'> מקדמה שולמה</label>'+
+      '</div></div>' : "";
+
+    var payBlock = managerMode ?
+      '<div class="field"><label>מחיר כולל (₪)</label><input type="number" min="0" step="1" data-jfield="price" value="'+(job.price||0)+'"></div>'+
+      '<div class="field"><label>שולם עד כה (₪)</label><input type="number" min="0" step="1" data-jfield="paid" value="'+(job.paid||0)+'"></div>' :
+      '<div class="locked-note">מידע התשלום גלוי למנהל בלבד.</div>';
+
+    return '<div class="detail-body" style="padding:0;">'+
+      '<div class="field full"><label>שם העבודה</label><input type="text" data-jfield="title" value="'+escapeHtml(job.title||"")+'"></div>'+
+      '<div class="field full"><label>שלב</label><div class="steps">'+steps+'</div></div>'+
+      '<div class="field"><label>תאריך יעד</label><input type="date" data-jfield="dueDate" value="'+(job.dueDate||"")+'"></div>'+
+      '<div class="field full"><label>הצעת מחיר</label><div class="quote-lines-wrap">'+quoteRows+
+        '<button type="button" class="ghost-btn" id="jobAddQuoteLineBtn">+ שורה</button>'+
+        '<div class="quote-summary-cell" data-quote-summary>סה"כ הצעה: '+fmtMoney(quoteLinesTotal(qLines))+'</div></div></div>'+
+      negotiationBlock+
+      payBlock+
+      '<div class="field full"><label>הערות לעבודה</label><textarea data-jfield="notes">'+escapeHtml(job.notes||"")+'</textarea></div>'+
+      (managerMode ? '<div class="row-actions"><button type="button" class="danger-btn" data-del-job="'+job.id+'">מחיקת עבודה</button></div>' : '')+
+    '</div>';
+  }
+  function jobTasksTabHtml(job){
+    var editMode = editingBoardId===job.id;
+    var stages = STAGE_META.map(function(sm){ return stageGroupHtml(job.id, sm, editMode); }).join("");
+    return '<div class="row-actions"><button type="button" class="task-edit-btn'+(editMode?" on":"")+'" data-task-edit="'+job.id+'">'+(editMode?"סיום עריכה":"עריכה")+'</button></div>'+stages;
+  }
+  function jobServiceTabHtml(job){
+    return SERVICE_SECTIONS.map(function(s){ return serviceSectionHtml(job.id, s); }).join("");
+  }
+  function jobDocumentsTabHtml(job){
+    var docs = job.documents||{};
+    return DOC_CATEGORIES.map(function(cat){
+      return '<div class="doc-row"><div class="doc-label">'+escapeHtml(cat.label)+'</div>'+
+        '<input type="url" data-docfield="'+cat.id+'" value="'+escapeHtml(docs[cat.id]||"")+'" placeholder="קישור לדרייב"></div>';
+    }).join("");
+  }
+  function renderJobArea(job){
+    var body = "";
+    if(clientJobTab==="progress") body = jobProgressTabHtml(job);
+    else if(clientJobTab==="tasks") body = jobTasksTabHtml(job);
+    else if(clientJobTab==="service") body = jobServiceTabHtml(job);
+    else if(clientJobTab==="documents") body = jobDocumentsTabHtml(job);
+    return jobSubTabsHtml()+'<div class="job-tab-body">'+body+'</div>';
+  }
+
+  function renderClientsNewDetail(){
+    var panel = document.getElementById("clientsNewDetail");
+    if(!panel) return;
+    var c = getClientNew(selectedClientId);
+    if(!c){
+      panel.innerHTML = '<div class="empty">בחר לקוח מהרשימה, או הוסף לקוח חדש למעלה.</div>';
+      return;
+    }
+    var jobs = c.jobs||[];
+    if(!selectedJobId || !jobs.some(function(j){ return j.id===selectedJobId; })){
+      selectedJobId = jobs.length ? jobs[0].id : null;
+    }
+    var jobPicker = jobs.map(function(j){
+      var st = JOB_STAGES[(j.stage||1)-1] || JOB_STAGES[0];
+      var active = j.id===selectedJobId;
+      return '<button type="button" class="ltab'+(active?" active":"")+'" data-select-job="'+j.id+'"'+
+        (active?' style="border-color:'+st.color+';color:'+st.color+'"':'')+'>'+escapeHtml(j.title||"עבודה")+'</button>';
+    }).join("");
+
+    var job = getSelectedJob();
+    var jobArea = job ? renderJobArea(job) : '<div class="empty">אין עבודות עדיין ללקוח זה. לחץ "+ עבודה חדשה".</div>';
+
+    panel.innerHTML =
+      '<div class="detail-head"><div><div class="detail-title">'+escapeHtml(c.name||"(ללא שם)")+'</div></div></div>'+
+      '<div class="detail-body">'+
+        '<div class="field"><label>שם לקוח</label><input type="text" data-cfield="name" value="'+escapeHtml(c.name||"")+'"></div>'+
+        '<div class="field"><label>טלפון</label><input type="tel" data-cfield="phone" value="'+escapeHtml(c.phone||"")+'"></div>'+
+        '<div class="field"><label>וואטסאפ</label><input type="text" data-cfield="whatsapp" value="'+escapeHtml(c.whatsapp||"")+'"></div>'+
+        '<div class="field"><label>מייל</label><input type="email" data-cfield="email" value="'+escapeHtml(c.email||"")+'"></div>'+
+        '<div class="field"><label>כתובת</label><input type="text" data-cfield="address" value="'+escapeHtml(c.address||"")+'"></div>'+
+        '<div class="field"><label>מקור הגעה</label><input type="text" data-cfield="source" value="'+escapeHtml(c.source||"")+'"></div>'+
+        '<div class="field full"><label>הערות כלליות</label><textarea data-cfield="notes">'+escapeHtml(c.notes||"")+'</textarea></div>'+
+        (managerMode ? '<div class="row-actions"><button type="button" class="danger-btn" data-del-client="'+c.id+'">מחיקת לקוח</button></div>' : '')+
+      '</div>'+
+      '<div style="padding:0 18px 18px;">'+
+        '<div class="lead-tabs">'+jobPicker+'<button type="button" class="ltab" id="clientsNewAddJobBtn">+ עבודה חדשה</button></div>'+
+        '<div id="clientsNewJobArea">'+jobArea+'</div>'+
+      '</div>';
+  }
+
+  /* ---------- one-time migration: leads + projects -> clients/jobs ---------- */
+  function guessLeadStage(l){
+    if(l.negotiation && l.negotiation.approvedAt) return 3;
+    if(l.quoteLines && l.quoteLines.length) return 2;
+    return 1;
+  }
+  function normalizeForMatch(s){ return (s||"").toString().trim().toLowerCase(); }
+
+  function migrateOldDataToClients(){
+    if(!confirm("פעולה זו תיצור כרטיסי לקוח חדשים מכל הלידים והפרויקטים הקיימים. היא לא מוחקת ולא משנה את הנתונים הישנים (מכירות/ניהול פרויקטים). להמשיך?")) return;
+    if(!leads.length && !projects.length){ alert("אין לידים או פרויקטים קיימים לייבוא."); return; }
+
+    var batch = db.batch();
+    var created = [];
+
+    leads.forEach(function(l){
+      var ref = clientsCol().doc();
+      var job = newJobObj(l.workType || l.type || "פנייה");
+      job.stage = guessLeadStage(l);
+      job.quoteLines = l.quoteLines || [];
+      job.negotiation = l.negotiation || {};
+      job.documents = l.documents || {};
+      job.price = leadAmount(l);
+      job.paid = l.advance || 0;
+      batch.set(ref, {
+        name:l.name||"", phone:l.phone||"", whatsapp:l.whatsapp||"", email:l.email||"",
+        address:l.address||"", customerType:l.customerType||"", source:l.source||"",
+        createdAt: l.inquiryDate || todayStr(), notes:"", jobs:[job], migratedFromLeadId:l.id
+      });
+      created.push({id:ref.id, name:l.name, phone:l.phone, from:"ליד"});
+    });
+
+    projects.forEach(function(p){
+      var ref = clientsCol().doc();
+      var job = newJobObj(p.name || "עבודה");
+      job.stage = Math.min(8, (p.status||1)+3);
+      var oldDates = p.statusDates || {};
+      var newDates = {};
+      Object.keys(oldDates).forEach(function(k){ newDates[Number(k)+3] = oldDates[k]; });
+      job.stageDates = newDates;
+      job.quadrant = p.quadrant || "n";
+      job.dueDate = p.dueDate || "";
+      job.notes = p.notes || "";
+      job.price = p.price || 0;
+      job.paid = p.paid || 0;
+      batch.set(ref, {
+        name:p.name||"", phone:p.phone||"", whatsapp:"", email:"",
+        address:p.address||"", customerType:"", source:"",
+        createdAt: todayStr(), notes:"", jobs:[job], migratedFromProjectId:p.id
+      });
+      created.push({id:ref.id, name:p.name, phone:p.phone, from:"פרויקט"});
+    });
+
+    batch.commit().then(function(){
+      var dupGroups = {};
+      created.forEach(function(c){
+        var key = normalizeForMatch(c.phone) || normalizeForMatch(c.name);
+        if(!key) return;
+        if(!dupGroups[key]) dupGroups[key] = [];
+        dupGroups[key].push(c);
+      });
+      var dupLines = [];
+      Object.keys(dupGroups).forEach(function(k){
+        var g = dupGroups[k];
+        if(g.length>1) dupLines.push(g.map(function(x){return x.name+" ("+x.from+")";}).join(" + "));
+      });
+      var msg = "נוצרו "+created.length+" כרטיסי לקוח חדשים ("+leads.length+" מלידים, "+projects.length+" מפרויקטים).";
+      msg += dupLines.length ?
+        "\n\nנמצאו "+dupLines.length+" מקרים שנראים כמו אותו לקוח שמופיע פעמיים (מומלץ למזג ידנית - למחוק אחד ולהעביר את העבודות שלו לשני):\n- "+dupLines.join("\n- ") :
+        "\n\nלא נמצאו כפילויות חשודות (לפי שם/טלפון תואם).";
+      alert(msg);
+    }).catch(function(err){
+      alert("שגיאה בייבוא: "+err.message);
+    });
   }
 
   /* ---------- work hours (private per-user, clock-in/clock-out) ---------- */
@@ -3428,6 +4000,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
     attachCallsListener();
     attachVatRateListener();
     attachWorkHoursListener();
+    attachClientsListener();
     renderActiveProjectCards("clientActiveProjects");
     renderActiveProjectCards("bareActiveProjects");
   }
@@ -3439,6 +4012,10 @@ input,select,textarea{font-family:inherit;color:inherit;}
     demoMode = false;
     realProjects = null;
     realLeads = null;
+    realClientsNew = null;
+    clients = [];
+    selectedClientId = null;
+    selectedJobId = null;
     document.getElementById("demoBanner").hidden = true;
     document.getElementById("demoModeBtn").textContent = "תצוגת דמו";
   }
