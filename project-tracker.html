@@ -1533,7 +1533,11 @@ input,select,textarea{font-family:inherit;color:inherit;}
         document.getElementById("siteSwitcherOverlay").hidden = false;
       }
     }).catch(function(err){
-      document.getElementById("loginErr").textContent = "שגיאה בטעינת האתרים: " + err.message;
+      document.getElementById("appShell").hidden = true;
+      document.getElementById("siteSwitcherOverlay").hidden = true;
+      document.getElementById("loginOverlay").hidden = false;
+      document.getElementById("loginErr").textContent = "שגיאה בטעינת האתרים: " + err.message +
+        " - ייתכן שרשת זו חוסמת חלק מהאתר (סינון תוכן/פיירוול). יש לבקש מהאחראי לאפשר גישה לכתובות *.googleapis.com ו-*.gstatic.com.";
     });
   }
 
