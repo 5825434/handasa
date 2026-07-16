@@ -643,9 +643,12 @@ input,select,textarea{font-family:inherit;color:inherit;}
         <button type="button" class="ghost-btn" id="migrateOldDataBtn" data-manager-only>ייבוא לקוחות מהמבנה הישן (מכירות+פרויקטים)</button>
       </div>
     </div>
-    <div class="board">
-      <div class="list-pane"><div id="clientsNewList"></div></div>
-      <div class="detail-pane"><div class="detail-card" id="clientsNewDetail"></div></div>
+    <div id="clientsNewListScreen">
+      <div class="client-proj-grid" id="clientsNewList"></div>
+    </div>
+    <div id="clientsNewDetailScreen" hidden>
+      <button type="button" class="ghost-btn" id="clientsNewBackBtn">→ חזרה לרשימת הלקוחות</button>
+      <div class="detail-card" id="clientsNewDetail" style="margin-top:12px;max-width:720px;"></div>
     </div>
   </div><!-- /viewClientsNew -->
 
@@ -1256,6 +1259,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
   var clientJobTab = "progress";
   var clientFilters = {search:"", sort:"progress"};
   var clientDetailExpanded = false;
+  var clientsNewScreen = "list";
 
   function uid(){ return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -2040,8 +2044,14 @@ input,select,textarea{font-family:inherit;color:inherit;}
       selectedJobId = null;
       clientJobTab = "progress";
       clientDetailExpanded = false;
+      clientsNewScreen = "detail";
       renderClientsNewList();
       renderClientsNewDetail();
+      renderClientsNewScreen();
+    });
+    document.getElementById("clientsNewBackBtn").addEventListener("click", function(){
+      clientsNewScreen = "list";
+      renderClientsNewScreen();
     });
     var clientsNewDetailEl = document.getElementById("clientsNewDetail");
     clientsNewDetailEl.addEventListener("click", function(e){
@@ -2508,7 +2518,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
     if(view==="priceCatalog") renderCatalogTable();
     if(view==="sales") refreshActiveLeadSubTab();
     if(view==="workHours") renderWorkHoursView();
-    if(view==="clientsNew"){ renderClientsNewList(); renderClientsNewDetail(); }
+    if(view==="clientsNew"){ clientsNewScreen = "list"; renderClientsNewList(); renderClientsNewDetail(); renderClientsNewScreen(); }
   }
 
   function refreshActiveLeadSubTab(){
@@ -3608,7 +3618,12 @@ input,select,textarea{font-family:inherit;color:inherit;}
   }
   function deleteClientNew(id){
     clientsCol().doc(id).delete();
-    if(selectedClientId===id){ selectedClientId = null; selectedJobId = null; }
+    if(selectedClientId===id){
+      selectedClientId = null;
+      selectedJobId = null;
+      clientsNewScreen = "list";
+      renderClientsNewScreen();
+    }
   }
   function setClientField(id, field, value){
     var patch = {}; patch[field] = value;
@@ -3707,6 +3722,10 @@ input,select,textarea{font-family:inherit;color:inherit;}
     list.sort(function(a,b){ return clientSortValue(b) - clientSortValue(a); });
     container.innerHTML = list.length ? list.map(clientListRowHtml).join("") :
       '<div class="empty">אין לקוחות תואמים. הוסף לקוח חדש למעלה.</div>';
+  }
+  function renderClientsNewScreen(){
+    document.getElementById("clientsNewListScreen").hidden = clientsNewScreen!=="list";
+    document.getElementById("clientsNewDetailScreen").hidden = clientsNewScreen!=="detail";
   }
 
   function jobSubTabsHtml(){
