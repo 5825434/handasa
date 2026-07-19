@@ -4,515 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ניהול פרויקטים הנדסיים</title>
-<style>
-:root{
-  --bg:#eef1f5;
-  --grid-line:rgba(31,78,121,0.055);
-  --surface:#ffffff;
-  --surface-2:#e7ecf1;
-  --ink:#1c2733;
-  --ink-soft:#596773;
-  --ink-faint:#8b97a3;
-  --border:#d7dee5;
-  --accent:#1f4e79;
-  --accent-ink:#ffffff;
-  --accent-soft:#e4ecf4;
-  --q-uq:#b3432e;
-  --q-uq-soft:#f6e6e2;
-  --q-u:#1f4e79;
-  --q-u-soft:#e4ecf4;
-  --q-q:#a8720f;
-  --q-q-soft:#f6ecd8;
-  --q-n:#6d7a87;
-  --q-n-soft:#e9ecef;
-  --pay-paid:#2f7d5d;
-  --pay-paid-soft:#e2f0ea;
-  --pay-partial:#a8720f;
-  --pay-partial-soft:#f6ecd8;
-  --pay-unpaid:#b3432e;
-  --pay-unpaid-soft:#f6e6e2;
-  --shadow:0 1px 2px rgba(28,39,51,0.06), 0 6px 20px rgba(28,39,51,0.06);
-  --radius:10px;
-  --font-ui:"Segoe UI","Arial Hebrew",Arial,"Noto Sans Hebrew",sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#121820;
-    --grid-line:rgba(111,168,216,0.05);
-    --surface:#1a222c;
-    --surface-2:#212b36;
-    --ink:#e8edf2;
-    --ink-soft:#a3afba;
-    --ink-faint:#6d7986;
-    --border:#2b3642;
-    --accent:#7fb2de;
-    --accent-ink:#0e1620;
-    --accent-soft:#1e3346;
-    --q-uq:#e0836d;
-    --q-uq-soft:#3a2420;
-    --q-u:#7fb2de;
-    --q-u-soft:#1e3346;
-    --q-q:#e2ab55;
-    --q-q-soft:#3a2f1a;
-    --q-n:#93a0ac;
-    --q-n-soft:#26303a;
-    --pay-paid:#5cba95;
-    --pay-paid-soft:#1c2f27;
-    --pay-partial:#e2ab55;
-    --pay-partial-soft:#3a2f1a;
-    --pay-unpaid:#e0836d;
-    --pay-unpaid-soft:#3a2420;
-    --shadow:0 1px 2px rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.35);
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#121820;
-  --grid-line:rgba(111,168,216,0.05);
-  --surface:#1a222c;
-  --surface-2:#212b36;
-  --ink:#e8edf2;
-  --ink-soft:#a3afba;
-  --ink-faint:#6d7986;
-  --border:#2b3642;
-  --accent:#7fb2de;
-  --accent-ink:#0e1620;
-  --accent-soft:#1e3346;
-  --q-uq:#e0836d;
-  --q-uq-soft:#3a2420;
-  --q-u:#7fb2de;
-  --q-u-soft:#1e3346;
-  --q-q:#e2ab55;
-  --q-q-soft:#3a2f1a;
-  --q-n:#93a0ac;
-  --q-n-soft:#26303a;
-  --pay-paid:#5cba95;
-  --pay-paid-soft:#1c2f27;
-  --pay-partial:#e2ab55;
-  --pay-partial-soft:#3a2f1a;
-  --pay-unpaid:#e0836d;
-  --pay-unpaid-soft:#3a2420;
-  --shadow:0 1px 2px rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.35);
-}
-:root[data-theme="light"]{
-  --bg:#eef1f5;
-  --grid-line:rgba(31,78,121,0.055);
-  --surface:#ffffff;
-  --surface-2:#e7ecf1;
-  --ink:#1c2733;
-  --ink-soft:#596773;
-  --ink-faint:#8b97a3;
-  --border:#d7dee5;
-  --accent:#1f4e79;
-  --accent-ink:#ffffff;
-  --accent-soft:#e4ecf4;
-  --q-uq:#b3432e;
-  --q-uq-soft:#f6e6e2;
-  --q-u:#1f4e79;
-  --q-u-soft:#e4ecf4;
-  --q-q:#a8720f;
-  --q-q-soft:#f6ecd8;
-  --q-n:#6d7a87;
-  --q-n-soft:#e9ecef;
-  --pay-paid:#2f7d5d;
-  --pay-paid-soft:#e2f0ea;
-  --pay-partial:#a8720f;
-  --pay-partial-soft:#f6ecd8;
-  --pay-unpaid:#b3432e;
-  --pay-unpaid-soft:#f6e6e2;
-  --shadow:0 1px 2px rgba(28,39,51,0.06), 0 6px 20px rgba(28,39,51,0.06);
-}
-
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;}
-body{
-  font-family:var(--font-ui);
-  background:var(--bg);
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size:26px 26px;
-  color:var(--ink);
-  font-size:15px;
-  line-height:1.5;
-  direction:rtl;
-  min-height:100vh;
-}
-.wrap{flex:1;min-width:0;max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-button{font-family:inherit;cursor:pointer;}
-input,select,textarea{font-family:inherit;color:inherit;}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
-
-/* header */
-.hdr{display:flex;align-items:center;gap:14px;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px;}
-.hdr-id{display:flex;align-items:center;gap:12px;}
-.mark{width:38px;height:38px;flex:none;}
-.hdr h1{font-size:1.5rem;margin:0;letter-spacing:-0.01em;text-wrap:balance;}
-.hdr p{margin:2px 0 0;color:var(--ink-soft);font-size:0.83rem;}
-.mgr-toggle{display:flex;align-items:center;gap:8px;}
-.user-badge{font-size:0.82rem;color:var(--ink-soft);display:flex;align-items:center;gap:7px;}
-.user-badge img{width:26px;height:26px;border-radius:50%;flex:none;}
-.site-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;cursor:pointer;text-align:right;}
-.site-row:hover{border-color:var(--accent);}
-.site-row .n{font-weight:600;font-size:0.9rem;}
-.site-row .r{font-size:0.76rem;color:var(--ink-soft);}
-.share-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:0.85rem;}
-.share-row button{background:transparent;border:1px solid var(--pay-unpaid);color:var(--pay-unpaid);border-radius:6px;padding:4px 10px;font-size:0.76rem;}
-.pill-btn{
-  display:inline-flex;align-items:center;gap:7px;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:999px;padding:8px 14px;font-size:0.8rem;color:var(--ink-soft);
-  box-shadow:var(--shadow);
-}
-.pill-btn[hidden]{display:none;}
-.pill-btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
-.pill-dot{width:8px;height:8px;border-radius:50%;background:var(--ink-faint);flex:none;}
-.pill-btn.on .pill-dot{background:var(--accent-ink);}
-
-/* stats */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
-.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);}
-.stat .n{font-size:1.4rem;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.02em;}
-.stat .l{font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;}
-.stat.money .n{color:var(--pay-unpaid);}
-.stat.money.ok .n{color:var(--pay-paid);}
-
-/* toolbar */
-.toolbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:12px;}
-.toolbar-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
-.toolbar-row + .toolbar-row{margin-top:10px;}
-.filter-group{margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);}
-.toolbar-row + .filter-group{border-top:none;padding-top:2px;}
-.filter-group-lbl{font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;margin-bottom:6px;}
-.search-box{flex:1 1 220px;position:relative;}
-.search-box input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);font-size:0.88rem;}
-.chipset{display:flex;flex-wrap:wrap;gap:6px;}
-.chip{
-  border:1px solid var(--border);background:var(--surface-2);color:var(--ink-soft);
-  border-radius:999px;padding:5px 12px;font-size:0.78rem;display:inline-flex;align-items:center;gap:6px;
-}
-.chip .dot{width:7px;height:7px;border-radius:50%;flex:none;}
-.chip.active{background:var(--accent-soft);color:var(--ink);border-color:var(--accent);font-weight:600;}
-.toolbar select{padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);font-size:0.82rem;color:var(--ink);}
-.switch-label{display:inline-flex;align-items:center;gap:7px;font-size:0.82rem;color:var(--ink-soft);}
-.switch-label[hidden]{display:none;}
-.spacer{flex:1;}
-.ghost-btn{background:transparent;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:0.8rem;color:var(--ink-soft);}
-.ghost-btn:hover{border-color:var(--accent);color:var(--ink);}
-
-/* add project */
-.add-row{display:flex;gap:8px;margin-bottom:16px;}
-.add-row input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:0.9rem;box-shadow:var(--shadow);}
-.add-row button{background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px 18px;font-size:0.88rem;font-weight:600;white-space:nowrap;}
-
-/* board: list on the right, detail on the left (RTL: first grid track = right) */
-.board{display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start;}
-@media (max-width:860px){
-  .board{grid-template-columns:1fr;}
-  .list-pane{max-height:none;}
-}
-
-.list-pane{max-height:calc(100vh - 300px);overflow-y:auto;padding-left:2px;}
-.detail-pane{position:sticky;top:20px;}
-@media (max-width:860px){.detail-pane{position:static;}}
-
-/* group header */
-.group-hd{display:flex;align-items:center;gap:9px;margin:18px 0 8px;padding-right:2px;}
-.group-hd:first-child{margin-top:0;}
-.group-hd .dot{width:10px;height:10px;border-radius:50%;flex:none;}
-.group-hd .t{font-size:0.82rem;font-weight:600;color:var(--ink-soft);}
-.group-hd .c{font-size:0.74rem;color:var(--ink-faint);font-variant-numeric:tabular-nums;}
-
-/* compact list rows */
-.list-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:7px;box-shadow:var(--shadow);overflow:hidden;}
-.list-row.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent), var(--shadow);}
-.list-row-main{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;}
-.qdot-btn{width:13px;height:13px;border-radius:50%;flex:none;border:none;padding:0;}
-.row-main{flex:1;min-width:0;}
-.row-name{font-size:0.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.row-sub{font-size:0.74rem;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
-.row-badges{display:flex;align-items:center;gap:5px;flex:none;}
-.badge{font-size:0.7rem;padding:3px 8px;border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums;}
-.badge.due{background:var(--surface-2);color:var(--ink-soft);}
-.badge.due.late{background:var(--pay-unpaid-soft);color:var(--pay-unpaid);}
-.badge.status{background:var(--accent-soft);color:var(--accent);font-weight:600;min-width:1.4em;text-align:center;}
-.mini-progress{display:flex;gap:2px;width:64px;flex:none;}
-.mini-progress span{flex:1;height:6px;border-radius:3px;background:var(--surface-2);}
-
-.monthly-report{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:14px;}
-.monthly-report[hidden]{display:none;}
-.monthly-report-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.monthly-report-title{font-weight:700;}
-.monthly-report-body{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
-.monthly-report-charts{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;}
-.monthly-report-charts svg{width:100%;max-width:260px;height:auto;}
-#monthlyReportPie{max-width:170px;}
-@media (max-width:480px){
-  .monthly-report-charts svg{max-width:100%;}
-}
-.monthly-report-list{flex:1;min-width:220px;max-height:220px;overflow:auto;font-size:0.82rem;}
-.monthly-report-list .mr-row{padding:5px 0;border-bottom:1px solid var(--border);}
-.monthly-report-list .mr-empty{color:var(--ink-faint);padding:8px 0;}
-.mr-legend{display:flex;flex-direction:column;gap:4px;font-size:0.76rem;margin-top:6px;}
-.mr-legend span.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:6px;}
-
-.wh-rate-row{margin-bottom:12px;font-size:0.9rem;}
-
-.wh-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px;}
-.wh-card-date-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:0.9rem;}
-.wh-card-date-row input[type="date"]{padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
-.wh-card-hint{color:var(--ink-faint);font-size:0.8rem;}
-.wh-card-buttons{display:flex;gap:14px;margin-bottom:14px;}
-.wh-clock-btn{flex:1;padding:18px 10px;font-size:1.05rem;font-weight:700;border-radius:12px;border:none;cursor:pointer;color:#fff;}
-.wh-clock-btn.in{background:#1f9d55;}
-.wh-clock-btn.in:hover{background:#188045;}
-.wh-clock-btn.out{background:#c0472c;}
-.wh-clock-btn.out:hover{background:#a13c25;}
-@media (max-width:480px){
-  .wh-card-buttons{flex-direction:column;}
-}
-.wh-card-hint2{color:var(--ink-faint);font-size:0.78rem;margin-bottom:12px;}
-.wh-sessions{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
-.wh-session-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.wh-time-group{display:flex;align-items:center;gap:2px;}
-.wh-time-group input[type="number"]{width:46px;padding:7px 4px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);text-align:center;}
-.wh-time-sep{color:var(--ink-faint);}
-.wh-card-manual{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:0.85rem;border-top:1px dashed var(--border);padding-top:12px;}
-.wh-card-manual input[type="text"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
-.wh-note-lbl{flex:1;min-width:160px;}
-.wh-note-lbl input{width:100%;}
-.wh-card-total{margin-top:12px;font-weight:700;font-size:0.95rem;color:var(--accent);}
-.wh-hist-row{cursor:pointer;}
-.wh-hist-row:hover{background:var(--surface-2);}
-
-.wh-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
-.wh-summary{font-size:1rem;font-weight:700;padding:10px 14px;background:var(--accent-soft);color:var(--accent);border-radius:8px;margin-bottom:12px;}
-@media print{
-  body *{visibility:hidden;}
-  #whPrintArea, #whPrintArea *{visibility:visible;}
-  #whPrintArea{position:absolute;top:0;right:0;left:0;width:100%;}
-}
-
-.site-footer{text-align:center;font-size:0.76rem;color:var(--ink-faint);padding:14px 10px;border-top:1px solid var(--border);}
-
-.demo-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#f5a623;color:#3a2600;font-size:0.85rem;font-weight:600;padding:10px 16px;margin:0 0 12px;border-radius:8px;}
-.demo-banner[hidden]{display:none;}
-.demo-banner .pill-btn{background:#3a2600;color:#fff;}
-@media print{ .site-footer{display:none;} }
-
-.qpop{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 12px;border-top:1px dashed var(--border);margin-top:1px;padding-top:10px;}
-
-.qopt{display:flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:0.78rem;color:var(--ink-soft);}
-.qopt .dot{width:9px;height:9px;border-radius:50%;flex:none;}
-.qopt.sel{border-color:currentColor;font-weight:600;}
-
-/* detail panel */
-.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
-.detail-head{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border);}
-.dot-lg{width:16px;height:16px;border-radius:50%;flex:none;}
-.detail-title{font-size:1.1rem;font-weight:700;text-wrap:balance;}
-.detail-sub{font-size:0.78rem;color:var(--ink-soft);margin-top:2px;}
-.detail-body{padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;}
-.field{display:flex;flex-direction:column;gap:5px;min-width:0;}
-.field.full{grid-column:1 / -1;}
-.field label{font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;}
-.field input,.field textarea{
-  border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:var(--surface-2);font-size:0.87rem;color:var(--ink);width:100%;
-}
-.field textarea{resize:vertical;min-height:64px;}
-
-.qpicker{display:flex;flex-wrap:wrap;gap:7px;}
-
-.steps{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-.step{flex:1;text-align:center;padding:8px 4px;font-size:0.74rem;background:var(--surface-2);color:var(--ink-faint);border-left:1px solid var(--border);}
-.step:first-child{border-left:none;}
-.step.done{background:var(--accent-soft);color:var(--accent);}
-.step.current{background:var(--accent);color:var(--accent-ink);font-weight:700;}
-
-.pay-status-line{grid-column:1/-1;font-size:0.82rem;padding:8px 10px;border-radius:7px;}
-.pay-status-line.paid{background:var(--pay-paid-soft);color:var(--pay-paid);}
-.pay-status-line.partial{background:var(--pay-partial-soft);color:var(--pay-partial);}
-.pay-status-line.unpaid{background:var(--pay-unpaid-soft);color:var(--pay-unpaid);}
-.pay-status-line.none{background:var(--surface-2);color:var(--ink-faint);}
-.locked-note{grid-column:1/-1;font-size:0.78rem;color:var(--ink-faint);background:var(--surface-2);border:1px dashed var(--border);border-radius:7px;padding:10px;}
-
-.row-actions{grid-column:1/-1;display:flex;justify-content:flex-end;}
-.danger-btn{background:transparent;border:1px solid var(--pay-unpaid);color:var(--pay-unpaid);border-radius:7px;padding:6px 12px;font-size:0.78rem;}
-.danger-btn:hover{background:var(--pay-unpaid-soft);}
-
-.empty{background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);padding:40px 20px;text-align:center;color:var(--ink-faint);font-size:0.88rem;}
-
-/* modal */
-.overlay{position:fixed;inset:0;background:rgba(10,14,20,0.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}
-.overlay[hidden]{display:none;}
-.modal{background:var(--surface);border-radius:12px;padding:22px;width:100%;max-width:340px;box-shadow:var(--shadow);}
-.modal h2{margin:0 0 4px;font-size:1.05rem;}
-.modal p{margin:0 0 14px;color:var(--ink-soft);font-size:0.82rem;}
-.modal input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);font-size:1rem;letter-spacing:0.15em;text-align:center;margin-bottom:10px;}
-.modal .err{color:var(--pay-unpaid);font-size:0.78rem;margin:-4px 0 10px;min-height:1em;}
-.modal-actions{display:flex;gap:8px;}
-.modal-actions button{flex:1;padding:9px;border-radius:8px;font-size:0.85rem;border:1px solid var(--border);background:var(--surface-2);}
-.modal-actions button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;}
-
-.footnote{text-align:center;color:var(--ink-faint);font-size:0.72rem;margin-top:26px;}
-
-@media (max-width:640px){
-  .detail-body{grid-template-columns:1fr;}
-}
-
-/* view switch */
-.app-shell{display:flex;align-items:stretch;min-height:100vh;}
-.app-shell[hidden]{display:none;}
-.sidebar{
-  flex:none;width:236px;background:var(--surface);border-left:1px solid var(--border);
-  padding:20px 14px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;
-}
-.sidebar-hd{display:flex;align-items:center;gap:10px;font-weight:800;font-size:0.98rem;padding:0 6px;margin-bottom:18px;text-wrap:balance;}
-.sidebar-nav{display:flex;flex-direction:column;gap:3px;}
-.vs-btn{
-  display:block;width:100%;text-align:right;
-  background:transparent;border:1px solid transparent;border-radius:8px;
-  padding:10px 12px;font-size:0.85rem;color:var(--ink-soft);
-}
-.vs-btn:hover{background:var(--surface-2);color:var(--ink);}
-.vs-btn.active{background:var(--accent-soft);color:var(--accent);font-weight:700;}
-.vs-btn[hidden]{display:none;}
-@media (max-width:860px){
-  .app-shell{flex-direction:column;}
-  .sidebar{width:100%;height:auto;position:static;border-left:none;border-bottom:1px solid var(--border);}
-  .sidebar-nav{flex-direction:row;flex-wrap:wrap;gap:6px;}
-  .vs-btn{width:auto;}
-}
-@media (max-width:480px){
-  .wrap{padding:16px 10px 60px;}
-  .hdr h1{font-size:1.25rem;}
-}
-
-/* sales / leads */
-.sales-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
-.sales-hd h2{margin:0;font-size:1.25rem;}
-.sales-hd p{margin:2px 0 0;color:var(--ink-soft);font-size:0.82rem;}
-.add-lead-btn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;}
-
-.lead-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
-.ltab{background:var(--surface);border:1px solid var(--border);color:var(--ink-soft);border-radius:8px 8px 0 0;padding:9px 16px;font-size:0.82rem;}
-.ltab.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;}
-.ltab[disabled]{cursor:not-allowed;opacity:0.55;}
-
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto;}
-.leads-table{width:100%;border-collapse:collapse;font-size:0.83rem;white-space:nowrap;}
-.leads-table th{text-align:right;padding:11px 12px;color:var(--ink-soft);font-weight:600;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.03em;border-bottom:1px solid var(--border);}
-.leads-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;}
-.leads-table tbody tr:last-child td{border-bottom:none;}
-.leads-table tbody tr:hover{background:var(--surface-2);}
-.leads-table a{color:var(--accent);text-decoration:none;}
-.leads-table .muted{color:var(--ink-faint);}
-.leads-table .hidden-val{color:var(--ink-faint);font-style:italic;}
-.row-menu{position:relative;}
-.row-menu-btn{background:transparent;border:none;color:var(--ink-faint);font-size:1.1rem;padding:4px 8px;border-radius:6px;}
-.row-menu-btn:hover{background:var(--surface-2);color:var(--ink);}
-.row-menu-drop{position:absolute;top:100%;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:20;overflow:hidden;min-width:100px;}
-.row-menu-drop button{display:block;width:100%;text-align:right;padding:9px 14px;font-size:0.82rem;background:var(--surface);border:none;color:var(--ink);}
-.row-menu-drop button:hover{background:var(--surface-2);}
-.row-menu-drop button.danger{color:var(--pay-unpaid);}
-.leads-empty{padding:34px 16px;text-align:center;color:var(--ink-faint);font-size:0.88rem;}
-
-/* wide modal for lead form */
-.modal.wide{max-width:620px;text-align:right;}
-.lead-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:16px;}
-.lead-form .field.full{grid-column:1/-1;}
-.lead-form label{font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;display:block;margin-bottom:5px;}
-.lead-form input,.lead-form select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:0.87rem;color:var(--ink);}
-.switch-label.full{grid-column:1/-1;}
-.lead-actions{align-items:center;}
-.lead-actions .ghost-btn{flex:none;}
-
-@media (max-width:640px){
-  .lead-form{grid-template-columns:1fr;}
-}
-
-/* production tasks board */
-.task-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden;}
-.task-card-hd{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;}
-.task-card-hd .chev{width:9px;height:9px;flex:none;border-right:2px solid var(--ink-faint);border-bottom:2px solid var(--ink-faint);transform:rotate(45deg);transition:transform .15s ease;}
-.task-card.open > .task-card-hd .chev{transform:rotate(225deg);}
-.task-card-title{flex:1;min-width:0;}
-.task-card-title .n{font-weight:700;font-size:0.95rem;}
-.task-card-title .a{font-size:0.78rem;color:var(--ink-faint);margin-top:2px;}
-.task-card-body{border-top:1px solid var(--border);padding:12px 16px;background:var(--surface-2);}
-.task-edit-btn{background:transparent;border:1px solid var(--border);border-radius:7px;padding:6px 12px;font-size:0.76rem;color:var(--ink-soft);flex:none;}
-.task-edit-btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600;}
-
-.stage-group{border:1px solid var(--border);border-radius:9px;background:var(--surface);margin-bottom:8px;overflow:hidden;}
-.stage-hd{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;}
-.stage-badge{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:0.74rem;font-weight:700;color:#fff;}
-.stage-hd .lbl{font-size:0.86rem;font-weight:600;flex:1;}
-.stage-hd .chev{width:8px;height:8px;flex:none;border-right:2px solid var(--ink-faint);border-bottom:2px solid var(--ink-faint);transform:rotate(45deg);transition:transform .15s ease;}
-.stage-group.open > .stage-hd .chev{transform:rotate(225deg);}
-.stage-body{border-top:1px solid var(--border);padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
-.stage-subgroup-lbl{font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;margin:4px 0 -2px;}
-
-.task-row{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;}
-.task-row.excluded{opacity:0.5;}
-.task-row.done .t-label{text-decoration:line-through;color:var(--ink-faint);}
-.task-row-top{display:flex;align-items:center;gap:9px;}
-.task-row-top input[type="checkbox"]{flex:none;width:16px;height:16px;}
-.t-label{flex:1;font-size:0.85rem;}
-.t-timer{font-variant-numeric:tabular-nums;font-size:0.78rem;color:var(--ink-soft);white-space:nowrap;}
-.t-btn{flex:none;border:none;border-radius:6px;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);color:var(--ink-soft);font-size:0.8rem;}
-.t-btn.play.running{background:var(--pay-unpaid);border-color:var(--pay-unpaid);color:#fff;}
-.t-notes-toggle{background:none;border:none;color:var(--accent);font-size:0.74rem;padding:0;margin-inline-start:25px;}
-.t-notes{margin-top:7px;margin-inline-start:25px;}
-.t-notes textarea{width:100%;min-height:44px;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:0.82rem;background:var(--surface);color:var(--ink);resize:vertical;}
-.include-toggle{display:flex;align-items:center;gap:6px;font-size:0.76rem;color:var(--ink-soft);margin-inline-start:25px;margin-top:4px;}
-
-/* service & supply */
-.svc-subhd{font-size:0.78rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;margin:2px 0 8px;}
-.svc-section{border:1px solid var(--border);border-radius:9px;background:var(--surface);margin-bottom:10px;padding:14px 16px;}
-.svc-section-hd{display:flex;align-items:center;gap:8px;font-size:0.95rem;font-weight:700;margin-bottom:10px;}
-.svc-master{display:flex;align-items:center;gap:9px;font-weight:600;font-size:0.87rem;padding-bottom:10px;margin-bottom:10px;border-bottom:1px dashed var(--border);}
-.svc-group-lbl{font-size:0.74rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;margin:10px 0 4px;}
-.svc-item{display:flex;gap:9px;padding:7px 0;align-items:flex-start;}
-.svc-item input[type="checkbox"]{flex:none;width:16px;height:16px;margin-top:2px;}
-.svc-item .lbl{font-size:0.86rem;font-weight:600;}
-.svc-item.done .lbl{color:var(--ink-faint);text-decoration:line-through;font-weight:400;}
-.svc-item .desc{font-size:0.78rem;color:var(--ink-soft);margin-top:2px;}
-
-/* clients */
-.client-proj-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:20px;}
-.client-proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;}
-.client-proj-card .pill{display:inline-block;background:var(--pay-paid-soft);color:var(--pay-paid);font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px;margin-bottom:9px;}
-.client-proj-card .name{font-weight:700;font-size:0.92rem;}
-.client-proj-card .meta{font-size:0.78rem;color:var(--ink-soft);margin-top:5px;display:flex;align-items:center;gap:5px;}
-.client-proj-card .pill.done{background:var(--surface-2);color:var(--ink-soft);}
-.client-proj-card .job-count{font-weight:400;color:var(--ink-faint);font-size:0.8rem;}
-.list-card{cursor:pointer;margin-bottom:10px;}
-.list-card.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent), var(--shadow);}
-.stage-dots{display:flex;gap:4px;margin-top:9px;}
-.stage-dots .dot{width:8px;height:8px;border-radius:50%;background:var(--surface-2);flex:none;}
-.expand-toggle-btn{font-size:0.72rem;padding:3px 10px;vertical-align:middle;margin-right:8px;}
-
-/* quote editor */
-.quote-line{display:grid;grid-template-columns:1.6fr 0.6fr 0.8fr 0.9fr auto;gap:8px;align-items:center;margin-bottom:8px;}
-.quote-line select,.quote-line input{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:0.83rem;color:var(--ink);width:100%;}
-.quote-line .line-total{font-size:0.83rem;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;}
-.quote-line .del-line{background:transparent;border:1px solid var(--pay-unpaid);color:var(--pay-unpaid);border-radius:7px;width:28px;height:28px;flex:none;}
-.quote-summary-cell{white-space:normal;font-size:0.8rem;line-height:1.6;}
-.doc-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
-.doc-row:last-child{border-bottom:none;}
-.doc-row .doc-label{width:90px;flex:none;font-weight:600;font-size:0.86rem;}
-.doc-row input[type="url"]{flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:0.83rem;color:var(--ink);}
-.doc-summary-cell{white-space:normal;font-size:0.82rem;}
-@media (max-width:640px){
-  .quote-line{grid-template-columns:1fr 1fr;}
-}
-
-.negotiation-fields{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:0.82rem;}
-.negotiation-fields label{display:flex;flex-direction:column;gap:4px;color:var(--ink-soft);}
-.negotiation-fields input{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
-.job-tab-body{margin-top:12px;}
-.quote-lines-wrap{display:flex;flex-direction:column;gap:8px;}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -527,15 +19,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
       <span>ניהול פרויקטים</span>
     </div>
     <nav class="sidebar-nav" id="viewSwitch">
-      <button type="button" class="vs-btn" data-view="clientsNew">לקוחות (חדש - בטא)</button>
-      <button type="button" class="vs-btn" data-view="sales">מכירות</button>
+      <button type="button" class="vs-btn" data-view="clientsNew">לקוחות</button>
       <button type="button" class="vs-btn" data-view="priceCatalog" data-manager-only>מחירון</button>
-      <button type="button" class="vs-btn" data-view="tasks">משימות (הפקת תוכניות)</button>
-      <button type="button" class="vs-btn" data-view="service">שירות ואספקה</button>
-      <button type="button" class="vs-btn" data-view="calls" data-manager-only>טלפונים ופניות (ניהול)</button>
-      <button type="button" class="vs-btn" data-view="clients" data-manager-only>לקוחות</button>
-      <button type="button" class="vs-btn" data-view="projectsBare" data-manager-only>פרויקטים</button>
-      <button type="button" class="vs-btn" data-view="projects">ניהול פרויקטים</button>
       <button type="button" class="vs-btn" data-view="workHours">שעות עבודה</button>
     </nav>
   </aside>
@@ -562,71 +47,12 @@ input,select,textarea{font-family:inherit;color:inherit;}
     <button type="button" class="pill-btn" id="demoExitBtn">חזרה לנתונים האמיתיים</button>
   </div>
 
-  <div id="viewProjects">
-  <div class="stats" id="stats"></div>
 
-  <div class="toolbar">
-    <div class="toolbar-row">
-      <div class="search-box">
-        <input type="text" id="searchInput" placeholder="חיפוש לפי שם, כתובת, טלפון או עובד...">
-      </div>
-      <select id="sortSelect">
-        <option value="due">מיון: תאריך יעד</option>
-        <option value="name">מיון: שם</option>
-        <option value="status">מיון: סטטוס</option>
-        <option value="quadrant">מיון: חשיבות</option>
-      </select>
-      <label class="switch-label"><input type="checkbox" id="groupToggle"> קיבוץ לפי חשיבות</label>
-      <div class="spacer"></div>
-      <button class="ghost-btn" id="exportBtn" type="button">ייצוא גיבוי</button>
-      <button class="ghost-btn" id="importBtn" type="button">ייבוא גיבוי</button>
-      <input type="file" id="importFile" accept="application/json" hidden>
-      <button class="ghost-btn" id="monthlyReportBtn" type="button">דוח השלמות חודשי</button>
-    </div>
-    <div class="filter-group">
-      <div class="filter-group-lbl">לפי חשיבות ודחיפות</div>
-      <div class="chipset" id="quadrantChips"></div>
-    </div>
-    <div class="filter-group">
-      <div class="filter-group-lbl">לפי התקדמות (שרטוט / קורות ועמודים / ברזל / הדפסה)</div>
-      <div class="chipset" id="statusChips"></div>
-    </div>
-  </div>
-
-  <div class="monthly-report" id="monthlyReport" hidden>
-    <div class="monthly-report-hd">
-      <div class="monthly-report-title">דוח השלמות חודשי</div>
-      <input type="month" id="monthlyReportMonth">
-    </div>
-    <div class="monthly-report-body">
-      <div class="monthly-report-charts">
-        <svg id="monthlyReportBar" viewBox="0 0 320 180"></svg>
-        <svg id="monthlyReportPie" viewBox="0 0 200 200"></svg>
-      </div>
-      <div id="monthlyReportList" class="monthly-report-list"></div>
-    </div>
-  </div>
-
-  <form class="add-row" id="addForm">
-    <input type="text" id="addName" placeholder="שם פרויקט / לקוח חדש..." required>
-    <button type="submit">+ פרויקט חדש</button>
-  </form>
-
-  <div class="board">
-    <div class="list-pane" id="listPane">
-      <div id="projectList"></div>
-    </div>
-    <div class="detail-pane">
-      <div class="detail-card" id="detailPanel"></div>
-    </div>
-  </div>
-  </div><!-- /viewProjects -->
-
-  <div id="viewClientsNew" hidden>
+  <div id="viewClientsNew">
     <div class="sales-hd">
       <div>
         <h2>לקוחות</h2>
-        <p>כרטיס אחד לכל לקוח - פרטי קשר, התקדמות, משימות, שירות ומסמכים במקום אחד. גרסת בטא - הטאבים הישנים עדיין זמינים בינתיים.</p>
+        <p>כרטיס אחד לכל לקוח - פרטי קשר, התקדמות, משימות, שירות ומסמכים במקום אחד.</p>
       </div>
     </div>
     <div class="toolbar">
@@ -652,164 +78,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
     </div>
   </div><!-- /viewClientsNew -->
 
-  <div id="viewSales" hidden>
-    <div class="sales-hd">
-      <div>
-        <h2>לידים</h2>
-        <p>ניהול לידים והזדמנויות מכירה</p>
-      </div>
-      <label class="switch-label" data-manager-only style="gap:6px;">מע"מ: <input type="number" id="vatRateInput" min="0" max="100" step="0.1" style="width:56px;padding:5px 7px;border:1px solid var(--border);border-radius:6px;background:var(--surface-2);color:var(--ink);">%</label>
-      <button type="button" class="ghost-btn" id="gotoCatalogBtn" data-manager-only>ניהול מחירון</button>
-      <button type="button" class="pill-btn add-lead-btn" id="addLeadBtn" data-manager-only>
-        <span>+</span> הוסף ליד חדש
-      </button>
-    </div>
 
-    <div class="lead-tabs" id="leadTabs">
-      <button type="button" class="ltab active" data-ltab="intro" data-manager-only>ליד חדש - היכרות</button>
-      <button type="button" class="ltab" data-ltab="needs">בדיקה והבנת הצורך</button>
-      <button type="button" class="ltab" data-ltab="quote" data-manager-only>הצעת מחיר</button>
-      <button type="button" class="ltab" data-ltab="negotiate" data-manager-only>משא ומתן</button>
-      <button type="button" class="ltab" data-ltab="docs">מסמכים</button>
-    </div>
-
-    <div data-ltab-content="intro">
-      <div class="table-wrap">
-        <table class="leads-table" id="leadsTable">
-          <thead>
-            <tr>
-              <th>שם מלא</th>
-              <th>טלפון</th>
-              <th>ווטסאפ</th>
-              <th>מייל</th>
-              <th>כתובת הנכס</th>
-              <th>סוג לקוח</th>
-              <th>סוג</th>
-              <th>סוג עבודה</th>
-              <th>מקור הגעה</th>
-              <th>תאריך פניה</th>
-              <th>מקדמה</th>
-              <th>כולל מע"מ</th>
-              <th>סכום</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="leadsTbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div data-ltab-content="quote" hidden>
-      <div class="table-wrap">
-        <table class="leads-table" id="quotesTable">
-          <thead>
-            <tr>
-              <th>שם מלא</th>
-              <th>תאריך עדכון</th>
-              <th>סיכום הצעת מחיר</th>
-              <th>סה"כ לפני מע"מ</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="quotesTbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div data-ltab-content="needs" hidden>
-      <div class="table-wrap">
-        <table class="leads-table" id="needsTable">
-          <thead>
-            <tr>
-              <th>שם מלא</th>
-              <th>תאריך ושעה</th>
-              <th>סוג לקוח</th>
-              <th>סוג</th>
-              <th>סוג עבודה</th>
-              <th>מה המהנדס הבין</th>
-              <th>לקוח הבין</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="needsTbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div data-ltab-content="negotiate" hidden>
-      <div class="table-wrap">
-        <table class="leads-table" id="negotiationTable">
-          <thead>
-            <tr>
-              <th>שם מלא</th>
-              <th>תאריך ושעת אישור</th>
-              <th>מקדמה</th>
-              <th>תשלום נותר</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="negotiationTbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div data-ltab-content="docs" hidden>
-      <div class="table-wrap">
-        <table class="leads-table" id="docsTable">
-          <thead>
-            <tr>
-              <th>שם מלא</th>
-              <th>תאריך קבלה</th>
-              <th>מה חסר</th>
-              <th>מה הגיע</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="docsTbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div><!-- /viewSales -->
-
-  <div id="viewCalls" hidden>
-    <div class="sales-hd">
-      <div>
-        <h2>טלפונים ופניות</h2>
-        <p>ניהול שיחות ופניות נכנסות</p>
-      </div>
-      <button type="button" class="pill-btn add-lead-btn" id="addCallBtn">
-        <span>+</span> פנייה חדשה
-      </button>
-    </div>
-
-    <div class="toolbar">
-      <div class="toolbar-row">
-        <div class="search-box">
-          <input type="text" id="callsSearch" placeholder="חיפוש לפי שם, טלפון או נושא...">
-        </div>
-        <div class="chipset" id="callsStatusChips"></div>
-      </div>
-    </div>
-
-    <div class="table-wrap">
-      <table class="leads-table" id="callsTable">
-        <thead>
-          <tr>
-            <th>שם</th>
-            <th>טלפון</th>
-            <th>תאריך ושעה</th>
-            <th>סוג פונה</th>
-            <th>נושא</th>
-            <th>מטפל</th>
-            <th>סטטוס</th>
-            <th>מעקב</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="callsTbody"></tbody>
-      </table>
-    </div>
-  </div><!-- /viewCalls -->
 
   <div id="viewPriceCatalog" hidden>
     <div class="sales-hd">
@@ -836,65 +105,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
     </div>
   </div><!-- /viewPriceCatalog -->
 
-  <div id="viewTasks" hidden>
-    <div class="sales-hd">
-      <div>
-        <h2>משימות - הפקת תוכניות</h2>
-        <p>רשימת פרויקטים להפקת תוכניות, עם צ'ק-ליסט ושעון עצר לכל שלב</p>
-      </div>
-    </div>
-    <div id="tasksList"></div>
-  </div><!-- /viewTasks -->
 
-  <div id="viewService" hidden>
-    <div class="sales-hd">
-      <div>
-        <h2>שירות ואספקה</h2>
-        <p>ניהול שירות ואספקה - ליווי וזמינות</p>
-      </div>
-    </div>
-    <div class="svc-subhd">פרויקטים פעילים</div>
-    <div id="serviceList"></div>
-  </div><!-- /viewService -->
 
-  <div id="viewClients" hidden>
-    <div class="sales-hd">
-      <div>
-        <h2>לקוחות</h2>
-        <p>ניהול לקוחות פעילים</p>
-      </div>
-      <button type="button" class="pill-btn add-lead-btn" id="addLeadBtn2">
-        <span>+</span> הוסף ליד-היכרות
-      </button>
-    </div>
-
-    <div class="svc-subhd">פרויקטים פעילים</div>
-    <div class="client-proj-grid" id="clientActiveProjects"></div>
-
-    <div class="table-wrap">
-      <table class="leads-table" id="clientsTable">
-        <thead>
-          <tr>
-            <th>שם מלא</th>
-            <th>טלפון</th>
-            <th>ווטסאפ</th>
-            <th>מייל</th>
-            <th>כתובת הנכס</th>
-            <th>סוג לקוח</th>
-            <th>סוג</th>
-            <th>סוג עבודה</th>
-            <th>מקור הגעה</th>
-            <th>תאריך פניה</th>
-            <th>מקדמה</th>
-            <th>כולל מע"מ</th>
-            <th>סכום</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="clientsTbody"></tbody>
-      </table>
-    </div>
-  </div><!-- /viewClients -->
 
   <div id="viewWorkHours" hidden>
     <div class="sales-hd">
@@ -948,15 +160,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
     </div>
   </div><!-- /viewWorkHours -->
 
-  <div id="viewProjectsBare" hidden>
-    <div class="sales-hd">
-      <div>
-        <h2>פרויקטים</h2>
-        <p>ניהול פרויקטים פעילים</p>
-      </div>
-    </div>
-    <div class="client-proj-grid" id="bareActiveProjects"></div>
-  </div><!-- /viewProjectsBare -->
 
   <div class="footnote">הנתונים נשמרים בדפדפן זה בלבד. סיסמת המנהל היא הגנה בסיסית להסתרת מחירים - לא אבטחה אמיתית.</div>
 </div><!-- /wrap -->
@@ -999,45 +202,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
   </div>
 </div>
 
-<div class="overlay" id="leadOverlay" hidden>
-  <div class="modal wide">
-    <h2 id="leadModalTitle">ליד חדש</h2>
-    <p>פרטי היכרות ראשוניים עם הליד.</p>
-    <div class="lead-form">
-      <div class="field"><label>שם מלא</label><input type="text" id="lf-name"></div>
-      <div class="field"><label>טלפון</label><input type="tel" id="lf-phone"></div>
-      <div class="field"><label>ווטסאפ</label><input type="tel" id="lf-whatsapp"></div>
-      <div class="field"><label>מייל</label><input type="email" id="lf-email"></div>
-      <div class="field full"><label>כתובת הנכס</label><input type="text" id="lf-address"></div>
-      <div class="field">
-        <label>סוג לקוח</label>
-        <select id="lf-customerType"><option value="">-</option><option value="חדש">חדש</option><option value="קיים">קיים</option></select>
-      </div>
-      <div class="field">
-        <label>סוג</label>
-        <select id="lf-type"><option value="">-</option><option value="פרטי">פרטי</option><option value="עסקי">עסקי</option></select>
-      </div>
-      <div class="field">
-        <label>סוג עבודה</label>
-        <select id="lf-workType"><option value="">-</option><option value="בניה">בניה</option><option value="שיפוץ">שיפוץ</option><option value="תוספת">תוספת</option><option value="אחר">אחר</option></select>
-      </div>
-      <div class="field">
-        <label>מקור הגעה</label>
-        <select id="lf-source"><option value="">-</option><option value="אדריכל/ית">אדריכל/ית</option><option value="מפקח">מפקח</option><option value="המלצה">המלצה</option><option value="גוגל">גוגל</option><option value="פייסבוק">פייסבוק</option><option value="אחר">אחר</option></select>
-      </div>
-      <div class="field"><label>תאריך פניה</label><input type="date" id="lf-inquiryDate"></div>
-      <div class="field"><label>מקדמה (₪)</label><input type="number" min="0" step="1" id="lf-advance"></div>
-      <div class="field"><label>סכום (₪)</label><input type="number" min="0" step="1" id="lf-amount"><div class="desc" id="lf-amount-hint" style="display:none;font-size:0.72rem;color:var(--ink-soft);">מחושב אוטומטית מהצעת המחיר</div></div>
-      <label class="switch-label full"><input type="checkbox" id="lf-vat"> הסכומים כוללים מע"מ</label>
-    </div>
-    <div class="modal-actions lead-actions">
-      <button type="button" class="ghost-btn" id="leadConvertBtn">➜ המרה לפרויקט הפקה</button>
-      <div class="spacer"></div>
-      <button type="button" id="leadCancel">ביטול</button>
-      <button type="button" class="primary" id="leadSave">שמירה</button>
-    </div>
-  </div>
-</div>
 
 <div class="overlay" id="clientAddOverlay" hidden>
   <div class="modal wide">
@@ -1076,38 +240,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
   </div>
 </div>
 
-<div class="overlay" id="callOverlay" hidden>
-  <div class="modal wide">
-    <h2 id="callModalTitle">פנייה חדשה</h2>
-    <p>פרטי שיחה/פנייה נכנסת.</p>
-    <div class="lead-form">
-      <div class="field"><label>שם</label><input type="text" id="cf-name"></div>
-      <div class="field"><label>טלפון</label><input type="tel" id="cf-phone"></div>
-      <div class="field"><label>תאריך ושעה</label><input type="datetime-local" id="cf-dateTime"></div>
-      <div class="field">
-        <label>סוג פונה</label>
-        <select id="cf-callerType"><option value="">-</option><option value="לקוח חדש">לקוח חדש</option><option value="לקוח קיים">לקוח קיים</option><option value="ספק">ספק</option><option value="אחר">אחר</option></select>
-      </div>
-      <div class="field">
-        <label>נושא הפנייה</label>
-        <select id="cf-subject"><option value="">-</option><option value="בירור מחיר">בירור מחיר</option><option value="סטטוס פרויקט">סטטוס פרויקט</option><option value="תלונה">תלונה</option><option value="תיאום פגישה">תיאום פגישה</option><option value="אחר">אחר</option></select>
-      </div>
-      <div class="field"><label>מי טיפל</label><input type="text" id="cf-handledBy"></div>
-      <div class="field">
-        <label>סטטוס</label>
-        <select id="cf-status"><option value="חדש">חדש</option><option value="טופל">טופל</option><option value="ממתין למעקב">ממתין למעקב</option></select>
-      </div>
-      <div class="field"><label>תאריך מעקב</label><input type="date" id="cf-followUpDate"></div>
-      <div class="field full"><label>הערות</label><textarea id="cf-notes" placeholder="הערות חופשיות..."></textarea></div>
-    </div>
-    <div class="modal-actions lead-actions">
-      <button type="button" class="ghost-btn" id="callConvertBtn">➜ המרה לליד</button>
-      <div class="spacer"></div>
-      <button type="button" id="callCancel">ביטול</button>
-      <button type="button" class="primary" id="callSave">שמירה</button>
-    </div>
-  </div>
-</div>
 
 <div class="overlay" id="catalogOverlay" hidden>
   <div class="modal">
@@ -1125,71 +257,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
   </div>
 </div>
 
-<div class="overlay" id="quoteOverlay" hidden>
-  <div class="modal wide">
-    <h2 id="quoteModalTitle">הצעת מחיר</h2>
-    <p>הוספת שורות מהמחירון או שורה מותאמת אישית.</p>
-    <div id="quoteLinesWrap"></div>
-    <button type="button" class="ghost-btn" id="quoteAddLineBtn" style="margin-top:10px;">+ הוספת שורה</button>
-    <div class="pay-status-line paid" id="quoteTotalLine" style="margin-top:14px;"></div>
-    <div class="modal-actions">
-      <button type="button" id="quoteCancel">ביטול</button>
-      <button type="button" class="primary" id="quoteSave">שמירה</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="needsOverlay" hidden>
-  <div class="modal wide">
-    <h2 id="needsModalTitle">בדיקה והבנת הצורך</h2>
-    <p>סיכום הבנת הצורך מול הלקוח.</p>
-    <div class="lead-form">
-      <div class="field"><label>תאריך ושעה</label><input type="datetime-local" id="nf-assessedAt"></div>
-      <div class="field">
-        <label>לקוח הבין</label>
-        <select id="nf-clientUnderstood"><option value="">-</option><option value="כן">כן</option><option value="לא">לא</option></select>
-      </div>
-      <div class="field full"><label>מה המהנדס הבין</label><textarea id="nf-text" placeholder="תיאור ההבנה המקצועית של הצורך..."></textarea></div>
-    </div>
-    <div class="modal-actions">
-      <button type="button" id="needsCancel">ביטול</button>
-      <button type="button" class="primary" id="needsSave">שמירה</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="negotiationOverlay" hidden>
-  <div class="modal wide">
-    <h2 id="negotiationModalTitle">משא ומתן</h2>
-    <p>מקדמה, יתרה ואישור עסקה. הסכומים מחושבים מתוך הצעת המחיר של הליד.</p>
-    <div class="lead-form">
-      <div class="field"><label>תאריך ושעת אישור</label><input type="datetime-local" id="ngf-approvedAt"></div>
-      <div class="field"><label>אחוז מקדמה (%)</label><input type="number" min="0" max="100" step="1" id="ngf-advancePercent"></div>
-      <div class="field"><label>אמצעי תשלום</label>
-        <select id="ngf-paymentMethod"><option value="">-</option><option value="מזומן">מזומן</option><option value="צ'ק">צ'ק</option><option value="העברה בנקאית">העברה בנקאית</option><option value="אחר">אחר</option></select>
-      </div>
-      <div class="field"><label>תאריך תשלום מקדמה</label><input type="date" id="ngf-advancePaidDate"></div>
-      <label class="switch-label full"><input type="checkbox" id="ngf-advancePaid"> המקדמה שולמה</label>
-    </div>
-    <div class="pay-status-line paid" id="negotiationPreview" style="margin-top:4px;"></div>
-    <div class="modal-actions">
-      <button type="button" id="negotiationCancel">ביטול</button>
-      <button type="button" class="primary" id="negotiationSave">שמירה</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="docsOverlay" hidden>
-  <div class="modal wide">
-    <h2 id="docsModalTitle">מסמכים</h2>
-    <p>סימון מסמכים שהתקבלו, עם קישור לדרייב (הקובץ עצמו נשאר מאוחסן שם).</p>
-    <div id="docsRowsWrap"></div>
-    <div class="modal-actions">
-      <button type="button" id="docsCancel">ביטול</button>
-      <button type="button" class="primary" id="docsSave">שמירה</button>
-    </div>
-  </div>
-</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
@@ -1237,8 +304,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
 
   var projects = [];
   var managerMode = false;
-  var selectedId = null;
-  var openQPickerId = null;
   var filters = {search:"", quadrant:"all", status:"all", sort:"due", group:false};
 
   var JOB_STAGES = [
@@ -1273,12 +338,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
       var data = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
       if(demoMode){ realProjects = data; return; }
       projects = data;
-      if(!selectedId && projects.length) selectedId = projects[0].id;
-      renderStats();
-      renderList();
-      if(!isFocusedWithin("detailPanel")) renderDetail();
-      var mrPanel = document.getElementById("monthlyReport");
-      if(mrPanel && !mrPanel.hidden) renderMonthlyReport();
     });
     siteUnsubscribers.push(unsub);
   }
@@ -1294,19 +353,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
     if(isNaN(d)) return s;
     return d.toLocaleDateString("he-IL",{day:"2-digit",month:"2-digit",year:"numeric"});
   }
-  function isLate(p){
-    if(!p.dueDate || p.status>=5) return false;
-    var d = new Date(p.dueDate+"T00:00:00");
-    var today = new Date(); today.setHours(0,0,0,0);
-    return d < today;
-  }
-  function paymentInfo(p){
-    var price = Number(p.price)||0, paid = Number(p.paid)||0;
-    if(price<=0) return {cls:"none", label:"לא הוגדר מחיר"};
-    if(paid<=0) return {cls:"unpaid", label:"לא שולם"};
-    if(paid>=price) return {cls:"paid", label:"שולם במלואו"};
-    return {cls:"partial", label:"שולם חלקית — " + fmtMoney(paid) + " מתוך " + fmtMoney(price)};
-  }
 
   function escapeHtml(s){
     return String(s==null?"":s).replace(/[&<>"']/g, function(c){
@@ -1315,288 +361,18 @@ input,select,textarea{font-family:inherit;color:inherit;}
   }
 
   /* ---------- toolbar ---------- */
-  function renderChips(){
-    var qWrap = document.getElementById("quadrantChips");
-    var html = '<button type="button" class="chip'+(filters.quadrant==="all"?" active":"")+'" data-qf="all">הכל</button>';
-    QORDER.forEach(function(k){
-      html += '<button type="button" class="chip'+(filters.quadrant===k?" active":"")+'" data-qf="'+k+'"><span class="dot" style="background:var('+QUADRANTS[k].token+')"></span>'+QUADRANTS[k].label+'</button>';
-    });
-    qWrap.innerHTML = html;
 
-    var sWrap = document.getElementById("statusChips");
-    var shtml = '<button type="button" class="chip'+(filters.status==="all"?" active":"")+'" data-sf="all">כל הסטטוסים</button>';
-    STATUSES.forEach(function(s){
-      shtml += '<button type="button" class="chip'+(filters.status===String(s.n)?" active":"")+'" data-sf="'+s.n+'">'+s.n+". "+s.label+"</button>";
-    });
-    sWrap.innerHTML = shtml;
-  }
-
-  function renderStats(){
-    var total = projects.length;
-    var active = projects.filter(function(p){return p.status<5;}).length;
-    var late = projects.filter(isLate).length;
-    var html =
-      '<div class="stat"><div class="n">'+total+'</div><div class="l">סה"כ פרויקטים</div></div>'+
-      '<div class="stat"><div class="n">'+active+'</div><div class="l">בעבודה</div></div>'+
-      '<div class="stat"><div class="n">'+late+'</div><div class="l">חורגים מהיעד</div></div>';
-    if(managerMode){
-      var outstanding = projects.reduce(function(sum,p){
-        var price = Number(p.price)||0, paid = Number(p.paid)||0;
-        return sum + Math.max(0, price-paid);
-      },0);
-      var ok = outstanding===0;
-      html += '<div class="stat money'+(ok?" ok":"")+'"><div class="n">'+fmtMoney(outstanding)+'</div><div class="l">יתרה לגבייה</div></div>';
-    }
-    document.getElementById("stats").innerHTML = html;
-  }
 
   /* ---------- list (right pane) ---------- */
-  function matches(p){
-    if(filters.quadrant!=="all" && p.quadrant!==filters.quadrant) return false;
-    if(filters.status!=="all" && String(p.status)!==filters.status) return false;
-    if(filters.search){
-      var q = filters.search.toLowerCase();
-      var hay = [p.name,p.address,p.phone,p.employee,p.notes].join(" ").toLowerCase();
-      if(hay.indexOf(q)===-1) return false;
-    }
-    return true;
-  }
-  function sortFn(a,b){
-    switch(filters.sort){
-      case "name": return a.name.localeCompare(b.name,"he");
-      case "status": return a.status-b.status;
-      case "quadrant": return QORDER.indexOf(a.quadrant)-QORDER.indexOf(b.quadrant);
-      default:
-        if(!a.dueDate && !b.dueDate) return 0;
-        if(!a.dueDate) return 1;
-        if(!b.dueDate) return -1;
-        return a.dueDate.localeCompare(b.dueDate);
-    }
-  }
 
-  function listRowHtml(p){
-    var q = QUADRANTS[p.quadrant] || QUADRANTS.n;
-    var late = isLate(p);
-    var selected = selectedId===p.id;
-    var qOpen = openQPickerId===p.id;
 
-    var qpop = "";
-    if(qOpen){
-      qpop = '<div class="qpop">' + QORDER.map(function(k){
-        var sel = p.quadrant===k;
-        return '<button type="button" class="qopt'+(sel?" sel":"")+'" style="color:var('+QUADRANTS[k].token+')" data-setq="'+p.id+'" data-qval="'+k+'">'+
-               '<span class="dot" style="background:var('+QUADRANTS[k].token+')"></span>'+QUADRANTS[k].label+'</button>';
-      }).join("") + '</div>';
-    }
 
-    return '<div class="list-row'+(selected?" selected":"")+'" id="lrow-'+p.id+'">'+
-      '<div class="list-row-main" data-select="'+p.id+'">'+
-        '<button type="button" class="qdot-btn" style="background:var('+q.token+')" data-qtoggle="'+p.id+'" title="שנה חשיבות: '+q.label+'"></button>'+
-        '<div class="row-main">'+
-          '<div class="row-name">'+escapeHtml(p.name||"(ללא שם)")+'</div>'+
-          '<div class="row-sub">'+escapeHtml(p.address||"")+'</div>'+
-        '</div>'+
-        '<div class="row-badges">'+
-          miniProgressBar(p.status)+
-          '<span class="badge status">'+p.status+'</span>'+
-          (p.dueDate?'<span class="badge due'+(late?" late":"")+'">'+fmtDate(p.dueDate)+'</span>':'')+
-        '</div>'+
-      '</div>'+
-      qpop+
-    '</div>';
-  }
 
-  function miniProgressBar(status){
-    return '<div class="mini-progress">'+STATUSES.map(function(s){
-      var on = s.n<=status;
-      return '<span style="'+(on?'background:'+s.color:'')+'"></span>';
-    }).join("")+'</div>';
-  }
 
-  function renderMonthlyReport(){
-    var monthInput = document.getElementById("monthlyReportMonth");
-    if(!monthInput.value) monthInput.value = new Date().toISOString().slice(0,7);
-    var month = monthInput.value; // "YYYY-MM"
-
-    var counts = STATUSES.map(function(){ return 0; });
-    var rows = [];
-    projects.forEach(function(p){
-      var dates = p.statusDates || {};
-      STATUSES.forEach(function(s){
-        var d = dates[s.n] || dates[String(s.n)];
-        if(d && d.slice(0,7)===month){
-          counts[s.n-1]++;
-          rows.push({name:p.name||"(ללא שם)", label:s.label, date:d});
-        }
-      });
-    });
-    rows.sort(function(a,b){ return a.date<b.date ? -1 : (a.date>b.date?1:0); });
-
-    var listEl = document.getElementById("monthlyReportList");
-    listEl.innerHTML = rows.length ? rows.map(function(r){
-      return '<div class="mr-row">'+escapeHtml(r.name)+' - הגיע לשלב <b>'+escapeHtml(r.label)+'</b> ב-'+fmtDate(r.date)+'</div>';
-    }).join("") : '<div class="mr-empty">אין השלמות שלבים בחודש הנבחר.</div>';
-
-    var maxCount = Math.max.apply(null, counts.concat([1]));
-    var barW = 320, barH = 180, pad = 24, slotW = (barW-pad*2)/STATUSES.length;
-    var bars = STATUSES.map(function(s,i){
-      var h = (counts[i]/maxCount) * (barH-40);
-      var x = pad + i*slotW + slotW*0.15;
-      var w = slotW*0.7;
-      var y = barH-24-h;
-      return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+s.color+'" rx="3"></rect>'+
-             '<text x="'+(x+w/2)+'" y="'+(y-4)+'" text-anchor="middle" font-size="11" fill="var(--ink)">'+counts[i]+'</text>'+
-             '<text x="'+(x+w/2)+'" y="'+(barH-8)+'" text-anchor="middle" font-size="9" fill="var(--ink-faint)">'+(i+1)+'</text>';
-    }).join("");
-    document.getElementById("monthlyReportBar").innerHTML = bars;
-
-    var total = counts.reduce(function(a,b){return a+b;},0);
-    var pieSvg = "", legend = "";
-    if(total===0){
-      pieSvg = '<circle cx="100" cy="100" r="80" fill="var(--surface-2)"></circle>';
-      legend = '<div class="mr-empty">אין נתונים להצגה</div>';
-    } else {
-      var cx=100, cy=100, r=80, startAngle=-90;
-      STATUSES.forEach(function(s,i){
-        if(!counts[i]) return;
-        var angle = (counts[i]/total)*360;
-        var endAngle = startAngle+angle;
-        var x1 = cx + r*Math.cos(startAngle*Math.PI/180);
-        var y1 = cy + r*Math.sin(startAngle*Math.PI/180);
-        var x2 = cx + r*Math.cos(endAngle*Math.PI/180);
-        var y2 = cy + r*Math.sin(endAngle*Math.PI/180);
-        var large = angle>180 ? 1 : 0;
-        pieSvg += '<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+large+' 1 '+x2+','+y2+' Z" fill="'+s.color+'"></path>';
-        legend += '<div><span class="dot" style="background:'+s.color+'"></span>'+s.label+' ('+counts[i]+')</div>';
-        startAngle = endAngle;
-      });
-    }
-    document.getElementById("monthlyReportPie").innerHTML = pieSvg;
-    var existingLegend = document.getElementById("monthlyReportLegend");
-    if(existingLegend) existingLegend.remove();
-    var legendEl = document.createElement("div");
-    legendEl.id = "monthlyReportLegend";
-    legendEl.className = "mr-legend";
-    legendEl.innerHTML = legend;
-    document.getElementById("monthlyReportPie").insertAdjacentElement("afterend", legendEl);
-  }
-
-  function renderList(){
-    var list = projects.filter(matches).sort(sortFn);
-    var container = document.getElementById("projectList");
-    if(!list.length){
-      container.innerHTML = '<div class="empty">אין פרויקטים תואמים לסינון הנוכחי.</div>';
-      return;
-    }
-    if(filters.group){
-      var html = "";
-      QORDER.forEach(function(k){
-        var items = list.filter(function(p){return p.quadrant===k;});
-        if(!items.length) return;
-        html += '<div class="group-hd"><span class="dot" style="background:var('+QUADRANTS[k].token+')"></span>'+
-                '<span class="t">'+QUADRANTS[k].label+'</span><span class="c">('+items.length+')</span></div>';
-        html += items.map(listRowHtml).join("");
-      });
-      container.innerHTML = html;
-    } else {
-      container.innerHTML = list.map(listRowHtml).join("");
-    }
-  }
-
-  function refreshListRow(id){
-    var el = document.getElementById("lrow-"+id);
-    var p = projects.find(function(x){return x.id===id;});
-    if(!el || !p) return;
-    var tmp = document.createElement("div");
-    tmp.innerHTML = listRowHtml(p);
-    el.outerHTML = tmp.innerHTML;
-  }
 
   /* ---------- detail panel (left pane) ---------- */
-  function renderDetail(){
-    var panel = document.getElementById("detailPanel");
-    var p = projects.find(function(x){return x.id===selectedId;});
-    if(!p){
-      panel.innerHTML = '<div class="empty">בחר פרויקט מהרשימה מימין כדי לראות ולערוך את הפרטים, או צור פרויקט חדש.</div>';
-      return;
-    }
-    var q = QUADRANTS[p.quadrant] || QUADRANTS.n;
-    var pay = paymentInfo(p);
-
-    var qpicker = QORDER.map(function(k){
-      var sel = p.quadrant===k;
-      return '<button type="button" class="qopt'+(sel?" sel":"")+'" style="color:var('+QUADRANTS[k].token+')" data-setq="'+p.id+'" data-qval="'+k+'">'+
-             '<span class="dot" style="background:var('+QUADRANTS[k].token+')"></span>'+QUADRANTS[k].label+'</button>';
-    }).join("");
-
-    var steps = STATUSES.map(function(s){
-      var cls = s.n<p.status ? "done" : (s.n===p.status ? "current" : "");
-      var style = cls==="current" ? ' style="background:'+s.color+';border-color:'+s.color+';color:#fff;"' :
-                  cls==="done" ? ' style="background:'+s.color+'22;border-color:'+s.color+';color:'+s.color+';"' : '';
-      return '<button type="button" class="step '+cls+'" data-setstatus="'+p.id+'" data-sval="'+s.n+'"'+style+'>'+s.n+"."+"<br>"+s.label+'</button>';
-    }).join("");
-
-    var payBlock;
-    if(managerMode){
-      payBlock =
-        '<div class="field"><label>מחיר כולל (₪)</label><input type="number" min="0" step="1" data-field="price" data-id="'+p.id+'" value="'+(p.price||0)+'"></div>'+
-        '<div class="field"><label>שולם עד כה (₪)</label><input type="number" min="0" step="1" data-field="paid" data-id="'+p.id+'" value="'+(p.paid||0)+'"></div>'+
-        '<div class="pay-status-line '+pay.cls+'">'+pay.label+'</div>';
-    } else {
-      payBlock = '<div class="locked-note">מידע התשלום גלוי למנהל בלבד.</div>';
-    }
-
-    panel.innerHTML =
-      '<div class="detail-head">'+
-        '<span class="dot-lg" style="background:var('+q.token+')"></span>'+
-        '<div><div class="detail-title">'+escapeHtml(p.name||"(ללא שם)")+'</div><div class="detail-sub">'+q.label+'</div></div>'+
-      '</div>'+
-      '<div class="detail-body">'+
-        '<div class="field"><label>שם פרויקט / לקוח</label><input type="text" data-field="name" data-id="'+p.id+'" value="'+escapeHtml(p.name)+'"></div>'+
-        '<div class="field"><label>כתובת / מיקום</label><input type="text" data-field="address" data-id="'+p.id+'" value="'+escapeHtml(p.address)+'"></div>'+
-        '<div class="field"><label>טלפון לקוח</label><input type="tel" data-field="phone" data-id="'+p.id+'" value="'+escapeHtml(p.phone)+'"></div>'+
-        '<div class="field"><label>עובד אחראי</label><input type="text" data-field="employee" data-id="'+p.id+'" value="'+escapeHtml(p.employee)+'"></div>'+
-        '<div class="field"><label>תאריך יעד למסירה</label><input type="date" data-field="dueDate" data-id="'+p.id+'" value="'+(p.dueDate||"")+'"></div>'+
-        '<div class="field"></div>'+
-        '<div class="field full"><label>דרגת חשיבות (איזנהאואר)</label><div class="qpicker">'+qpicker+'</div></div>'+
-        '<div class="field full"><label>שלב הפרויקט</label><div class="steps">'+steps+'</div></div>'+
-        '<div class="field full"><label>מה צריך לעשות / הערות</label><textarea data-field="notes" data-id="'+p.id+'" placeholder="לדוגמה: לשרטט, לדבר עם הלקוח...">'+escapeHtml(p.notes)+'</textarea></div>'+
-        payBlock+
-        (managerMode ? '<div class="row-actions"><button type="button" class="danger-btn" data-del="'+p.id+'">מחיקת פרויקט</button></div>' : '')+
-      '</div>';
-  }
 
   /* ---------- mutations ---------- */
-  function addProject(name){
-    var ref = projectsCol().doc();
-    var id = ref.id;
-    ref.set({name:name, address:"", phone:"", employee:"", dueDate:"", quadrant:"n", status:1, notes:"", price:0, paid:0});
-    selectedId = id;
-    return id;
-  }
-  function deleteProject(id){
-    projectsCol().doc(id).delete();
-    if(selectedId===id) selectedId = null;
-  }
-  function setField(id, field, value){
-    var patch = {};
-    patch[field] = (field==="price"||field==="paid") ? (Number(value)||0) : value;
-    projectsCol().doc(id).update(patch);
-  }
-  function setQuadrant(id, val){
-    openQPickerId = null;
-    projectsCol().doc(id).update({quadrant: val});
-  }
-  function setStatus(id, val){
-    var p = projects.find(function(x){return x.id===id;});
-    var patch = {status: Number(val)};
-    var dates = (p && p.statusDates) ? Object.assign({},p.statusDates) : {};
-    if(!dates[val]){
-      dates[val] = new Date().toISOString().slice(0,10);
-      patch.statusDates = dates;
-    }
-    projectsCol().doc(id).update(patch);
-  }
 
   /* ---------- auth / sites / sharing ---------- */
   function updateUserBadge(){
@@ -1709,90 +485,14 @@ input,select,textarea{font-family:inherit;color:inherit;}
       el.hidden = !managerMode;
       if(el.classList.contains("ltab")) el.disabled = !managerMode;
     });
-    var restrictedViews = ["priceCatalog","calls","clients","projectsBare"];
-    if(!managerMode && restrictedViews.indexOf(currentView)!==-1) showView("projects");
-    if(!managerMode){
-      var activeLtab = document.querySelector("#leadTabs .ltab.active");
-      if(activeLtab && activeLtab.hasAttribute("data-manager-only")){
-        document.querySelector('#leadTabs [data-ltab="needs"]').click();
-      }
-    }
+    var restrictedViews = ["priceCatalog"];
+    if(!managerMode && restrictedViews.indexOf(currentView)!==-1) showView("clientsNew");
   }
 
   /* ---------- export / import ---------- */
-  function exportData(){
-    var blob = new Blob([JSON.stringify(projects,null,2)], {type:"application/json"});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "פרויקטים-גיבוי-"+new Date().toISOString().slice(0,10)+".json";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); },1000);
-  }
-  function importData(file){
-    var reader = new FileReader();
-    reader.onload = function(){
-      try{
-        var data = JSON.parse(reader.result);
-        if(!Array.isArray(data)) throw new Error("bad format");
-        if(!confirm("ייבוא יחליף את כל הנתונים הקיימים ב-"+data.length+" פרויקטים מהקובץ. להמשיך?")) return;
-        var batch = db.batch();
-        projects.forEach(function(p){ batch.delete(projectsCol().doc(p.id)); });
-        data.forEach(function(p){
-          var d = Object.assign({}, p);
-          var id = d.id || uid();
-          delete d.id;
-          batch.set(projectsCol().doc(id), d);
-        });
-        batch.commit();
-        selectedId = null;
-      }catch(e){
-        alert("קובץ לא תקין. יש לבחור קובץ גיבוי JSON שיוצא מהמערכת הזו.");
-      }
-    };
-    reader.readAsText(file, "utf-8");
-  }
 
   /* ---------- events ---------- */
   function bindStatic(){
-    document.getElementById("addForm").addEventListener("submit", function(e){
-      e.preventDefault();
-      var input = document.getElementById("addName");
-      var name = input.value.trim();
-      if(!name) return;
-      addProject(name);
-      input.value = "";
-    });
-
-    document.getElementById("searchInput").addEventListener("input", function(e){
-      filters.search = e.target.value.trim();
-      renderList();
-    });
-    document.getElementById("sortSelect").addEventListener("change", function(e){
-      filters.sort = e.target.value;
-      renderList();
-    });
-    document.getElementById("groupToggle").addEventListener("change", function(e){
-      filters.group = e.target.checked;
-      renderList();
-    });
-    document.getElementById("quadrantChips").addEventListener("click", function(e){
-      var btn = e.target.closest("[data-qf]");
-      if(!btn) return;
-      filters.quadrant = btn.getAttribute("data-qf");
-      renderChips();
-      renderList();
-    });
-    document.getElementById("statusChips").addEventListener("click", function(e){
-      var btn = e.target.closest("[data-sf]");
-      if(!btn) return;
-      filters.status = btn.getAttribute("data-sf");
-      renderChips();
-      renderList();
-    });
-
     document.getElementById("googleSignInBtn").addEventListener("click", function(){
       document.getElementById("loginErr").textContent = "";
       auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(err){
@@ -1826,146 +526,11 @@ input,select,textarea{font-family:inherit;color:inherit;}
       if(btn) removeShareEmail(btn.getAttribute("data-remove-share"));
     });
 
-    document.getElementById("exportBtn").addEventListener("click", exportData);
-    document.getElementById("importBtn").addEventListener("click", function(){
-      document.getElementById("importFile").click();
-    });
-    document.getElementById("importFile").addEventListener("change", function(e){
-      if(e.target.files && e.target.files[0]) importData(e.target.files[0]);
-      e.target.value = "";
-    });
-
-    document.getElementById("monthlyReportBtn").addEventListener("click", function(){
-      var panel = document.getElementById("monthlyReport");
-      panel.hidden = !panel.hidden;
-      if(!panel.hidden) renderMonthlyReport();
-    });
-    document.getElementById("monthlyReportMonth").addEventListener("change", renderMonthlyReport);
-
-    /* list pane: selection + quick quadrant popover */
-    var listEl = document.getElementById("projectList");
-    listEl.addEventListener("click", function(e){
-      var qToggle = e.target.closest("[data-qtoggle]");
-      if(qToggle){
-        var qid = qToggle.getAttribute("data-qtoggle");
-        openQPickerId = openQPickerId===qid ? null : qid;
-        renderList();
-        return;
-      }
-      var setQBtn = e.target.closest("[data-setq]");
-      if(setQBtn){
-        setQuadrant(setQBtn.getAttribute("data-setq"), setQBtn.getAttribute("data-qval"));
-        return;
-      }
-      var sel = e.target.closest("[data-select]");
-      if(sel){
-        selectedId = sel.getAttribute("data-select");
-        renderList();
-        renderDetail();
-        return;
-      }
-    });
-
-    /* detail pane: field edits, quadrant, status, delete */
-    var detailEl = document.getElementById("detailPanel");
-    detailEl.addEventListener("click", function(e){
-      var del = e.target.closest("[data-del]");
-      if(del){
-        if(confirm("למחוק את הפרויקט? הפעולה אינה הפיכה.")) deleteProject(del.getAttribute("data-del"));
-        return;
-      }
-      var setStatusBtn = e.target.closest("[data-setstatus]");
-      if(setStatusBtn){
-        setStatus(setStatusBtn.getAttribute("data-setstatus"), setStatusBtn.getAttribute("data-sval"));
-        return;
-      }
-      var setQBtn = e.target.closest("[data-setq]");
-      if(setQBtn){
-        setQuadrant(setQBtn.getAttribute("data-setq"), setQBtn.getAttribute("data-qval"));
-        return;
-      }
-    });
-    detailEl.addEventListener("input", function(e){
-      var f = e.target.getAttribute("data-field");
-      if(!f) return;
-      setField(e.target.getAttribute("data-id"), f, e.target.value);
-    });
-    detailEl.addEventListener("blur", function(e){
-      var f = e.target.getAttribute && e.target.getAttribute("data-field");
-      if(!f) return;
-      refreshListRow(e.target.getAttribute("data-id"));
-      renderStats();
-    }, true);
-
     /* view switch */
     document.getElementById("viewSwitch").addEventListener("click", function(e){
       var btn = e.target.closest("[data-view]");
       if(!btn) return;
       showView(btn.getAttribute("data-view"));
-    });
-
-    /* leads table + row menu (shared by the sales tab and the clients tab) */
-    document.getElementById("addLeadBtn").addEventListener("click", function(){ openLeadModal(null); });
-    document.getElementById("addLeadBtn2").addEventListener("click", function(){ openLeadModal(null); });
-    function bindLeadsTbody(tbody){
-      if(!tbody) return;
-      tbody.addEventListener("click", function(e){
-        var menuBtn = e.target.closest("[data-menu]");
-        if(menuBtn){
-          e.stopPropagation();
-          var id = menuBtn.getAttribute("data-menu");
-          openLeadMenuId = openLeadMenuId===id ? null : id;
-          renderLeadsTable();
-          return;
-        }
-        var editBtn = e.target.closest("[data-lead-edit]");
-        if(editBtn){ openLeadModal(editBtn.getAttribute("data-lead-edit")); return; }
-        var delBtn = e.target.closest("[data-lead-del]");
-        if(delBtn){
-          if(confirm("למחוק את הליד? הפעולה אינה הפיכה.")) deleteLead(delBtn.getAttribute("data-lead-del"));
-          return;
-        }
-      });
-    }
-    bindLeadsTbody(document.getElementById("leadsTbody"));
-    bindLeadsTbody(document.getElementById("clientsTbody"));
-    document.addEventListener("click", function(e){
-      if(openLeadMenuId && !e.target.closest(".row-menu")){
-        openLeadMenuId = null;
-        renderLeadsTable();
-      }
-      if(openCallMenuId && !e.target.closest(".row-menu")){
-        openCallMenuId = null;
-        renderCallsTable();
-      }
-    });
-
-    /* lead sub-tabs (intro / quote) inside "מכירות" */
-    document.getElementById("gotoCatalogBtn").addEventListener("click", function(){ showView("priceCatalog"); });
-    document.getElementById("leadTabs").addEventListener("click", function(e){
-      var btn = e.target.closest(".ltab");
-      if(!btn || btn.disabled) return;
-      var tab = btn.getAttribute("data-ltab");
-      document.querySelectorAll("#leadTabs .ltab").forEach(function(b){ b.classList.toggle("active", b===btn); });
-      document.querySelectorAll("[data-ltab-content]").forEach(function(c){
-        c.hidden = c.getAttribute("data-ltab-content")!==tab;
-      });
-      if(tab==="quote") renderQuotesTable();
-      if(tab==="needs") renderNeedsTable();
-      if(tab==="negotiate") renderNegotiationTable();
-      if(tab==="docs") renderDocsTable();
-    });
-    document.getElementById("quotesTbody").addEventListener("click", function(e){
-      var btn = e.target.closest("[data-quote-edit]");
-      if(btn) openQuoteModal(btn.getAttribute("data-quote-edit"));
-    });
-
-    /* vat rate */
-    document.getElementById("vatRateInput").addEventListener("input", function(e){
-      vatRatePercent = Number(e.target.value)||0;
-      saveVatRate();
-      renderNegotiationTable();
-      if(!document.getElementById("negotiationOverlay").hidden) renderNegotiationPreview();
     });
 
     document.getElementById("whRate").addEventListener("change", function(e){
@@ -2236,96 +801,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
       }
     }
 
-    /* needs assessment */
-    document.getElementById("needsTbody").addEventListener("click", function(e){
-      var btn = e.target.closest("[data-needs-edit]");
-      if(btn) openNeedsModal(btn.getAttribute("data-needs-edit"));
-    });
-    document.getElementById("needsCancel").addEventListener("click", closeNeedsModal);
-    document.getElementById("needsSave").addEventListener("click", saveNeedsForm);
-    document.getElementById("needsOverlay").addEventListener("click", function(e){
-      if(e.target.id==="needsOverlay") closeNeedsModal();
-    });
-
-    /* negotiation */
-    document.getElementById("negotiationTbody").addEventListener("click", function(e){
-      var btn = e.target.closest("[data-negotiation-edit]");
-      if(btn) openNegotiationModal(btn.getAttribute("data-negotiation-edit"));
-    });
-    document.getElementById("negotiationCancel").addEventListener("click", closeNegotiationModal);
-    document.getElementById("negotiationSave").addEventListener("click", saveNegotiationForm);
-    document.getElementById("negotiationOverlay").addEventListener("click", function(e){
-      if(e.target.id==="negotiationOverlay") closeNegotiationModal();
-    });
-    document.getElementById("ngf-advancePercent").addEventListener("input", renderNegotiationPreview);
-
-    /* documents */
-    document.getElementById("docsTbody").addEventListener("click", function(e){
-      var btn = e.target.closest("[data-docs-edit]");
-      if(btn) openDocsModal(btn.getAttribute("data-docs-edit"));
-    });
-    document.getElementById("docsCancel").addEventListener("click", closeDocsModal);
-    document.getElementById("docsSave").addEventListener("click", saveDocsForm);
-    document.getElementById("docsOverlay").addEventListener("click", function(e){
-      if(e.target.id==="docsOverlay") closeDocsModal();
-    });
-    document.getElementById("docsRowsWrap").addEventListener("change", function(e){
-      var cb = e.target.closest("[data-doc-received]");
-      if(!cb) return;
-      var catId = cb.getAttribute("data-doc-received");
-      var linkInput = document.querySelector('[data-doc-link="'+catId+'"]');
-      if(linkInput) linkInput.disabled = !cb.checked;
-    });
-
-    /* quote line editor modal */
-    document.getElementById("quoteAddLineBtn").addEventListener("click", function(){
-      quoteDraftLines.push({catalogId:"", name:"", qty:1, unitPrice:0});
-      renderQuoteLinesWrap();
-    });
-    document.getElementById("quoteCancel").addEventListener("click", closeQuoteModal);
-    document.getElementById("quoteSave").addEventListener("click", saveQuoteForm);
-    document.getElementById("quoteOverlay").addEventListener("click", function(e){
-      if(e.target.id==="quoteOverlay") closeQuoteModal();
-    });
-    var quoteLinesWrap = document.getElementById("quoteLinesWrap");
-    quoteLinesWrap.addEventListener("change", function(e){
-      var sel = e.target.closest("[data-qfield='catalogId']");
-      if(!sel) return;
-      var idx = Number(sel.closest("[data-line-idx]").getAttribute("data-line-idx"));
-      var line = quoteDraftLines[idx];
-      var val = sel.value;
-      if(val){
-        var cat = priceCatalog.find(function(c){return c.id===val;});
-        line.catalogId = val;
-        line.name = cat ? cat.name : "";
-        line.unitPrice = cat ? cat.defaultPrice : 0;
-      } else {
-        line.catalogId = "";
-      }
-      renderQuoteLinesWrap();
-    });
-    quoteLinesWrap.addEventListener("input", function(e){
-      var el = e.target.closest("[data-qfield]");
-      if(!el) return;
-      var field = el.getAttribute("data-qfield");
-      if(field==="catalogId") return;
-      var idx = Number(el.closest("[data-line-idx]").getAttribute("data-line-idx"));
-      var line = quoteDraftLines[idx];
-      if(field==="qty" || field==="unitPrice") line[field] = Number(el.value)||0;
-      else line[field] = el.value;
-      var rowEl = el.closest("[data-line-idx]");
-      var totalSpan = rowEl ? rowEl.querySelector("[data-line-total]") : null;
-      if(totalSpan) totalSpan.textContent = fmtMoney(quoteLineTotal(line));
-      updateQuoteTotalLine();
-    });
-    quoteLinesWrap.addEventListener("click", function(e){
-      var del = e.target.closest("[data-qdel]");
-      if(!del) return;
-      var idx = Number(del.closest("[data-line-idx]").getAttribute("data-line-idx"));
-      quoteDraftLines.splice(idx,1);
-      renderQuoteLinesWrap();
-    });
-
     /* price catalog */
     document.getElementById("addCatalogItemBtn").addEventListener("click", function(){ openCatalogModal(null); });
     document.getElementById("catalogCancel").addEventListener("click", closeCatalogModal);
@@ -2342,145 +817,11 @@ input,select,textarea{font-family:inherit;color:inherit;}
         return;
       }
     });
-
-    /* calls / inquiries */
-    document.getElementById("addCallBtn").addEventListener("click", function(){ openCallModal(null); });
-    document.getElementById("callCancel").addEventListener("click", closeCallModal);
-    document.getElementById("callSave").addEventListener("click", saveCallForm);
-    document.getElementById("callConvertBtn").addEventListener("click", convertCallToLead);
-    document.getElementById("callOverlay").addEventListener("click", function(e){
-      if(e.target.id==="callOverlay") closeCallModal();
-    });
-    document.getElementById("callsSearch").addEventListener("input", function(e){
-      callsFilters.search = e.target.value.trim();
-      renderCallsTable();
-    });
-    document.getElementById("callsStatusChips").addEventListener("click", function(e){
-      var cbtn = e.target.closest("[data-callsf]");
-      if(!cbtn) return;
-      callsFilters.status = cbtn.getAttribute("data-callsf");
-      renderCallsChips();
-      renderCallsTable();
-    });
-    document.getElementById("callsTbody").addEventListener("click", function(e){
-      var menuBtn = e.target.closest("[data-callmenu]");
-      if(menuBtn){
-        e.stopPropagation();
-        var id = menuBtn.getAttribute("data-callmenu");
-        openCallMenuId = openCallMenuId===id ? null : id;
-        renderCallsTable();
-        return;
-      }
-      var editBtn = e.target.closest("[data-call-edit]");
-      if(editBtn){ openCallModal(editBtn.getAttribute("data-call-edit")); return; }
-      var delBtn = e.target.closest("[data-call-del]");
-      if(delBtn){
-        if(confirm("למחוק את הפנייה?")) deleteCall(delBtn.getAttribute("data-call-del"));
-        return;
-      }
-    });
-
-    /* lead modal */
-    document.getElementById("leadCancel").addEventListener("click", closeLeadModal);
-    document.getElementById("leadOverlay").addEventListener("click", function(e){
-      if(e.target.id==="leadOverlay") closeLeadModal();
-    });
-    document.getElementById("leadSave").addEventListener("click", saveLeadForm);
-    document.getElementById("leadConvertBtn").addEventListener("click", convertLeadToProject);
-
-    /* production tasks board */
-    var tasksList = document.getElementById("tasksList");
-    tasksList.addEventListener("click", function(e){
-      var projToggle = e.target.closest("[data-proj-toggle]");
-      if(projToggle && !e.target.closest("[data-task-edit]")){
-        var pid = projToggle.getAttribute("data-proj-toggle");
-        openProjects[pid] = !openProjects[pid];
-        renderTasksView();
-        return;
-      }
-      var editBtn = e.target.closest("[data-task-edit]");
-      if(editBtn){
-        var epid = editBtn.getAttribute("data-task-edit");
-        editingBoardId = editingBoardId===epid ? null : epid;
-        renderTasksView();
-        return;
-      }
-      var stageToggle = e.target.closest("[data-stage-toggle]");
-      if(stageToggle){
-        var skey = stageToggle.getAttribute("data-stage-toggle");
-        openStages[skey] = !openStages[skey];
-        renderTasksView();
-        return;
-      }
-      var playBtn = e.target.closest("[data-t-play]");
-      if(playBtn){
-        e.stopPropagation();
-        toggleTaskTimer(playBtn.getAttribute("data-proj"), playBtn.getAttribute("data-task"));
-        renderTasksView();
-        return;
-      }
-      var resetBtn = e.target.closest("[data-t-reset]");
-      if(resetBtn){
-        e.stopPropagation();
-        resetTaskTimer(resetBtn.getAttribute("data-proj"), resetBtn.getAttribute("data-task"));
-        renderTasksView();
-        return;
-      }
-      var notesToggle = e.target.closest("[data-t-notes-toggle]");
-      if(notesToggle){
-        e.stopPropagation();
-        var nkey = notesToggle.getAttribute("data-t-notes-toggle");
-        openTaskNotes[nkey] = !openTaskNotes[nkey];
-        renderTasksView();
-        return;
-      }
-    });
-    tasksList.addEventListener("change", function(e){
-      var doneBox = e.target.closest("[data-t-done]");
-      if(doneBox){
-        setTaskState(doneBox.getAttribute("data-proj"), doneBox.getAttribute("data-task"), {done:doneBox.checked});
-        renderTasksView();
-        return;
-      }
-      var incBox = e.target.closest("[data-t-include]");
-      if(incBox){
-        setTaskState(incBox.getAttribute("data-proj"), incBox.getAttribute("data-task"), {included:incBox.checked});
-        renderTasksView();
-        return;
-      }
-    });
-    tasksList.addEventListener("input", function(e){
-      var notesArea = e.target.closest("[data-t-note-field]");
-      if(notesArea){
-        setTaskState(notesArea.getAttribute("data-proj"), notesArea.getAttribute("data-task"), {notes:notesArea.value});
-      }
-    });
-
-    /* service & supply */
-    var serviceList = document.getElementById("serviceList");
-    serviceList.addEventListener("click", function(e){
-      var projToggle = e.target.closest("[data-svcproj-toggle]");
-      if(projToggle){
-        var pid = projToggle.getAttribute("data-svcproj-toggle");
-        openServiceProjects[pid] = !openServiceProjects[pid];
-        renderServiceView();
-        return;
-      }
-    });
-    serviceList.addEventListener("change", function(e){
-      var box = e.target.closest("[data-svc-item]");
-      if(box){
-        setServiceItem(box.getAttribute("data-proj"), box.getAttribute("data-key"), box.checked);
-        renderServiceView();
-      }
-    });
   }
 
   /* ---------- sales / leads ---------- */
   var leads = [];
-  var editingLeadId = null;
-  var openLeadMenuId = null;
-  var currentView = "projects";
+  var currentView = "clientsNew";
 
   function leadsCol(){ return db.collection("sites").doc(currentSiteId).collection("leads"); }
   function attachLeadsListener(){
@@ -2488,164 +829,30 @@ input,select,textarea{font-family:inherit;color:inherit;}
       var data = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
       if(demoMode){ realLeads = data; return; }
       leads = data;
-      refreshActiveLeadSubTab();
-      if(!isFocusedWithin("clientActiveProjects")) renderActiveProjectCards("clientActiveProjects");
     });
     siteUnsubscribers.push(unsub);
   }
 
   function showView(view){
     currentView = view;
-    document.getElementById("viewProjects").hidden = view!=="projects";
-    document.getElementById("viewSales").hidden = view!=="sales";
-    document.getElementById("viewTasks").hidden = view!=="tasks";
-    document.getElementById("viewService").hidden = view!=="service";
-    document.getElementById("viewClients").hidden = view!=="clients";
-    document.getElementById("viewProjectsBare").hidden = view!=="projectsBare";
-    document.getElementById("viewCalls").hidden = view!=="calls";
     document.getElementById("viewPriceCatalog").hidden = view!=="priceCatalog";
     document.getElementById("viewWorkHours").hidden = view!=="workHours";
     document.getElementById("viewClientsNew").hidden = view!=="clientsNew";
     document.querySelectorAll(".vs-btn").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-view")===view);
     });
-    if(view==="clients") renderActiveProjectCards("clientActiveProjects");
-    if(view==="projectsBare") renderActiveProjectCards("bareActiveProjects");
-    if(view==="projects"){ renderList(); renderStats(); renderDetail(); }
-    if(view==="tasks") renderTasksView();
-    if(view==="service") renderServiceView();
-    if(view==="calls"){ renderCallsChips(); renderCallsTable(); }
     if(view==="priceCatalog") renderCatalogTable();
-    if(view==="sales") refreshActiveLeadSubTab();
     if(view==="workHours") renderWorkHoursView();
     if(view==="clientsNew"){ clientsNewScreen = "list"; renderClientsNewList(); renderClientsNewDetail(); renderClientsNewScreen(); }
   }
 
-  function refreshActiveLeadSubTab(){
-    var activeBtn = document.querySelector("#leadTabs .ltab.active");
-    var tab = activeBtn ? activeBtn.getAttribute("data-ltab") : "intro";
-    if(tab==="intro") renderLeadsTable();
-    else if(tab==="quote") renderQuotesTable();
-    else if(tab==="needs") renderNeedsTable();
-    else if(tab==="negotiate") renderNegotiationTable();
-    else if(tab==="docs") renderDocsTable();
-  }
 
-  function leadCell(value, isMoneyLike){
-    if(isMoneyLike && !managerMode) return '<span class="hidden-val">•••</span>';
-    return value;
-  }
 
   function quoteLineTotal(line){ return (Number(line.qty)||0) * (Number(line.unitPrice)||0); }
   function quoteLinesTotal(lines){ return (lines||[]).reduce(function(s,l){ return s+quoteLineTotal(l); },0); }
   function leadAmount(l){ return (l.quoteLines && l.quoteLines.length) ? quoteLinesTotal(l.quoteLines) : (Number(l.amount)||0); }
 
-  function renderLeadsTable(){
-    var targets = ["leadsTbody","clientsTbody"].map(function(id){return document.getElementById(id);}).filter(Boolean);
-    if(!leads.length){
-      var emptyHtml = '<tr><td colspan="14"><div class="leads-empty">אין עדיין לידים. לחץ על "הוסף ליד חדש" כדי להתחיל.</div></td></tr>';
-      targets.forEach(function(t){ t.innerHTML = emptyHtml; });
-      return;
-    }
-    var rowsHtml = leads.map(function(l){
-      var menuOpen = openLeadMenuId===l.id;
-      var advanceTxt = l.advance ? fmtMoney(l.advance) : '<span class="muted">-</span>';
-      var effAmount = leadAmount(l);
-      var amountTxt = effAmount ? fmtMoney(effAmount) : '<span class="muted">-</span>';
-      return '<tr>'+
-        '<td>'+escapeHtml(l.name||"")+'</td>'+
-        '<td>'+(l.phone?'<a href="tel:'+escapeHtml(l.phone)+'">'+escapeHtml(l.phone)+'</a>':'<span class="muted">-</span>')+'</td>'+
-        '<td>'+(l.whatsapp?'<a href="https://wa.me/'+escapeHtml(l.whatsapp.replace(/\D/g,""))+'" target="_blank" rel="noopener">'+escapeHtml(l.whatsapp)+'</a>':'<span class="muted">-</span>')+'</td>'+
-        '<td>'+(l.email?'<a href="mailto:'+escapeHtml(l.email)+'">'+escapeHtml(l.email)+'</a>':'<span class="muted">-</span>')+'</td>'+
-        '<td>'+escapeHtml(l.address||"-")+'</td>'+
-        '<td>'+escapeHtml(l.customerType||"-")+'</td>'+
-        '<td>'+escapeHtml(l.type||"-")+'</td>'+
-        '<td>'+escapeHtml(l.workType||"-")+'</td>'+
-        '<td>'+escapeHtml(l.source||"-")+'</td>'+
-        '<td>'+(l.inquiryDate?fmtDate(l.inquiryDate):'<span class="muted">-</span>')+'</td>'+
-        '<td>'+leadCell(advanceTxt, true)+'</td>'+
-        '<td>'+(l.vatIncluded?"כן":"לא")+'</td>'+
-        '<td>'+leadCell(amountTxt, true)+'</td>'+
-        '<td class="row-menu">'+
-          '<button type="button" class="row-menu-btn" data-menu="'+l.id+'">⋮</button>'+
-          (menuOpen ? '<div class="row-menu-drop"><button type="button" data-lead-edit="'+l.id+'">עריכה</button><button type="button" class="danger" data-lead-del="'+l.id+'">מחיקה</button></div>' : '')+
-        '</td>'+
-      '</tr>';
-    }).join("");
-    targets.forEach(function(t){ t.innerHTML = rowsHtml; });
-  }
 
-  function openLeadModal(id){
-    editingLeadId = id;
-    var l = id ? leads.find(function(x){return x.id===id;}) : null;
-    document.getElementById("leadModalTitle").textContent = l ? "עריכת ליד" : "ליד חדש";
-    document.getElementById("lf-name").value = l ? l.name : "";
-    document.getElementById("lf-phone").value = l ? l.phone : "";
-    document.getElementById("lf-whatsapp").value = l ? l.whatsapp : "";
-    document.getElementById("lf-email").value = l ? l.email : "";
-    document.getElementById("lf-address").value = l ? l.address : "";
-    document.getElementById("lf-customerType").value = l ? l.customerType : "";
-    document.getElementById("lf-type").value = l ? l.type : "";
-    document.getElementById("lf-workType").value = l ? l.workType : "";
-    document.getElementById("lf-source").value = l ? l.source : "";
-    document.getElementById("lf-inquiryDate").value = l ? l.inquiryDate : new Date().toISOString().slice(0,10);
-    document.getElementById("lf-advance").value = l ? (l.advance||0) : 0;
-    var hasQuote = !!(l && l.quoteLines && l.quoteLines.length);
-    var amountEl = document.getElementById("lf-amount");
-    amountEl.value = l ? leadAmount(l) : 0;
-    amountEl.readOnly = hasQuote;
-    document.getElementById("lf-amount-hint").style.display = hasQuote ? "" : "none";
-    document.getElementById("lf-vat").checked = l ? !!l.vatIncluded : false;
-    document.getElementById("leadConvertBtn").style.display = l ? "" : "none";
-    document.getElementById("leadOverlay").hidden = false;
-    document.getElementById("lf-name").focus();
-  }
-  function closeLeadModal(){
-    document.getElementById("leadOverlay").hidden = true;
-    editingLeadId = null;
-  }
-  function saveLeadForm(){
-    var name = document.getElementById("lf-name").value.trim();
-    if(!name){ alert("יש להזין שם מלא."); return; }
-    var data = {
-      name:name,
-      phone:document.getElementById("lf-phone").value.trim(),
-      whatsapp:document.getElementById("lf-whatsapp").value.trim(),
-      email:document.getElementById("lf-email").value.trim(),
-      address:document.getElementById("lf-address").value.trim(),
-      customerType:document.getElementById("lf-customerType").value,
-      type:document.getElementById("lf-type").value,
-      workType:document.getElementById("lf-workType").value,
-      source:document.getElementById("lf-source").value,
-      inquiryDate:document.getElementById("lf-inquiryDate").value,
-      advance:Number(document.getElementById("lf-advance").value)||0,
-      amount:Number(document.getElementById("lf-amount").value)||0,
-      vatIncluded:document.getElementById("lf-vat").checked
-    };
-    if(editingLeadId){
-      var l = leads.find(function(x){return x.id===editingLeadId;});
-      if(l && l.quoteLines && l.quoteLines.length) data.amount = quoteLinesTotal(l.quoteLines);
-      leadsCol().doc(editingLeadId).update(data);
-    } else {
-      data.quoteLines = [];
-      leadsCol().add(data);
-    }
-    closeLeadModal();
-  }
-  function deleteLead(id){
-    leadsCol().doc(id).delete();
-    openLeadMenuId = null;
-  }
-  function convertLeadToProject(){
-    if(!editingLeadId) return;
-    var l = leads.find(function(x){return x.id===editingLeadId;});
-    if(!l) return;
-    if(!confirm('ליצור פרויקט הפקה חדש עבור "'+l.name+'"? הפרויקט ייווצר במעקב הפרויקטים עם פרטי הקשר של הליד.')) return;
-    selectedId = addProject(l.name);
-    projectsCol().doc(selectedId).update({address:l.address||"", phone:l.phone||"", price:l.amount||0, paid:l.advance||0});
-    closeLeadModal();
-    showView("projects");
-  }
 
   /* ---------- production tasks board ---------- */
   var TASK_CATALOG = [
@@ -2676,7 +883,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
   ];
 
   var taskBoards = {};
-  var openProjects = {};
   var openStages = {};
   var openTaskNotes = {};
   var editingBoardId = null;
@@ -2686,7 +892,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
     var unsub = taskBoardsCol().onSnapshot(function(snap){
       taskBoards = {};
       snap.forEach(function(d){ taskBoards[d.id] = d.data(); });
-      if(!isFocusedWithin("tasksList")) renderTasksView();
     });
     siteUnsubscribers.push(unsub);
   }
@@ -2800,28 +1005,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
     '</div>';
   }
 
-  function projectTaskCardHtml(p){
-    var open = !!openProjects[p.id];
-    var editMode = editingBoardId===p.id;
-    var stages = STAGE_META.map(function(sm){ return stageGroupHtml(p.id, sm, editMode); }).join("");
-    return '<div class="task-card'+(open?" open":"")+'">'+
-      '<div class="task-card-hd" data-proj-toggle="'+p.id+'">'+
-        '<div class="task-card-title"><div class="n">'+escapeHtml(p.name||"(ללא שם)")+'</div>'+(p.address?'<div class="a">📍 '+escapeHtml(p.address)+'</div>':'')+'</div>'+
-        '<button type="button" class="task-edit-btn'+(editMode?" on":"")+'" data-task-edit="'+p.id+'">'+(editMode?"סיום עריכה":"עריכה")+'</button>'+
-        '<span class="chev"></span>'+
-      '</div>'+
-      (open ? '<div class="task-card-body">'+stages+'</div>' : '')+
-    '</div>';
-  }
 
-  function renderTasksView(){
-    var container = document.getElementById("tasksList");
-    if(!projects.length){
-      container.innerHTML = '<div class="empty">אין עדיין פרויקטים. הוסף פרויקט בטאב "ניהול פרויקטים".</div>';
-      return;
-    }
-    container.innerHTML = projects.map(projectTaskCardHtml).join("");
-  }
 
   /* ---------- service & supply ---------- */
   var SERVICE_SECTIONS = [
@@ -2867,14 +1051,12 @@ input,select,textarea{font-family:inherit;color:inherit;}
   ];
 
   var serviceState = {};
-  var openServiceProjects = {};
 
   function serviceStateCol(){ return db.collection("sites").doc(currentSiteId).collection("serviceState"); }
   function attachServiceListener(){
     var unsub = serviceStateCol().onSnapshot(function(snap){
       serviceState = {};
       snap.forEach(function(d){ serviceState[d.id] = d.data(); });
-      renderServiceView();
     });
     siteUnsubscribers.push(unsub);
   }
@@ -2916,45 +1098,9 @@ input,select,textarea{font-family:inherit;color:inherit;}
     '</div>';
   }
 
-  function serviceProjectCardHtml(p){
-    var open = !!openServiceProjects[p.id];
-    var sections = SERVICE_SECTIONS.map(function(s){ return serviceSectionHtml(p.id, s); }).join("");
-    return '<div class="task-card'+(open?" open":"")+'">'+
-      '<div class="task-card-hd" data-svcproj-toggle="'+p.id+'">'+
-        '<div class="task-card-title"><div class="n">'+escapeHtml(p.name||"(ללא שם)")+'</div>'+(p.address?'<div class="a">📍 '+escapeHtml(p.address)+'</div>':'')+'</div>'+
-        '<span class="chev"></span>'+
-      '</div>'+
-      (open ? '<div class="task-card-body">'+sections+'</div>' : '')+
-    '</div>';
-  }
 
-  function renderServiceView(){
-    var container = document.getElementById("serviceList");
-    var active = projects.filter(function(p){ return p.status<5; });
-    if(!active.length){
-      container.innerHTML = '<div class="empty">אין פרויקטים פעילים כרגע.</div>';
-      return;
-    }
-    container.innerHTML = active.map(serviceProjectCardHtml).join("");
-  }
 
   /* ---------- clients / bare projects (shared active-project card grid) ---------- */
-  function renderActiveProjectCards(containerId){
-    var container = document.getElementById(containerId);
-    var active = projects.filter(function(p){ return p.status<5; });
-    if(!active.length){
-      container.innerHTML = '<div class="empty">אין פרויקטים פעילים כרגע.</div>';
-      return;
-    }
-    container.innerHTML = active.map(function(p){
-      return '<div class="client-proj-card">'+
-        '<span class="pill">פעיל</span>'+
-        '<div class="name">📁 '+escapeHtml(p.name||"(ללא שם)")+'</div>'+
-        (p.address?'<div class="meta">📍 '+escapeHtml(p.address)+'</div>':'')+
-        (p.phone?'<div class="meta">📞 <a href="tel:'+escapeHtml(p.phone)+'">'+escapeHtml(p.phone)+'</a></div>':'')+
-      '</div>';
-    }).join("");
-  }
 
   /* ---------- price catalog ---------- */
   var priceCatalog = [];
@@ -3030,81 +1176,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
 
   /* ---------- quote editor (per-lead) ---------- */
   var editingQuoteLeadId = null;
-  var quoteDraftLines = [];
 
-  function quoteLineRowHtml(line, idx){
-    var isCustom = !line.catalogId;
-    var options = '<option value="">פריט מותאם אישית...</option>' + priceCatalog.map(function(c){
-      return '<option value="'+c.id+'"'+(line.catalogId===c.id?" selected":"")+'>'+escapeHtml(c.name)+' ('+fmtMoney(c.defaultPrice)+')</option>';
-    }).join("");
-    var total = quoteLineTotal(line);
-    var html = '<div class="quote-line" data-line-idx="'+idx+'">'+
-      '<select data-qfield="catalogId">'+options+'</select>'+
-      '<input type="number" min="0" step="1" data-qfield="qty" value="'+(line.qty!=null?line.qty:1)+'" placeholder="כמות">'+
-      '<input type="number" min="0" step="1" data-qfield="unitPrice" value="'+(line.unitPrice!=null?line.unitPrice:0)+'" placeholder="מחיר יחידה">'+
-      '<span class="line-total" data-line-total>'+fmtMoney(total)+'</span>'+
-      '<button type="button" class="del-line" data-qdel title="מחיקת שורה">✕</button>'+
-    '</div>';
-    if(isCustom){
-      html += '<div style="margin:-4px 0 10px;"><input type="text" data-qfield="name" value="'+escapeHtml(line.name||"")+'" placeholder="שם הפריט המותאם אישית" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:0.83rem;color:var(--ink);"></div>';
-    }
-    return html;
-  }
-  function renderQuoteLinesWrap(){
-    var wrap = document.getElementById("quoteLinesWrap");
-    wrap.innerHTML = quoteDraftLines.length
-      ? quoteDraftLines.map(quoteLineRowHtml).join("")
-      : '<div class="empty">אין עדיין שורות בהצעת המחיר. לחץ על "הוספת שורה".</div>';
-    updateQuoteTotalLine();
-  }
-  function updateQuoteTotalLine(){
-    document.getElementById("quoteTotalLine").textContent = 'סה"כ לפני מע"מ: ' + fmtMoney(quoteLinesTotal(quoteDraftLines));
-  }
-  function openQuoteModal(leadId){
-    editingQuoteLeadId = leadId;
-    var lead = leads.find(function(x){return x.id===leadId;});
-    quoteDraftLines = lead ? JSON.parse(JSON.stringify(lead.quoteLines||[])) : [];
-    document.getElementById("quoteModalTitle").textContent = "הצעת מחיר" + (lead ? " - "+lead.name : "");
-    renderQuoteLinesWrap();
-    document.getElementById("quoteOverlay").hidden = false;
-  }
-  function closeQuoteModal(){
-    document.getElementById("quoteOverlay").hidden = true;
-    editingQuoteLeadId = null;
-  }
-  function saveQuoteForm(){
-    if(!editingQuoteLeadId) return;
-    var quoteLines = quoteDraftLines.filter(function(l){ return (l.name && l.name.trim()) || l.catalogId; });
-    var patch = {quoteLines: quoteLines, quoteUpdatedAt: new Date().toISOString()};
-    if(quoteLines.length) patch.amount = quoteLinesTotal(quoteLines);
-    leadsCol().doc(editingQuoteLeadId).update(patch);
-    closeQuoteModal();
-  }
-  function quoteSummaryText(lead){
-    var lines = lead.quoteLines || [];
-    if(!lines.length) return '<span class="muted">אין הצעת מחיר עדיין</span>';
-    return lines.map(function(l){
-      return escapeHtml(l.name||"") + ": " + (Number(l.qty)||0) + " x " + fmtMoney(l.unitPrice) + " = " + fmtMoney(quoteLineTotal(l));
-    }).join("<br>");
-  }
-  function renderQuotesTable(){
-    var tbody = document.getElementById("quotesTbody");
-    if(!leads.length){
-      tbody.innerHTML = '<tr><td colspan="5"><div class="leads-empty">אין עדיין לידים.</div></td></tr>';
-      return;
-    }
-    tbody.innerHTML = leads.map(function(l){
-      var total = quoteLinesTotal(l.quoteLines||[]);
-      var hasLines = l.quoteLines && l.quoteLines.length;
-      return '<tr>'+
-        '<td>'+escapeHtml(l.name||"")+'</td>'+
-        '<td>'+(l.quoteUpdatedAt ? new Date(l.quoteUpdatedAt).toLocaleString("he-IL") : '<span class="muted">-</span>')+'</td>'+
-        '<td class="quote-summary-cell">'+quoteSummaryText(l)+'</td>'+
-        '<td>'+leadCell(hasLines ? fmtMoney(total) : '<span class="muted">-</span>', true)+'</td>'+
-        '<td><button type="button" class="ghost-btn" data-quote-edit="'+l.id+'">עריכת הצעת מחיר</button></td>'+
-      '</tr>';
-    }).join("");
-  }
 
   /* ---------- lead extras: needs assessment / negotiation / documents ---------- */
   var DOC_CATEGORIES = [
@@ -3112,366 +1184,18 @@ input,select,textarea{font-family:inherit;color:inherit;}
     {id:"arch", label:"אדריכלות"},
     {id:"plan", label:"תכנון"}
   ];
-  var vatRatePercent = 18;
 
-  function vatRateDocRef(){ return db.collection("sites").doc(currentSiteId).collection("settings").doc("vatRate"); }
-  function attachVatRateListener(){
-    var unsub = vatRateDocRef().onSnapshot(function(doc){
-      var data = doc.data();
-      vatRatePercent = (data && typeof data.value==="number") ? data.value : 18;
-      if(document.activeElement !== document.getElementById("vatRateInput")){
-        document.getElementById("vatRateInput").value = vatRatePercent;
-      }
-      renderNegotiationTable();
-    });
-    siteUnsubscribers.push(unsub);
-  }
-  function saveVatRate(){ vatRateDocRef().set({value: vatRatePercent}); }
 
-  function ensureLeadExtras(l){
-    if(!l.needsAssessment) l.needsAssessment = {text:"", clientUnderstood:"", assessedAt:null};
-    if(!l.negotiation) l.negotiation = {approvedAt:null, advancePercent:10, advancePaid:false, advancePaidDate:"", paymentMethod:""};
-    if(!l.documents){
-      l.documents = {};
-      DOC_CATEGORIES.forEach(function(c){ l.documents[c.id] = {received:false, link:"", updatedAt:null}; });
-    }
-    return l;
-  }
 
-  function amountsExclIncl(lead){
-    var amt = leadAmount(lead);
-    var incl = lead.vatIncluded ? amt : amt*(1+vatRatePercent/100);
-    var excl = lead.vatIncluded ? amt/(1+vatRatePercent/100) : amt;
-    return {excl:excl, incl:incl};
-  }
 
   /* --- needs assessment tab --- */
   var editingNeedsLeadId = null;
-  function renderNeedsTable(){
-    var tbody = document.getElementById("needsTbody");
-    if(!leads.length){
-      tbody.innerHTML = '<tr><td colspan="8"><div class="leads-empty">אין עדיין לידים.</div></td></tr>';
-      return;
-    }
-    tbody.innerHTML = leads.map(function(l){
-      ensureLeadExtras(l);
-      var na = l.needsAssessment;
-      return '<tr>'+
-        '<td>'+escapeHtml(l.name||"")+'</td>'+
-        '<td>'+(na.assessedAt ? new Date(na.assessedAt).toLocaleString("he-IL") : '<span class="muted">-</span>')+'</td>'+
-        '<td>'+escapeHtml(l.customerType||"-")+'</td>'+
-        '<td>'+escapeHtml(l.type||"-")+'</td>'+
-        '<td>'+escapeHtml(l.workType||"-")+'</td>'+
-        '<td class="quote-summary-cell">'+(na.text?escapeHtml(na.text):'<span class="muted">-</span>')+'</td>'+
-        '<td>'+(na.clientUnderstood?escapeHtml(na.clientUnderstood):'<span class="muted">-</span>')+'</td>'+
-        '<td><button type="button" class="ghost-btn" data-needs-edit="'+l.id+'">עריכה</button></td>'+
-      '</tr>';
-    }).join("");
-  }
-  function openNeedsModal(leadId){
-    var l = leads.find(function(x){return x.id===leadId;});
-    if(!l) return;
-    ensureLeadExtras(l);
-    editingNeedsLeadId = leadId;
-    document.getElementById("needsModalTitle").textContent = "בדיקה והבנת הצורך - " + l.name;
-    document.getElementById("nf-assessedAt").value = l.needsAssessment.assessedAt || "";
-    document.getElementById("nf-clientUnderstood").value = l.needsAssessment.clientUnderstood || "";
-    document.getElementById("nf-text").value = l.needsAssessment.text || "";
-    document.getElementById("needsOverlay").hidden = false;
-  }
-  function closeNeedsModal(){
-    document.getElementById("needsOverlay").hidden = true;
-    editingNeedsLeadId = null;
-  }
-  function saveNeedsForm(){
-    var l = leads.find(function(x){return x.id===editingNeedsLeadId;});
-    if(!l) return;
-    ensureLeadExtras(l);
-    var dt = document.getElementById("nf-assessedAt").value;
-    leadsCol().doc(editingNeedsLeadId).update({needsAssessment: {
-      assessedAt: dt || l.needsAssessment.assessedAt || new Date().toISOString().slice(0,16),
-      clientUnderstood: document.getElementById("nf-clientUnderstood").value,
-      text: document.getElementById("nf-text").value
-    }});
-    closeNeedsModal();
-  }
 
   /* --- negotiation tab --- */
   var editingNegotiationLeadId = null;
-  function negotiationAmounts(lead, pctOverride){
-    ensureLeadExtras(lead);
-    var pct = pctOverride!=null ? pctOverride : lead.negotiation.advancePercent;
-    var amt = amountsExclIncl(lead);
-    var advExcl = amt.excl*pct/100, advIncl = amt.incl*pct/100;
-    var remPercent = 100-pct;
-    var remExcl = amt.excl*remPercent/100, remIncl = amt.incl*remPercent/100;
-    return {pct:pct, advExcl:advExcl, advIncl:advIncl, remPercent:remPercent, remExcl:remExcl, remIncl:remIncl};
-  }
-  function renderNegotiationTable(){
-    var tbody = document.getElementById("negotiationTbody");
-    if(!leads.length){
-      tbody.innerHTML = '<tr><td colspan="5"><div class="leads-empty">אין עדיין לידים.</div></td></tr>';
-      return;
-    }
-    tbody.innerHTML = leads.map(function(l){
-      ensureLeadExtras(l);
-      var ng = l.negotiation;
-      var sums = negotiationAmounts(l);
-      var advBlock = leadCell(
-        (ng.advancePaid?'<span class="badge pay-paid">שולם</span>':'<span class="badge pay-unpaid">לא שולם</span>')+'<br>'+
-        sums.pct+'%<br>'+
-        fmtMoney(sums.advExcl)+' (ללא מע"מ)<br>'+
-        fmtMoney(sums.advIncl)+' (כולל מע"מ)'+
-        (ng.advancePaidDate? '<br>'+fmtDate(ng.advancePaidDate):'')+
-        (ng.paymentMethod? '<br>'+escapeHtml(ng.paymentMethod):''), true);
-      var remBlock = leadCell(
-        sums.remPercent+'%<br>'+
-        fmtMoney(sums.remExcl)+' (ללא מע"מ)<br>'+
-        fmtMoney(sums.remIncl)+' (כולל מע"מ)', true);
-      return '<tr>'+
-        '<td>'+escapeHtml(l.name||"")+'</td>'+
-        '<td>'+(ng.approvedAt ? new Date(ng.approvedAt).toLocaleString("he-IL") : '<span class="muted">-</span>')+'</td>'+
-        '<td class="quote-summary-cell">'+advBlock+'</td>'+
-        '<td class="quote-summary-cell">'+remBlock+'</td>'+
-        '<td><button type="button" class="ghost-btn" data-negotiation-edit="'+l.id+'">עריכה</button></td>'+
-      '</tr>';
-    }).join("");
-  }
-  function openNegotiationModal(leadId){
-    var l = leads.find(function(x){return x.id===leadId;});
-    if(!l) return;
-    ensureLeadExtras(l);
-    editingNegotiationLeadId = leadId;
-    var ng = l.negotiation;
-    document.getElementById("negotiationModalTitle").textContent = "משא ומתן - " + l.name;
-    document.getElementById("ngf-approvedAt").value = ng.approvedAt || "";
-    document.getElementById("ngf-advancePercent").value = ng.advancePercent!=null ? ng.advancePercent : 10;
-    document.getElementById("ngf-paymentMethod").value = ng.paymentMethod || "";
-    document.getElementById("ngf-advancePaidDate").value = ng.advancePaidDate || "";
-    document.getElementById("ngf-advancePaid").checked = !!ng.advancePaid;
-    renderNegotiationPreview();
-    document.getElementById("negotiationOverlay").hidden = false;
-  }
-  function closeNegotiationModal(){
-    document.getElementById("negotiationOverlay").hidden = true;
-    editingNegotiationLeadId = null;
-  }
-  function renderNegotiationPreview(){
-    var l = leads.find(function(x){return x.id===editingNegotiationLeadId;});
-    if(!l) return;
-    var pct = Number(document.getElementById("ngf-advancePercent").value)||0;
-    var sums = negotiationAmounts(l, pct);
-    document.getElementById("negotiationPreview").textContent =
-      'מקדמה ('+pct+'%): '+fmtMoney(sums.advExcl)+' ללא מע"מ / '+fmtMoney(sums.advIncl)+' כולל מע"מ  —  יתרה ('+sums.remPercent+'%): '+fmtMoney(sums.remExcl)+' ללא מע"מ / '+fmtMoney(sums.remIncl)+' כולל מע"מ';
-  }
-  function saveNegotiationForm(){
-    if(!editingNegotiationLeadId) return;
-    leadsCol().doc(editingNegotiationLeadId).update({negotiation: {
-      approvedAt: document.getElementById("ngf-approvedAt").value,
-      advancePercent: Number(document.getElementById("ngf-advancePercent").value)||0,
-      paymentMethod: document.getElementById("ngf-paymentMethod").value,
-      advancePaidDate: document.getElementById("ngf-advancePaidDate").value,
-      advancePaid: document.getElementById("ngf-advancePaid").checked
-    }});
-    closeNegotiationModal();
-  }
 
   /* --- documents tab --- */
   var editingDocsLeadId = null;
-  function docsSummary(lead){
-    ensureLeadExtras(lead);
-    var missing = [], arrived = [], latest = null;
-    DOC_CATEGORIES.forEach(function(c){
-      var d = lead.documents[c.id];
-      if(d && d.received){
-        arrived.push({label:c.label, link:d.link});
-        if(d.updatedAt && (!latest || d.updatedAt>latest)) latest = d.updatedAt;
-      } else {
-        missing.push(c.label);
-      }
-    });
-    return {missing:missing, arrived:arrived, latest:latest};
-  }
-  function renderDocsTable(){
-    var tbody = document.getElementById("docsTbody");
-    if(!leads.length){
-      tbody.innerHTML = '<tr><td colspan="5"><div class="leads-empty">אין עדיין לידים.</div></td></tr>';
-      return;
-    }
-    tbody.innerHTML = leads.map(function(l){
-      var s = docsSummary(l);
-      var arrivedHtml = s.arrived.length ? s.arrived.map(function(a){
-        return a.link ? '<a href="'+escapeHtml(a.link)+'" target="_blank" rel="noopener">'+escapeHtml(a.label)+'</a>' : escapeHtml(a.label);
-      }).join(", ") : '<span class="muted">-</span>';
-      var missingHtml = s.missing.length ? escapeHtml(s.missing.join(", ")) : '<span class="muted">-</span>';
-      return '<tr>'+
-        '<td>'+escapeHtml(l.name||"")+'</td>'+
-        '<td>'+(s.latest ? fmtDate(s.latest.slice(0,10)) : '<span class="muted">-</span>')+'</td>'+
-        '<td class="doc-summary-cell">'+missingHtml+'</td>'+
-        '<td class="doc-summary-cell">'+arrivedHtml+'</td>'+
-        '<td><button type="button" class="ghost-btn" data-docs-edit="'+l.id+'">עריכה</button></td>'+
-      '</tr>';
-    }).join("");
-  }
-  function docRowHtml(cat, doc){
-    return '<div class="doc-row">'+
-      '<label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" data-doc-received="'+cat.id+'"'+(doc.received?" checked":"")+'> <span class="doc-label">'+escapeHtml(cat.label)+'</span></label>'+
-      '<input type="url" data-doc-link="'+cat.id+'" placeholder="קישור לדרייב..." value="'+escapeHtml(doc.link||"")+'"'+(doc.received?"":" disabled")+'>'+
-    '</div>';
-  }
-  function renderDocsRowsWrap(lead){
-    ensureLeadExtras(lead);
-    document.getElementById("docsRowsWrap").innerHTML = DOC_CATEGORIES.map(function(c){
-      return docRowHtml(c, lead.documents[c.id]);
-    }).join("");
-  }
-  function openDocsModal(leadId){
-    var l = leads.find(function(x){return x.id===leadId;});
-    if(!l) return;
-    editingDocsLeadId = leadId;
-    document.getElementById("docsModalTitle").textContent = "מסמכים - " + l.name;
-    renderDocsRowsWrap(l);
-    document.getElementById("docsOverlay").hidden = false;
-  }
-  function closeDocsModal(){
-    document.getElementById("docsOverlay").hidden = true;
-    editingDocsLeadId = null;
-  }
-  function saveDocsForm(){
-    if(!editingDocsLeadId) return;
-    var documents = {};
-    DOC_CATEGORIES.forEach(function(c){
-      var checkbox = document.querySelector('[data-doc-received="'+c.id+'"]');
-      var linkInput = document.querySelector('[data-doc-link="'+c.id+'"]');
-      var received = checkbox ? checkbox.checked : false;
-      var link = linkInput ? linkInput.value.trim() : "";
-      documents[c.id] = {received:received, link:link, updatedAt: received ? new Date().toISOString() : null};
-    });
-    leadsCol().doc(editingDocsLeadId).update({documents: documents});
-    closeDocsModal();
-  }
-
-  /* ---------- calls / inquiries ---------- */
-  var calls = [];
-  var editingCallId = null;
-  var openCallMenuId = null;
-  var callsFilters = {search:"", status:"all"};
-
-  function callsCol(){ return db.collection("sites").doc(currentSiteId).collection("calls"); }
-  function attachCallsListener(){
-    var unsub = callsCol().onSnapshot(function(snap){
-      calls = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
-      renderCallsChips();
-      renderCallsTable();
-    });
-    siteUnsubscribers.push(unsub);
-  }
-  function callBadge(status){
-    var cls = status==="טופל" ? "pay-paid" : status==="ממתין למעקב" ? "pay-partial" : "status";
-    return '<span class="badge '+cls+'">'+escapeHtml(status||"חדש")+'</span>';
-  }
-  function callsMatches(c){
-    if(callsFilters.status!=="all" && c.status!==callsFilters.status) return false;
-    if(callsFilters.search){
-      var q = callsFilters.search.toLowerCase();
-      var hay = [c.name,c.phone,c.subject].join(" ").toLowerCase();
-      if(hay.indexOf(q)===-1) return false;
-    }
-    return true;
-  }
-  function renderCallsChips(){
-    var wrap = document.getElementById("callsStatusChips");
-    var statuses = ["חדש","טופל","ממתין למעקב"];
-    var html = '<button type="button" class="chip'+(callsFilters.status==="all"?" active":"")+'" data-callsf="all">הכל</button>';
-    statuses.forEach(function(s){
-      html += '<button type="button" class="chip'+(callsFilters.status===s?" active":"")+'" data-callsf="'+s+'">'+s+'</button>';
-    });
-    wrap.innerHTML = html;
-  }
-  function renderCallsTable(){
-    var tbody = document.getElementById("callsTbody");
-    var list = calls.filter(callsMatches);
-    if(!list.length){
-      tbody.innerHTML = '<tr><td colspan="9"><div class="leads-empty">אין פניות תואמות.</div></td></tr>';
-      return;
-    }
-    tbody.innerHTML = list.map(function(c){
-      var menuOpen = openCallMenuId===c.id;
-      return '<tr>'+
-        '<td>'+escapeHtml(c.name||"")+'</td>'+
-        '<td>'+(c.phone?'<a href="tel:'+escapeHtml(c.phone)+'">'+escapeHtml(c.phone)+'</a>':'<span class="muted">-</span>')+'</td>'+
-        '<td>'+(c.dateTime ? new Date(c.dateTime).toLocaleString("he-IL") : '<span class="muted">-</span>')+'</td>'+
-        '<td>'+escapeHtml(c.callerType||"-")+'</td>'+
-        '<td>'+escapeHtml(c.subject||"-")+'</td>'+
-        '<td>'+escapeHtml(c.handledBy||"-")+'</td>'+
-        '<td>'+callBadge(c.status)+'</td>'+
-        '<td>'+(c.followUp && c.followUpDate ? fmtDate(c.followUpDate) : '<span class="muted">-</span>')+'</td>'+
-        '<td class="row-menu">'+
-          '<button type="button" class="row-menu-btn" data-callmenu="'+c.id+'">⋮</button>'+
-          (menuOpen ? '<div class="row-menu-drop"><button type="button" data-call-edit="'+c.id+'">עריכה</button><button type="button" class="danger" data-call-del="'+c.id+'">מחיקה</button></div>' : '')+
-        '</td>'+
-      '</tr>';
-    }).join("");
-  }
-  function openCallModal(id){
-    editingCallId = id;
-    var c = id ? calls.find(function(x){return x.id===id;}) : null;
-    document.getElementById("callModalTitle").textContent = c ? "עריכת פנייה" : "פנייה חדשה";
-    document.getElementById("cf-name").value = c ? c.name : "";
-    document.getElementById("cf-phone").value = c ? c.phone : "";
-    document.getElementById("cf-dateTime").value = c ? c.dateTime : new Date().toISOString().slice(0,16);
-    document.getElementById("cf-callerType").value = c ? c.callerType : "";
-    document.getElementById("cf-subject").value = c ? c.subject : "";
-    document.getElementById("cf-handledBy").value = c ? c.handledBy : "";
-    document.getElementById("cf-status").value = c ? c.status : "חדש";
-    document.getElementById("cf-followUpDate").value = c ? c.followUpDate : "";
-    document.getElementById("cf-notes").value = c ? c.notes : "";
-    document.getElementById("callConvertBtn").style.display = c ? "" : "none";
-    document.getElementById("callOverlay").hidden = false;
-    document.getElementById("cf-name").focus();
-  }
-  function closeCallModal(){
-    document.getElementById("callOverlay").hidden = true;
-    editingCallId = null;
-  }
-  function saveCallForm(){
-    var name = document.getElementById("cf-name").value.trim();
-    if(!name){ alert("יש להזין שם."); return; }
-    var followUpDate = document.getElementById("cf-followUpDate").value;
-    var data = {
-      name:name,
-      phone:document.getElementById("cf-phone").value.trim(),
-      dateTime:document.getElementById("cf-dateTime").value,
-      callerType:document.getElementById("cf-callerType").value,
-      subject:document.getElementById("cf-subject").value,
-      handledBy:document.getElementById("cf-handledBy").value.trim(),
-      status:document.getElementById("cf-status").value,
-      followUp: !!followUpDate,
-      followUpDate: followUpDate,
-      notes:document.getElementById("cf-notes").value
-    };
-    if(editingCallId){
-      callsCol().doc(editingCallId).update(data);
-    } else {
-      callsCol().add(data);
-    }
-    closeCallModal();
-  }
-  function deleteCall(id){
-    callsCol().doc(id).delete();
-    openCallMenuId = null;
-  }
-  function convertCallToLead(){
-    if(!editingCallId) return;
-    var c = calls.find(function(x){return x.id===editingCallId;});
-    if(!c) return;
-    if(!confirm('ליצור ליד חדש עבור "'+c.name+'"?')) return;
-    leadsCol().add({name:c.name, phone:c.phone||"", whatsapp:"", email:"", address:"",
-      customerType:c.callerType==="לקוח קיים"?"קיים":"חדש", type:"", workType:"", source:"טלפון",
-      inquiryDate:new Date().toISOString().slice(0,10), advance:0, amount:0, vatIncluded:false, quoteLines:[]});
-    closeCallModal();
-    showView("sales");
-  }
 
   /* ---------- demo mode (client-side only, never written to Firestore) ---------- */
   function isoPlusDays(n){
@@ -3493,18 +1217,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
       {id:"demo-l1", name:"אבי גולן", phone:"050-1111111", whatsapp:"050-1111111", email:"avi@example.com", address:"הנביאים 4, חיפה", customerType:"חדש", type:"פרטי", workType:"תוספת בניה", source:"אתר אינטרנט", inquiryDate:isoPlusDays(-3), advance:0, amount:18000, vatIncluded:true, quoteLines:[]},
       {id:"demo-l2", name:"רונית שגיא", phone:"052-2222222", whatsapp:"", email:"", address:"החורש 9, כפר סבא", customerType:"קיים", type:"עסקי", workType:"שרטוט קונסטרוקציה", source:"המלצה", inquiryDate:isoPlusDays(-10), advance:2000, amount:24000, vatIncluded:true, quoteLines:[]}
     ];
-  }
-  function rerenderEverything(){
-    renderStats();
-    renderList();
-    if(!isFocusedWithin("detailPanel")) renderDetail();
-    renderActiveProjectCards("clientActiveProjects");
-    renderActiveProjectCards("bareActiveProjects");
-    refreshActiveLeadSubTab();
-    renderTasksView();
-    renderServiceView();
-    var mrPanel = document.getElementById("monthlyReport");
-    if(mrPanel && !mrPanel.hidden) renderMonthlyReport();
   }
   function buildDemoClientsNew(){
     var job1 = newJobObj("בית פרטי");
@@ -3531,7 +1243,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
     selectedJobId = null;
     document.getElementById("demoBanner").hidden = false;
     document.getElementById("demoModeBtn").textContent = "סיום תצוגת דמו";
-    rerenderEverything();
     renderClientsNewList();
     renderClientsNewDetail();
   }
@@ -3548,7 +1259,6 @@ input,select,textarea{font-family:inherit;color:inherit;}
     selectedJobId = null;
     document.getElementById("demoBanner").hidden = true;
     document.getElementById("demoModeBtn").textContent = "תצוגת דמו";
-    rerenderEverything();
     renderClientsNewList();
     renderClientsNewDetail();
   }
@@ -4176,12 +1886,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
     attachTasksListener();
     attachServiceListener();
     attachCatalogListener();
-    attachCallsListener();
-    attachVatRateListener();
     attachWorkHoursListener();
     attachClientsListener();
-    renderActiveProjectCards("clientActiveProjects");
-    renderActiveProjectCards("bareActiveProjects");
   }
   function detachSiteData(){
     siteUnsubscribers.forEach(function(u){ u(); });
