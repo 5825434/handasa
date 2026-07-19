@@ -200,9 +200,13 @@ input,select,textarea{font-family:inherit;color:inherit;}
 
 /* board: list on the right, detail on the left (RTL: first grid track = right) */
 .board{display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start;}
+.board.list-collapsed{grid-template-columns:auto 1fr;}
+.board.list-collapsed .client-proj-grid{display:none;}
 @media (max-width:860px){
   .board{grid-template-columns:1fr;}
-  .list-pane{max-height:none;}
+  .board.list-collapsed{grid-template-columns:1fr;}
+  .list-pane{max-height:none;order:2;}
+  .detail-pane{order:1;}
 }
 
 .list-pane{max-height:calc(100vh - 300px);overflow-y:auto;padding-left:2px;}

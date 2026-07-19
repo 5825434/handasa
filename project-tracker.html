@@ -73,8 +73,18 @@
       <div class="client-proj-grid" id="clientsNewList"></div>
     </div>
     <div id="clientsNewDetailScreen" hidden>
-      <button type="button" class="ghost-btn" id="clientsNewBackBtn">→ חזרה לרשימת הלקוחות</button>
-      <div class="detail-card" id="clientsNewDetail" style="margin-top:12px;max-width:720px;"></div>
+      <div class="board" id="clientsNewBoard">
+        <div class="list-pane" id="clientsNewSideListPane">
+          <div class="toolbar-row" style="margin-bottom:10px;">
+            <button type="button" class="ghost-btn" id="clientsNewSideListToggle">הסתרת רשימה ◀</button>
+          </div>
+          <div class="client-proj-grid" id="clientsNewSideList" style="grid-template-columns:1fr;"></div>
+        </div>
+        <div class="detail-pane">
+          <button type="button" class="ghost-btn" id="clientsNewBackBtn">→ חזרה לרשימת הלקוחות</button>
+          <div class="detail-card" id="clientsNewDetail" style="margin-top:12px;"></div>
+        </div>
+      </div>
     </div>
   </div><!-- /viewClientsNew -->
 
@@ -257,6 +267,7 @@
   </div>
 </div>
 
+<datalist id="priceCatalogDatalist"></datalist>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
@@ -602,7 +613,7 @@
       if(e.target.id==="clientAddOverlay") closeClientAddModal();
     });
     document.getElementById("migrateOldDataBtn").addEventListener("click", migrateOldDataToClients);
-    document.getElementById("clientsNewList").addEventListener("click", function(e){
+    function handleClientCardClick(e){
       var row = e.target.closest("[data-select-client]");
       if(!row) return;
       selectedClientId = row.getAttribute("data-select-client");
@@ -613,10 +624,17 @@
       renderClientsNewList();
       renderClientsNewDetail();
       renderClientsNewScreen();
-    });
+    }
+    document.getElementById("clientsNewList").addEventListener("click", handleClientCardClick);
+    document.getElementById("clientsNewSideList").addEventListener("click", handleClientCardClick);
     document.getElementById("clientsNewBackBtn").addEventListener("click", function(){
       clientsNewScreen = "list";
       renderClientsNewScreen();
+    });
+    document.getElementById("clientsNewSideListToggle").addEventListener("click", function(){
+      var board = document.getElementById("clientsNewBoard");
+      var collapsed = board.classList.toggle("list-collapsed");
+      this.textContent = collapsed ? "▶" : "הסתרת רשימה ◀";
     });
     var clientsNewDetailEl = document.getElementById("clientsNewDetail");
     clientsNewDetailEl.addEventListener("click", function(e){
@@ -761,9 +779,17 @@
         var lines = (job.quoteLines||[]).slice();
         var line = Object.assign({}, lines[idx]);
         line[qf] = (qf==="qty"||qf==="unitPrice") ? (Number(e.target.value)||0) : e.target.value;
+        var row = e.target.closest(".quote-line");
+        if(qf==="name"){
+          var catalogMatch = priceCatalog.find(function(ci){ return ci.name===line.name; });
+          if(catalogMatch){
+            line.unitPrice = catalogMatch.defaultPrice||0;
+            var priceInput = row ? row.querySelector('[data-qfield="unitPrice"]') : null;
+            if(priceInput) priceInput.value = line.unitPrice;
+          }
+        }
         lines[idx] = line;
         setJobField(selectedClientId, selectedJobId, "quoteLines", lines);
-        var row = e.target.closest(".quote-line");
         var totalEl = row ? row.querySelector(".line-total") : null;
         if(totalEl) totalEl.textContent = fmtMoney(quoteLineTotal(line));
         var summaryEl = row ? row.parentElement.querySelector("[data-quote-summary]") : null;
@@ -1111,8 +1137,16 @@
     var unsub = catalogCol().onSnapshot(function(snap){
       priceCatalog = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
       renderCatalogTable();
+      renderCatalogDatalist();
     });
     siteUnsubscribers.push(unsub);
+  }
+  function renderCatalogDatalist(){
+    var dl = document.getElementById("priceCatalogDatalist");
+    if(!dl) return;
+    dl.innerHTML = priceCatalog.map(function(c){
+      return '<option value="'+escapeHtml(c.name)+'">';
+    }).join("");
   }
   function seedCatalogForNewSite(siteId){
     var col = db.collection("sites").doc(siteId).collection("priceCatalog");
@@ -1421,8 +1455,6 @@
     '</div>';
   }
   function renderClientsNewList(){
-    var container = document.getElementById("clientsNewList");
-    if(!container) return;
     var q = (clientFilters.search||"").trim().toLowerCase();
     var list = clients.filter(function(c){
       if(!q) return true;
@@ -1430,8 +1462,12 @@
         (c.address||"").toLowerCase().indexOf(q)!==-1;
     });
     list.sort(function(a,b){ return clientSortValue(b) - clientSortValue(a); });
-    container.innerHTML = list.length ? list.map(clientListRowHtml).join("") :
+    var html = list.length ? list.map(clientListRowHtml).join("") :
       '<div class="empty">אין לקוחות תואמים. הוסף לקוח חדש למעלה.</div>';
+    var container = document.getElementById("clientsNewList");
+    if(container) container.innerHTML = html;
+    var sideContainer = document.getElementById("clientsNewSideList");
+    if(sideContainer) sideContainer.innerHTML = html;
   }
   function renderClientsNewScreen(){
     document.getElementById("clientsNewListScreen").hidden = clientsNewScreen!=="list";
@@ -1492,7 +1528,7 @@
   function jobQuoteTabHtml(job){
     var qLines = job.quoteLines||[];
     var quoteRows = qLines.map(function(l,i){
-      return '<div class="quote-line"><input type="text" data-qfield="name" data-qidx="'+i+'" value="'+escapeHtml(l.name||"")+'" placeholder="שם פריט">'+
+      return '<div class="quote-line"><input type="text" data-qfield="name" data-qidx="'+i+'" list="priceCatalogDatalist" value="'+escapeHtml(l.name||"")+'" placeholder="שם פריט (או בחירה מהמחירון)">'+
         '<input type="number" data-qfield="qty" data-qidx="'+i+'" value="'+(l.qty||1)+'" min="0">'+
         '<input type="number" data-qfield="unitPrice" data-qidx="'+i+'" value="'+(l.unitPrice||0)+'" min="0">'+
         '<div class="line-total">'+fmtMoney(quoteLineTotal(l))+'</div>'+
