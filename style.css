@@ -517,3 +517,28 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .negotiation-fields input{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
 .job-tab-body{margin-top:12px;}
 .quote-lines-wrap{display:flex;flex-direction:column;gap:8px;}
+
+/* personal tasks */
+.ptask-settings-panel{margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);}
+.ptask-cat-manager-row{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;margin-bottom:6px;}
+.ptask-cat-manager-row input[type="text"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:0.83rem;color:var(--ink);}
+.ptask-cat-manager-row input[type="color"]{width:34px;height:34px;padding:2px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);cursor:pointer;}
+.ptask-cat-manager-row select{padding:6px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:1rem;color:var(--ink);}
+
+.ptask-item{background:var(--surface);border:1px solid var(--border);border-inline-start:4px solid var(--ink-faint);border-radius:var(--radius);margin-bottom:8px;box-shadow:var(--shadow);overflow:hidden;}
+.ptask-item.open{border-color:var(--accent);}
+.ptask-head{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer;}
+.ptask-head .ptask-done{flex:none;width:18px;height:18px;margin-top:2px;}
+.ptask-main{flex:1;min-width:0;}
+.ptask-title{font-size:0.92rem;font-weight:600;}
+.ptask-item.done .ptask-title{text-decoration:line-through;color:var(--ink-faint);}
+.ptask-desc{font-size:0.8rem;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ptask-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px;}
+.ptask-cat-chip{font-size:0.72rem;padding:3px 9px;border-radius:999px;white-space:nowrap;font-weight:600;}
+.ptask-timer{display:flex;align-items:center;gap:5px;flex:none;font-variant-numeric:tabular-nums;font-size:0.78rem;color:var(--ink-soft);}
+.ptask-body{border-top:1px solid var(--border);padding:14px;background:var(--surface-2);}
+.ptask-subtasks{display:flex;flex-direction:column;gap:6px;}
+.ptask-subtask-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;}
+.ptask-subtask-row input[type="checkbox"]{width:16px;height:16px;flex:none;}
+.ptask-subtask-row input[type="text"]{padding:6px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);font-size:0.83rem;color:var(--ink);width:100%;}
+.ptask-share-btn.on{background:var(--pay-paid-soft);border-color:var(--pay-paid);color:var(--pay-paid);font-weight:600;}
