@@ -695,6 +695,30 @@
         }
         return;
       }
+      var addDocLink = e.target.closest("[data-add-doclink]");
+      if(addDocLink){
+        var jobD = getSelectedJob();
+        if(jobD){
+          var addCat = addDocLink.getAttribute("data-add-doclink");
+          var docsD = Object.assign({}, jobD.documents||{});
+          var arrD = Array.isArray(docsD[addCat]) ? docsD[addCat] : [];
+          docsD[addCat] = arrD.concat([{name:"", url:""}]);
+          setJobField(selectedClientId, selectedJobId, "documents", docsD);
+        }
+        return;
+      }
+      var delDocLink = e.target.closest("[data-del-doclink]");
+      if(delDocLink){
+        var jobD2 = getSelectedJob();
+        if(jobD2){
+          var delCat = delDocLink.getAttribute("data-doccat");
+          var delIdx = Number(delDocLink.getAttribute("data-docidx"));
+          var docsD2 = Object.assign({}, jobD2.documents||{});
+          docsD2[delCat] = (docsD2[delCat]||[]).filter(function(x,i){return i!==delIdx;});
+          setJobField(selectedClientId, selectedJobId, "documents", docsD2);
+        }
+        return;
+      }
       var stageToggle = e.target.closest("[data-stage-toggle]");
       if(stageToggle){
         var skey = stageToggle.getAttribute("data-stage-toggle");
@@ -816,13 +840,27 @@
         setJobField(selectedClientId, selectedJobId, "needsAssessment", na);
         return;
       }
-      var df = e.target.getAttribute("data-docfield");
-      if(df){
+      var dlf = e.target.getAttribute("data-doclinkfield");
+      if(dlf){
         var job3 = getSelectedJob();
         if(!job3) return;
+        var catId = e.target.getAttribute("data-doccat");
+        var docIdx = Number(e.target.getAttribute("data-docidx"));
         var docs = Object.assign({}, job3.documents||{});
-        docs[df] = e.target.value;
+        var linkArr = (docs[catId]||[]).slice();
+        var linkObj = Object.assign({name:"", url:""}, linkArr[docIdx]);
+        linkObj[dlf] = e.target.value;
+        linkArr[docIdx] = linkObj;
+        docs[catId] = linkArr;
         setJobField(selectedClientId, selectedJobId, "documents", docs);
+        if(dlf==="url"){
+          var docRow = e.target.closest(".doc-link-row");
+          var openLink = docRow ? docRow.querySelector(".doc-open-btn") : null;
+          if(openLink){
+            if(linkObj.url){ openLink.href = linkObj.url; openLink.classList.remove("disabled"); }
+            else { openLink.removeAttribute("href"); openLink.classList.add("disabled"); }
+          }
+        }
         return;
       }
     }
@@ -1557,11 +1595,27 @@
   function jobServiceTabHtml(job){
     return SERVICE_SECTIONS.map(function(s){ return serviceSectionHtml(job.id, s); }).join("");
   }
+  function docLinkRowHtml(catId, link, idx){
+    var name = link.name||"", url = link.url||"";
+    var openAttrs = url ? ' href="'+escapeHtml(url)+'"' : '';
+    return '<div class="doc-link-row">'+
+      '<input type="text" data-doclinkfield="name" data-doccat="'+catId+'" data-docidx="'+idx+'" value="'+escapeHtml(name)+'" placeholder="שם הקישור">'+
+      '<input type="url" data-doclinkfield="url" data-doccat="'+catId+'" data-docidx="'+idx+'" value="'+escapeHtml(url)+'" placeholder="קישור לדרייב">'+
+      '<a class="doc-open-btn'+(url?"":" disabled")+'" target="_blank" rel="noopener" title="פתיחת הקישור"'+openAttrs+'>🔗</a>'+
+      '<button type="button" class="del-line" data-del-doclink data-doccat="'+catId+'" data-docidx="'+idx+'">✕</button>'+
+    '</div>';
+  }
   function jobDocumentsTabHtml(job){
     var docs = job.documents||{};
     return DOC_CATEGORIES.map(function(cat){
-      return '<div class="doc-row"><div class="doc-label">'+escapeHtml(cat.label)+'</div>'+
-        '<input type="url" data-docfield="'+cat.id+'" value="'+escapeHtml(docs[cat.id]||"")+'" placeholder="קישור לדרייב"></div>';
+      var links = docs[cat.id];
+      if(!Array.isArray(links)) links = [];
+      var rows = links.map(function(link,i){ return docLinkRowHtml(cat.id, link, i); }).join("");
+      return '<div class="doc-category">'+
+        '<div class="doc-cat-label">'+escapeHtml(cat.label)+'</div>'+
+        '<div class="doc-links">'+rows+'</div>'+
+        '<button type="button" class="ghost-btn" data-add-doclink="'+cat.id+'">+ הוספת קישור</button>'+
+      '</div>';
     }).join("");
   }
   function renderJobArea(job){
