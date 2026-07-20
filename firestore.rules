@@ -15,8 +15,16 @@ service cloud.firestore {
       allow update: if request.auth != null && isOwner(siteId);
     }
     match /sites/{siteId}/{col}/{doc=**} {
-      allow read, write: if request.auth != null && col != "workHours" &&
+      allow read, write: if request.auth != null && col != "workHours" && col != "tasks" &&
         (isOwner(siteId) || isSharedDoc(siteId));
+    }
+    match /sites/{siteId}/tasks/{taskId} {
+      allow create: if request.auth != null && (isOwner(siteId) || isSharedDoc(siteId)) &&
+        request.resource.data.ownerUid == request.auth.uid;
+      allow read: if request.auth != null && (isOwner(siteId) || isSharedDoc(siteId)) &&
+        (resource.data.ownerUid == request.auth.uid || resource.data.shared == true);
+      allow update, delete: if request.auth != null && (isOwner(siteId) || isSharedDoc(siteId)) &&
+        resource.data.ownerUid == request.auth.uid;
     }
     match /sites/{siteId}/workHours/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid &&
