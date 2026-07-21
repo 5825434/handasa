@@ -97,15 +97,20 @@
         <p>המשימות שלך אישיות - רק את/ה רואה אותן, אלא אם סימנת משימה כמשותפת.</p>
       </div>
     </div>
+    <div class="stats" id="ptaskStats"></div>
     <div class="toolbar">
       <div class="toolbar-row">
         <button type="button" class="pill-btn add-lead-btn" id="ptaskAddBtn"><span>+</span> משימה חדשה</button>
         <button type="button" class="ghost-btn" id="ptaskAddIdeaBtn">💡 רעיון</button>
         <div class="search-box"><input type="text" id="ptaskSearch" placeholder="חיפוש במשימות..."></div>
+        <div class="chipset" id="ptaskViewChips">
+          <button type="button" class="chip active" data-ptask-view="list">📋 רשימה</button>
+          <button type="button" class="chip" data-ptask-view="calendar">📅 לוח שנה</button>
+        </div>
         <div class="spacer"></div>
         <button type="button" class="ghost-btn" id="ptaskSettingsBtn">⚙ תצוגה</button>
       </div>
-      <div class="toolbar-row">
+      <div class="toolbar-row" id="ptaskBucketRow">
         <div class="chipset" id="ptaskBucketChips">
           <button type="button" class="chip active" data-ptask-bucket="all">הכל</button>
           <button type="button" class="chip" data-ptask-bucket="today">להיום</button>
@@ -141,6 +146,20 @@
       </div>
     </div>
     <div id="tasksList"></div>
+    <div id="ptaskCalendarWrap" hidden>
+      <div class="ptask-cal-card">
+        <div class="ptask-cal-hd">
+          <button type="button" class="ghost-btn" id="ptaskCalPrev">‹</button>
+          <span class="ptask-cal-title" id="ptaskCalTitle"></span>
+          <button type="button" class="ghost-btn" id="ptaskCalNext">›</button>
+        </div>
+        <div class="ptask-cal-weekdays">
+          <span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span>
+        </div>
+        <div class="ptask-cal-grid" id="ptaskCalGrid"></div>
+      </div>
+      <div id="ptaskCalDayList"></div>
+    </div>
   </div><!-- /viewTasks -->
 
 
@@ -342,6 +361,14 @@
           <option value="none">ללא חזרה</option><option value="daily">יומי</option>
           <option value="weekly">שבועי</option><option value="monthly">חודשי</option>
         </select></div>
+        <div class="field ptask-when"><label>משך זמן משוער</label><select id="pm-estMin">
+          <option value="0">ללא</option><option value="15">15 דק׳</option><option value="30">30 דק׳</option>
+          <option value="45">45 דק׳</option><option value="60">שעה</option><option value="120">שעתיים</option>
+        </select></div>
+        <div class="field ptask-when"><label>תזכורת</label><select id="pm-reminder">
+          <option value="none">ללא תזכורת</option><option value="attime">בזמן המשימה</option>
+          <option value="15">15 דק׳ לפני</option><option value="30">30 דק׳ לפני</option><option value="60">שעה לפני</option>
+        </select></div>
         <div class="field full ptask-subs-field"><label>תת-משימות</label>
           <div id="pm-subtasks" class="ptask-subtasks"></div>
           <button type="button" class="ghost-btn" id="pm-addSub">+ תת-משימה</button>
@@ -438,6 +465,10 @@
   var taskDisplayPrefs = Object.assign({}, TASK_PREF_DEFAULTS);
   var TASK_CAT_ICONS = ["📁","🏠","💼","📞","👨‍👩‍👧","🛒","📐","🔧","☕","💰","⭐","📌"];
   var TASK_CAT_COLORS = ["#7c5cbf","#2f8f5b","#2f6fb0","#d97f2b","#b3432e","#a8720f","#0d7a3f","#6d7a87"];
+  var taskViewMode = "list";
+  var taskCalMonth = new Date();
+  var taskCalSelected = "";
+  var firedReminders = {};
 
   function uid(){ return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -1002,6 +1033,25 @@
       syncTaskBucketChips();
       renderTasksView();
     });
+    document.getElementById("ptaskViewChips").addEventListener("click", function(e){
+      var chip = e.target.closest("[data-ptask-view]");
+      if(!chip) return;
+      setTaskViewMode(chip.getAttribute("data-ptask-view"));
+    });
+    document.getElementById("ptaskCalPrev").addEventListener("click", function(){
+      taskCalMonth = new Date(taskCalMonth.getFullYear(), taskCalMonth.getMonth()-1, 1);
+      renderTaskCalendar();
+    });
+    document.getElementById("ptaskCalNext").addEventListener("click", function(){
+      taskCalMonth = new Date(taskCalMonth.getFullYear(), taskCalMonth.getMonth()+1, 1);
+      renderTaskCalendar();
+    });
+    document.getElementById("ptaskCalGrid").addEventListener("click", function(e){
+      var cell = e.target.closest("[data-ptask-cal-day]");
+      if(!cell) return;
+      taskCalSelected = cell.getAttribute("data-ptask-cal-day");
+      renderTaskCalendar();
+    });
     document.getElementById("ptaskGroupChips").addEventListener("click", function(e){
       var chip = e.target.closest("[data-ptask-group]");
       if(!chip) return;
@@ -1042,23 +1092,24 @@
       }
     });
 
-    var tasksListEl = document.getElementById("tasksList");
-    tasksListEl.addEventListener("click", function(e){
+    function handleTaskCardClick(e){
       var check = e.target.closest("[data-ptask-done]");
       if(check){
         e.stopPropagation();
         var cid = check.getAttribute("data-ptask-done");
         var ct = getPersonalTask(cid);
-        if(ct && isTaskOwner(ct)){ setPersonalTaskField(cid, "done", !ct.done); renderTasksView(); }
+        if(ct && isTaskOwner(ct)){ setPersonalTaskField(cid, "done", !ct.done); refreshTasksUI(); }
         return;
       }
       var timerBtn = e.target.closest("[data-ptask-timer]");
-      if(timerBtn){ e.stopPropagation(); togglePtaskTimer(timerBtn.getAttribute("data-ptask-timer")); renderTasksView(); return; }
+      if(timerBtn){ e.stopPropagation(); togglePtaskTimer(timerBtn.getAttribute("data-ptask-timer")); refreshTasksUI(); return; }
       var timerReset = e.target.closest("[data-ptask-timer-reset]");
-      if(timerReset){ e.stopPropagation(); resetPtaskTimer(timerReset.getAttribute("data-ptask-timer-reset")); renderTasksView(); return; }
+      if(timerReset){ e.stopPropagation(); resetPtaskTimer(timerReset.getAttribute("data-ptask-timer-reset")); refreshTasksUI(); return; }
       var card = e.target.closest("[data-ptask-open]");
       if(card){ openTaskModal(card.getAttribute("data-ptask-open")); }
-    });
+    }
+    document.getElementById("tasksList").addEventListener("click", handleTaskCardClick);
+    document.getElementById("ptaskCalDayList").addEventListener("click", handleTaskCardClick);
 
     /* task modal */
     document.getElementById("ptaskModalClose").addEventListener("click", closeTaskModal);
@@ -1077,7 +1128,7 @@
     });
     document.getElementById("pm-delete").addEventListener("click", function(){
       if(taskModal.id && confirm("למחוק את המשימה? הפעולה אינה הפיכה.")){
-        deletePersonalTask(taskModal.id); closeTaskModal(); renderTasksView();
+        deletePersonalTask(taskModal.id); closeTaskModal(); refreshTasksUI();
       }
     });
     document.getElementById("pm-addSub").addEventListener("click", function(){
@@ -2216,19 +2267,19 @@
     var unsub1 = personalTasksCol().where("ownerUid","==",currentUser.uid).onSnapshot(function(snap){
       myTasks = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
       mergePersonalTasks();
-      if(currentView==="tasks" && !isFocusedWithin("tasksList")) renderTasksView();
+      if(currentView==="tasks" && !isFocusedWithin("tasksList")) refreshTasksUI();
     }, function(err){});
     var unsub2 = personalTasksCol().where("shared","==",true).onSnapshot(function(snap){
       sharedTasks = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
       mergePersonalTasks();
-      if(currentView==="tasks" && !isFocusedWithin("tasksList")) renderTasksView();
+      if(currentView==="tasks" && !isFocusedWithin("tasksList")) refreshTasksUI();
     }, function(err){});
     siteUnsubscribers.push(unsub1, unsub2);
   }
   function attachTaskCategoriesListener(){
     var unsub = ptaskCatsCol().onSnapshot(function(snap){
       taskCategories = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
-      if(currentView==="tasks"){ renderTasksView(); renderTaskCatManager(); }
+      if(currentView==="tasks"){ refreshTasksUI(); renderTaskCatManager(); }
     });
     siteUnsubscribers.push(unsub);
   }
@@ -2258,7 +2309,7 @@
   function blankTaskData(type){
     return {type:type||"task", title:"", description:"", dueDate:"", dueTime:"",
       quadrant:"n", categoryId:(taskCategories[0]?taskCategories[0].id:""),
-      recurrence:"none", subtasks:[], shared:false, ownerName:""};
+      recurrence:"none", estMin:0, reminder:"none", subtasks:[], shared:false, ownerName:""};
   }
   function openTaskModal(id, type){
     if(id){
@@ -2267,6 +2318,7 @@
         data:{type:t.type||"task", title:t.title||"", description:t.description||"",
           dueDate:t.dueDate||"", dueTime:t.dueTime||"", quadrant:t.quadrant||"n",
           categoryId:t.categoryId||"", recurrence:t.recurrence||"none",
+          estMin:t.estMin||0, reminder:t.reminder||"none",
           subtasks:(t.subtasks||[]).map(function(s){return {text:s.text||"",done:!!s.done};}),
           shared:!!t.shared, ownerName:t.ownerName||""}};
     } else {
@@ -2300,6 +2352,8 @@
     document.getElementById("pm-dueDate").value=d.dueDate;
     document.getElementById("pm-dueTime").value=d.dueTime;
     document.getElementById("pm-recurrence").value=d.recurrence;
+    document.getElementById("pm-estMin").value=String(d.estMin||0);
+    document.getElementById("pm-reminder").value=d.reminder||"none";
     document.getElementById("pm-category").innerHTML =
       '<option value="">ללא קטגוריה</option>'+taskCategories.map(function(c){
         return '<option value="'+c.id+'"'+(d.categoryId===c.id?" selected":"")+'>'+escapeHtml((c.icon||"")+" "+c.name)+'</option>';
@@ -2333,10 +2387,14 @@
     d.dueTime=document.getElementById("pm-dueTime").value;
     d.recurrence=document.getElementById("pm-recurrence").value;
     d.categoryId=document.getElementById("pm-category").value;
+    d.estMin=Number(document.getElementById("pm-estMin").value)||0;
+    d.reminder=document.getElementById("pm-reminder").value;
+    if(d.reminder!=="none") requestReminderPermission();
     if(taskModal.id){
       personalTasksCol().doc(taskModal.id).update({
         title:d.title, description:d.description, dueDate:d.dueDate, dueTime:d.dueTime,
-        quadrant:d.quadrant, categoryId:d.categoryId, recurrence:d.recurrence, subtasks:d.subtasks
+        quadrant:d.quadrant, categoryId:d.categoryId, recurrence:d.recurrence,
+        estMin:d.estMin, reminder:d.reminder, subtasks:d.subtasks
       });
     } else {
       personalTasksCol().add({
@@ -2344,6 +2402,7 @@
         type:taskModal.type, title:d.title, description:d.description,
         dueDate:d.dueDate, dueTime:d.dueTime, quadrant:d.quadrant, categoryId:d.categoryId,
         done:false, shared:false, subtasks:d.subtasks, recurrence:d.recurrence,
+        estMin:d.estMin, reminder:d.reminder,
         timer:{elapsedSec:0,running:false,runStartedAt:null},
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -2351,7 +2410,7 @@
       syncTaskBucketChips();
     }
     closeTaskModal();
-    renderTasksView();
+    refreshTasksUI();
   }
   function ptaskLiveElapsed(tm){
     tm = tm||{};
@@ -2473,7 +2532,7 @@
       var running = t.timer && t.timer.running;
       footer = '<div class="ptask-footer">'+
         '<button type="button" class="ptask-startbtn'+(running?" running":"")+'" data-ptask-timer="'+t.id+'">'+(running?"⏸ המשך":"▶ התחל משימה")+'</button>'+
-        '<span class="ptask-timerval" id="ptimer-'+t.id+'">'+fmtMMSS(el)+'</span>'+
+        '<span class="ptask-timerval" id="ptimer-'+t.id+'">'+ptaskTimerLabel(t)+'</span>'+
         '<button type="button" class="ptask-resetbtn" data-ptask-timer-reset="'+t.id+'" title="איפוס">↺</button>'+
       '</div>';
     }
@@ -2530,19 +2589,127 @@
       cb.checked = !!taskDisplayPrefs[cb.getAttribute("data-ptask-pref")];
     });
   }
+  function ptaskTimerLabel(t){
+    var el=ptaskLiveElapsed(t.timer);
+    if(t.estMin){
+      var rem=(t.estMin*60)-el;
+      return fmtMMSS(Math.max(0,rem))+" נותר";
+    }
+    return fmtMMSS(el);
+  }
+
+  /* ---- summary stats ---- */
+  function renderTaskStats(){
+    var wrap=document.getElementById("ptaskStats");
+    if(!wrap) return;
+    var today=todayStr();
+    var active=personalTasks.filter(function(t){ return t.type!=="idea" && !t.done; });
+    var todayC=active.filter(function(t){ return t.dueDate===today; }).length;
+    var overdueC=active.filter(function(t){ return t.dueDate && t.dueDate<today; }).length;
+    var urgentC=active.filter(function(t){ return t.quadrant==="uq" || t.quadrant==="q"; }).length;
+    var ideasC=personalTasks.filter(function(t){ return t.type==="idea"; }).length;
+    var cards=[
+      {n:todayC, l:"להיום", cls:""},
+      {n:overdueC, l:"באיחור", cls:overdueC?" money":""},
+      {n:urgentC, l:"דחופות", cls:""},
+      {n:ideasC, l:"רעיונות", cls:""}
+    ];
+    wrap.innerHTML=cards.map(function(c){
+      return '<div class="stat'+c.cls+'"><div class="n">'+c.n+'</div><div class="l">'+c.l+'</div></div>';
+    }).join("");
+  }
+
+  /* ---- view mode (list / calendar) ---- */
+  function setTaskViewMode(mode){
+    taskViewMode=mode;
+    document.querySelectorAll("#ptaskViewChips .chip").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-ptask-view")===mode);
+    });
+    var isCal=mode==="calendar";
+    document.getElementById("tasksList").hidden=isCal;
+    document.getElementById("ptaskCalendarWrap").hidden=!isCal;
+    document.getElementById("ptaskBucketRow").hidden=isCal;
+    if(isCal){ renderTaskCalendar(); } else { renderTasksView(); }
+  }
+  function tasksOnDate(dateStr){
+    return personalTasks.filter(function(t){ return t.type!=="idea" && t.dueDate===dateStr; });
+  }
+  function renderTaskCalendar(){
+    var grid=document.getElementById("ptaskCalGrid");
+    if(!grid) return;
+    var y=taskCalMonth.getFullYear(), m=taskCalMonth.getMonth();
+    var monthNames=["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+    document.getElementById("ptaskCalTitle").textContent=monthNames[m]+" "+y;
+    var first=new Date(y,m,1), startDow=first.getDay();
+    var daysInMonth=new Date(y,m+1,0).getDate();
+    var today=todayStr();
+    var cells="";
+    for(var i=0;i<startDow;i++){ cells+='<div class="ptask-cal-cell empty"></div>'; }
+    for(var d=1;d<=daysInMonth;d++){
+      var ds=y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(d<10?"0":"")+d;
+      var dayTasks=tasksOnDate(ds);
+      var dots=dayTasks.slice(0,3).map(function(t){
+        return '<span class="cal-dot" style="background:var('+QUADRANTS[t.quadrant||"n"].token+')"></span>';
+      }).join("");
+      var cls="ptask-cal-cell";
+      if(ds===today) cls+=" today";
+      if(ds===taskCalSelected) cls+=" selected";
+      cells+='<div class="'+cls+'" data-ptask-cal-day="'+ds+'"><span class="cal-num">'+d+'</span><span class="cal-dots">'+dots+'</span></div>';
+    }
+    grid.innerHTML=cells;
+    renderTaskCalDayList();
+  }
+  function renderTaskCalDayList(){
+    var wrap=document.getElementById("ptaskCalDayList");
+    if(!wrap) return;
+    if(!taskCalSelected){ wrap.innerHTML=""; return; }
+    var list=tasksOnDate(taskCalSelected);
+    var hd='<div class="group-hd"><span class="t">'+fmtDate(taskCalSelected)+'</span><span class="c">'+list.length+'</span></div>';
+    wrap.innerHTML=hd+(list.length?list.map(personalTaskCardHtml).join(""):'<div class="empty">אין משימות ליום זה.</div>');
+  }
+
+  /* ---- reminders (best-effort, while app open) ---- */
+  function requestReminderPermission(){
+    try{ if(window.Notification && Notification.permission==="default"){ Notification.requestPermission(); } }catch(e){}
+  }
+  function checkTaskReminders(){
+    if(!window.Notification || Notification.permission!=="granted") return;
+    var now=new Date();
+    personalTasks.forEach(function(t){
+      if(t.done || !isTaskOwner(t) || !t.reminder || t.reminder==="none" || !t.dueDate || !t.dueTime) return;
+      var due=new Date(t.dueDate+"T"+t.dueTime);
+      if(isNaN(due)) return;
+      var lead=(t.reminder==="attime")?0:(Number(t.reminder)||0);
+      var fireAt=due.getTime()-lead*60000;
+      var key=t.id+":"+t.reminder;
+      if(firedReminders[key]) return;
+      if(now.getTime()>=fireAt && now.getTime()<=due.getTime()+120000){
+        firedReminders[key]=true;
+        try{ new Notification("תזכורת משימה", {body:(t.title||"משימה")+(lead?(" - עוד "+lead+" דק׳"):" - עכשיו")}); }catch(e){}
+      }
+    });
+  }
+
+  function refreshTasksUI(){
+    renderTaskStats();
+    if(taskViewMode==="calendar") renderTaskCalendar();
+    else renderTasksView();
+  }
   function renderTasksScreen(){
     loadTaskPrefs();
     syncTaskBucketChips();
     renderTaskSettingsPanel();
     renderTaskCatManager();
-    renderTasksView();
+    renderTaskStats();
+    setTaskViewMode(taskViewMode);
   }
   setInterval(function(){
+    checkTaskReminders();
     if(currentView!=="tasks") return;
     personalTasks.forEach(function(t){
       if(t.timer && t.timer.running){
         var el=document.getElementById("ptimer-"+t.id);
-        if(el) el.textContent=fmtMMSS(ptaskLiveElapsed(t.timer));
+        if(el) el.textContent=ptaskTimerLabel(t);
       }
     });
   }, 1000);

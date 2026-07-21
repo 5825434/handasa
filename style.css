@@ -571,3 +571,24 @@ input,select,textarea{font-family:inherit;color:inherit;}
 @media (max-width:560px){
   .ptask-modal-form{grid-template-columns:1fr;}
 }
+
+/* task calendar */
+.ptask-cal-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px;margin-bottom:16px;}
+.ptask-cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.ptask-cal-title{font-weight:700;font-size:1rem;}
+.ptask-cal-hd .ghost-btn{font-size:1.2rem;line-height:1;padding:4px 12px;}
+.ptask-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;}
+.ptask-cal-weekdays span{text-align:center;font-size:0.72rem;color:var(--ink-faint);font-weight:600;}
+.ptask-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.ptask-cal-cell{min-height:52px;border:1px solid transparent;border-radius:9px;padding:5px 4px 3px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;background:var(--surface-2);}
+.ptask-cal-cell.empty{background:transparent;cursor:default;}
+.ptask-cal-cell:not(.empty):hover{border-color:var(--accent);}
+.ptask-cal-cell .cal-num{font-size:0.82rem;font-variant-numeric:tabular-nums;}
+.ptask-cal-cell.today{background:var(--accent-soft);}
+.ptask-cal-cell.today .cal-num{color:var(--accent);font-weight:700;}
+.ptask-cal-cell.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+.cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;}
+.cal-dot{width:5px;height:5px;border-radius:50%;}
+@media (max-width:480px){
+  .ptask-cal-cell{min-height:44px;}
+}
