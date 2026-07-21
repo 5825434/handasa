@@ -518,27 +518,79 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .job-tab-body{margin-top:12px;}
 .quote-lines-wrap{display:flex;flex-direction:column;gap:8px;}
 
-/* personal tasks */
+/* ============ personal tasks ============ */
 .ptask-settings-panel{margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);}
 .ptask-cat-manager-row{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;margin-bottom:6px;}
 .ptask-cat-manager-row input[type="text"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:0.83rem;color:var(--ink);}
 .ptask-cat-manager-row input[type="color"]{width:34px;height:34px;padding:2px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);cursor:pointer;}
 .ptask-cat-manager-row select{padding:6px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:1rem;color:var(--ink);}
 
-.ptask-item{background:var(--surface);border:1px solid var(--border);border-inline-start:4px solid var(--ink-faint);border-radius:var(--radius);margin-bottom:8px;box-shadow:var(--shadow);overflow:hidden;}
-.ptask-item.open{border-color:var(--accent);}
-.ptask-head{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer;}
-.ptask-head .ptask-done{flex:none;width:18px;height:18px;margin-top:2px;}
+/* compact task card */
+.ptask-item{background:var(--surface);border:1px solid var(--border);border-inline-start:5px solid var(--ink-faint);border-radius:14px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:box-shadow .12s ease, transform .12s ease;}
+.ptask-item:hover{box-shadow:0 2px 4px rgba(28,39,51,0.08), 0 10px 26px rgba(28,39,51,0.10);transform:translateY(-1px);}
+.ptask-item.done{opacity:0.72;}
+.ptask-head{display:flex;align-items:flex-start;gap:11px;padding:13px 15px 11px;}
+.ptask-check{flex:none;width:22px;height:22px;margin-top:1px;border:2px solid var(--border);border-radius:50%;background:var(--surface);padding:0;position:relative;cursor:pointer;transition:border-color .12s ease, background .12s ease;}
+.ptask-check:hover{border-color:var(--pay-paid);}
+.ptask-check.checked{background:var(--pay-paid);border-color:var(--pay-paid);}
+.ptask-check.checked::after{content:"";position:absolute;inset:0;margin:auto;width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg);}
+.ptask-check:disabled{opacity:0.5;cursor:default;}
 .ptask-main{flex:1;min-width:0;}
-.ptask-title{font-size:0.92rem;font-weight:600;}
+.ptask-title{font-size:0.95rem;font-weight:700;line-height:1.35;}
 .ptask-item.done .ptask-title{text-decoration:line-through;color:var(--ink-faint);}
-.ptask-desc{font-size:0.8rem;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ptask-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px;}
+.ptask-idea-tag{font-size:0.68rem;font-weight:600;color:var(--q-q);background:var(--q-q-soft);padding:1px 7px;border-radius:999px;vertical-align:middle;}
+.ptask-desc{font-size:0.82rem;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ptask-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:9px;font-size:0.76rem;color:var(--ink-soft);}
+.ptask-prio{display:inline-flex;align-items:center;gap:5px;font-weight:600;}
+.ptask-prio .dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.ptask-mi{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums;}
+.ptask-mi.late{color:var(--pay-unpaid);font-weight:600;}
 .ptask-cat-chip{font-size:0.72rem;padding:3px 9px;border-radius:999px;white-space:nowrap;font-weight:600;}
-.ptask-timer{display:flex;align-items:center;gap:5px;flex:none;font-variant-numeric:tabular-nums;font-size:0.78rem;color:var(--ink-soft);}
-.ptask-body{border-top:1px solid var(--border);padding:14px;background:var(--surface-2);}
-.ptask-subtasks{display:flex;flex-direction:column;gap:6px;}
+.ptask-client-chip{font-size:0.72rem;padding:3px 9px;border-radius:999px;white-space:nowrap;font-weight:600;background:var(--accent-soft);color:var(--accent);cursor:pointer;}
+.ptask-client-chip:hover{background:var(--accent);color:var(--accent-ink);}
+.ptask-footer{display:flex;align-items:center;gap:9px;padding:0 15px 13px;}
+.ptask-startbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:0.82rem;font-weight:600;color:var(--ink-soft);}
+.ptask-startbtn:hover{border-color:var(--accent);color:var(--accent);}
+.ptask-startbtn.running{background:var(--pay-unpaid-soft);border-color:var(--pay-unpaid);color:var(--pay-unpaid);}
+.ptask-timerval{font-variant-numeric:tabular-nums;font-size:0.82rem;color:var(--ink-soft);min-width:44px;text-align:center;}
+.ptask-resetbtn{flex:none;width:32px;height:32px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--ink-soft);font-size:0.9rem;}
+.ptask-resetbtn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* task modal */
+.ptask-modal{max-width:520px;}
+.ptask-modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.ptask-modal-hd h2{margin:0;font-size:1.1rem;}
+.ptask-modal-x{background:transparent;border:none;font-size:1.1rem;color:var(--ink-faint);padding:4px 8px;border-radius:7px;}
+.ptask-modal-x:hover{background:var(--surface-2);color:var(--ink);}
+.ptask-modal-body{max-height:min(66vh,620px);overflow-y:auto;padding-inline-end:2px;}
+.ptask-modal-form{margin-bottom:6px;}
+.ptask-modal-form textarea{min-height:56px;}
+.ptask-subtasks{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
 .ptask-subtask-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;}
 .ptask-subtask-row input[type="checkbox"]{width:16px;height:16px;flex:none;}
-.ptask-subtask-row input[type="text"]{padding:6px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);font-size:0.83rem;color:var(--ink);width:100%;}
+.ptask-subtask-row input[type="text"]{padding:6px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:0.83rem;color:var(--ink);width:100%;}
 .ptask-share-btn.on{background:var(--pay-paid-soft);border-color:var(--pay-paid);color:var(--pay-paid);font-weight:600;}
+@media (max-width:560px){
+  .ptask-modal-form{grid-template-columns:1fr;}
+}
+
+/* task calendar */
+.ptask-cal-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px;margin-bottom:16px;}
+.ptask-cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.ptask-cal-title{font-weight:700;font-size:1rem;}
+.ptask-cal-hd .ghost-btn{font-size:1.2rem;line-height:1;padding:4px 12px;}
+.ptask-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;}
+.ptask-cal-weekdays span{text-align:center;font-size:0.72rem;color:var(--ink-faint);font-weight:600;}
+.ptask-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.ptask-cal-cell{min-height:52px;border:1px solid transparent;border-radius:9px;padding:5px 4px 3px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;background:var(--surface-2);}
+.ptask-cal-cell.empty{background:transparent;cursor:default;}
+.ptask-cal-cell:not(.empty):hover{border-color:var(--accent);}
+.ptask-cal-cell .cal-num{font-size:0.82rem;font-variant-numeric:tabular-nums;}
+.ptask-cal-cell.today{background:var(--accent-soft);}
+.ptask-cal-cell.today .cal-num{color:var(--accent);font-weight:700;}
+.ptask-cal-cell.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+.cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;}
+.cal-dot{width:5px;height:5px;border-radius:50%;}
+@media (max-width:480px){
+  .ptask-cal-cell{min-height:44px;}
+}
