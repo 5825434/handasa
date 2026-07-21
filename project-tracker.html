@@ -357,6 +357,7 @@
         <div class="field ptask-when"><label>שעה</label><input type="time" id="pm-dueTime"></div>
         <div class="field full"><label>דחיפות וחשיבות</label><div class="qpicker" id="pm-quadrant"></div></div>
         <div class="field"><label>קטגוריה</label><select id="pm-category"></select></div>
+        <div class="field"><label>שייך ללקוח (אופציונלי)</label><select id="pm-client"></select></div>
         <div class="field ptask-when"><label>חזרתיות</label><select id="pm-recurrence">
           <option value="none">ללא חזרה</option><option value="daily">יומי</option>
           <option value="weekly">שבועי</option><option value="monthly">חודשי</option>
@@ -1093,6 +1094,8 @@
     });
 
     function handleTaskCardClick(e){
+      var goClient = e.target.closest("[data-ptask-goclient]");
+      if(goClient){ e.stopPropagation(); goToClientFromTask(goClient.getAttribute("data-ptask-goclient")); return; }
       var check = e.target.closest("[data-ptask-done]");
       if(check){
         e.stopPropagation();
@@ -2308,7 +2311,7 @@
   var taskModal = {open:false, id:null, type:"task", owner:true, data:null};
   function blankTaskData(type){
     return {type:type||"task", title:"", description:"", dueDate:"", dueTime:"",
-      quadrant:"n", categoryId:(taskCategories[0]?taskCategories[0].id:""),
+      quadrant:"n", categoryId:(taskCategories[0]?taskCategories[0].id:""), clientId:"",
       recurrence:"none", estMin:0, reminder:"none", subtasks:[], shared:false, ownerName:""};
   }
   function openTaskModal(id, type){
@@ -2317,7 +2320,7 @@
       taskModal={open:true, id:id, type:t.type||"task", owner:isTaskOwner(t),
         data:{type:t.type||"task", title:t.title||"", description:t.description||"",
           dueDate:t.dueDate||"", dueTime:t.dueTime||"", quadrant:t.quadrant||"n",
-          categoryId:t.categoryId||"", recurrence:t.recurrence||"none",
+          categoryId:t.categoryId||"", clientId:t.clientId||"", recurrence:t.recurrence||"none",
           estMin:t.estMin||0, reminder:t.reminder||"none",
           subtasks:(t.subtasks||[]).map(function(s){return {text:s.text||"",done:!!s.done};}),
           shared:!!t.shared, ownerName:t.ownerName||""}};
@@ -2358,6 +2361,10 @@
       '<option value="">ללא קטגוריה</option>'+taskCategories.map(function(c){
         return '<option value="'+c.id+'"'+(d.categoryId===c.id?" selected":"")+'>'+escapeHtml((c.icon||"")+" "+c.name)+'</option>';
       }).join("");
+    document.getElementById("pm-client").innerHTML =
+      '<option value="">ללא קישור</option>'+clients.map(function(c){
+        return '<option value="'+c.id+'"'+(d.clientId===c.id?" selected":"")+'>'+escapeHtml(c.name||"(ללא שם)")+'</option>';
+      }).join("");
     renderModalQuadrant();
     renderModalSubtasks();
     document.querySelectorAll("#ptaskModalOverlay .ptask-when").forEach(function(el){ el.style.display=isIdea?"none":""; });
@@ -2387,13 +2394,14 @@
     d.dueTime=document.getElementById("pm-dueTime").value;
     d.recurrence=document.getElementById("pm-recurrence").value;
     d.categoryId=document.getElementById("pm-category").value;
+    d.clientId=document.getElementById("pm-client").value;
     d.estMin=Number(document.getElementById("pm-estMin").value)||0;
     d.reminder=document.getElementById("pm-reminder").value;
     if(d.reminder!=="none") requestReminderPermission();
     if(taskModal.id){
       personalTasksCol().doc(taskModal.id).update({
         title:d.title, description:d.description, dueDate:d.dueDate, dueTime:d.dueTime,
-        quadrant:d.quadrant, categoryId:d.categoryId, recurrence:d.recurrence,
+        quadrant:d.quadrant, categoryId:d.categoryId, clientId:d.clientId, recurrence:d.recurrence,
         estMin:d.estMin, reminder:d.reminder, subtasks:d.subtasks
       });
     } else {
@@ -2401,7 +2409,7 @@
         ownerUid:currentUser.uid, ownerName:(currentUser.displayName||currentUser.email||""),
         type:taskModal.type, title:d.title, description:d.description,
         dueDate:d.dueDate, dueTime:d.dueTime, quadrant:d.quadrant, categoryId:d.categoryId,
-        done:false, shared:false, subtasks:d.subtasks, recurrence:d.recurrence,
+        clientId:d.clientId, done:false, shared:false, subtasks:d.subtasks, recurrence:d.recurrence,
         estMin:d.estMin, reminder:d.reminder,
         timer:{elapsedSec:0,running:false,runStartedAt:null},
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
@@ -2524,6 +2532,10 @@
     if(p.showDue && t.dueDate) meta.push('<span class="ptask-mi'+(late?" late":"")+'">📅 '+fmtDate(t.dueDate)+(t.dueTime?" · "+escapeHtml(t.dueTime):"")+'</span>');
     if(t.recurrence && t.recurrence!=="none") meta.push('<span class="ptask-mi" title="חוזרת">🔁</span>');
     if(p.showCategory && cat) meta.push('<span class="ptask-cat-chip" style="background:'+cat.color+'22;color:'+cat.color+'">'+escapeHtml((cat.icon||"")+" "+cat.name)+'</span>');
+    if(t.clientId){
+      var lc = getClientNew(t.clientId);
+      if(lc) meta.push('<span class="ptask-client-chip" data-ptask-goclient="'+t.clientId+'" title="מעבר לכרטיס הלקוח">👤 '+escapeHtml(lc.name||"לקוח")+'</span>');
+    }
     if(p.showSubProgress && subs.length) meta.push('<span class="ptask-mi">☑ '+subDone+'/'+subs.length+'</span>');
     if(t.shared) meta.push('<span class="ptask-mi" title="משותפת">👥'+(owner?"":" "+escapeHtml(t.ownerName||""))+'</span>');
     var footer = "";
@@ -2694,6 +2706,17 @@
     renderTaskStats();
     if(taskViewMode==="calendar") renderTaskCalendar();
     else renderTasksView();
+  }
+  function goToClientFromTask(clientId){
+    if(!getClientNew(clientId)) return;
+    selectedClientId = clientId;
+    selectedJobId = null;
+    clientJobTab = "progress";
+    clientDetailExpanded = false;
+    showView("clientsNew");
+    clientsNewScreen = "detail";
+    renderClientsNewDetail();
+    renderClientsNewScreen();
   }
   function renderTasksScreen(){
     loadTaskPrefs();
