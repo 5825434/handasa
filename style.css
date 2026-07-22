@@ -506,6 +506,9 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .doc-open-btn:hover{border-color:var(--accent);background:var(--accent-soft);}
 .doc-open-btn.disabled{color:var(--ink-faint);pointer-events:none;opacity:0.5;}
 .doc-cat-actions{display:flex;flex-wrap:wrap;gap:8px;}
+.drive-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;margin-bottom:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;}
+.drive-bar .ghost-btn.on{background:var(--pay-paid-soft);border-color:var(--pay-paid);color:var(--pay-paid);font-weight:600;}
+.drive-hint{font-size:0.78rem;color:var(--ink-soft);}
 .drive-status{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:100;background:var(--accent);color:var(--accent-ink);padding:10px 18px;border-radius:999px;font-size:0.85rem;font-weight:600;box-shadow:var(--shadow);}
 .drive-status[hidden]{display:none;}
 @media (max-width:640px){
