@@ -856,9 +856,11 @@
         }
         return;
       }
+      if(e.target.closest("#driveConnectBtn")){ connectDrive(); return; }
       var driveUp = e.target.closest("[data-drive-upload]");
       if(driveUp){
         if(!selectedClientId || !selectedJobId) return;
+        if(!driveAccessToken){ alert("קודם לחץ על הכפתור \"🔗 חבר את הדרייב שלי\" למעלה, ואז נסה שוב."); return; }
         drivePendingCtx = {clientId:selectedClientId, jobId:selectedJobId, catId:driveUp.getAttribute("data-drive-upload")};
         document.getElementById("driveFileInput").click();
         return;
@@ -1033,7 +1035,8 @@
       if(!file || !drivePendingCtx) return;
       var ctx = Object.assign({file:file}, drivePendingCtx);
       drivePendingCtx = null;
-      startDriveUpload(ctx);
+      if(!driveAccessToken){ alert("החיבור לדרייב לא פעיל. לחץ שוב על \"חבר את הדרייב שלי\"."); return; }
+      performDriveUpload(ctx);
     });
 
     /* personal tasks */
@@ -1903,7 +1906,11 @@
   }
   function jobDocumentsTabHtml(job){
     var docs = job.documents||{};
-    return DOC_CATEGORIES.map(function(cat){
+    var driveBar = managerMode ? '<div class="drive-bar">'+
+      '<button type="button" class="ghost-btn'+(driveAccessToken?" on":"")+'" id="driveConnectBtn">'+(driveAccessToken?"✓ הדרייב מחובר":"🔗 חבר את הדרייב שלי")+'</button>'+
+      '<span class="drive-hint">'+(driveAccessToken?"אפשר להעלות קבצים ישירות לדרייב שלך.":"חבר פעם אחת כדי להעלות קבצים ישירות לדרייב שלך.")+'</span>'+
+    '</div>' : '';
+    return driveBar + DOC_CATEGORIES.map(function(cat){
       var links = docs[cat.id];
       if(!Array.isArray(links)) links = [];
       var rows = links.map(function(link,i){ return docLinkRowHtml(cat.id, link, i); }).join("");
@@ -1923,7 +1930,6 @@
   var driveTokenClient = null;
   var driveAccessToken = null;
   var driveFolderId = null;
-  var driveUploadCtx = null;
   var drivePendingCtx = null;
 
   function driveReady(){ return !!(window.google && google.accounts && google.accounts.oauth2); }
@@ -1936,32 +1942,30 @@
       callback: function(resp){
         if(resp && resp.access_token){
           driveAccessToken = resp.access_token;
-          var ctx = driveUploadCtx; driveUploadCtx = null;
-          if(ctx) performDriveUpload(ctx);
-          else hideDriveStatus();
+          hideDriveStatus();
+          if(currentView==="clientsNew") renderClientsNewDetail();
         } else {
-          driveUploadCtx = null; hideDriveStatus();
+          hideDriveStatus();
           alert("לא התקבלה הרשאה לדרייב. ודא שאישרת גישה בחלון של גוגל ונסה שוב." + (resp&&resp.error?("\n("+resp.error+")"):""));
         }
       },
       error_callback: function(err){
-        driveUploadCtx=null; hideDriveStatus();
+        hideDriveStatus();
         var type = (err && (err.type||err.message)) || "לא ידוע";
         if(type==="popup_closed" || type==="popup_failed_to_open")
-          alert("חלון האישור של גוגל נחסם או נסגר. אשר חלונות קופצים לאתר ונסה שוב.");
+          alert("חלון האישור של גוגל נחסם או נסגר.\nלחץ על סמל המנעול/החלונות-הקופצים בשורת הכתובת, אשר חלונות קופצים לאתר, ונסה שוב.");
         else
           alert("החיבור לדרייב נכשל: " + type);
       }
     });
     return driveTokenClient;
   }
-  function startDriveUpload(ctx){
+  function connectDrive(){
     var tc = initDriveTokenClient();
     if(!tc){ alert("שירות הדרייב עדיין נטען - נסה שוב בעוד רגע."); return; }
-    driveUploadCtx = ctx;
     showDriveStatus("מבקש אישור גישה לדרייב...");
-    try{ tc.requestAccessToken(); }
-    catch(e){ hideDriveStatus(); driveUploadCtx=null; alert("שגיאה בפתיחת חלון האישור: "+(e&&e.message||e)); }
+    try{ tc.requestAccessToken({prompt: driveAccessToken?"":"consent"}); }
+    catch(e){ hideDriveStatus(); alert("שגיאה בפתיחת חלון האישור: "+(e&&e.message||e)); }
   }
   function ensureDriveFolder(){
     if(driveFolderId) return Promise.resolve(driveFolderId);
@@ -2015,7 +2019,14 @@
       if(currentView==="clientsNew") renderClientsNewDetail();
     }).catch(function(err){
       hideDriveStatus();
-      alert("שגיאה בהעלאה לדרייב: "+((err&&err.message)||err)+"\nוודא שאישרת גישה לדרייב ונסה שוב.");
+      var msg = (err&&err.message)||String(err);
+      if(msg.indexOf("401")!==-1){
+        driveAccessToken = null;
+        if(currentView==="clientsNew") renderClientsNewDetail();
+        alert("החיבור לדרייב פג. לחץ שוב על \"🔗 חבר את הדרייב שלי\" ונסה להעלות שוב.");
+      } else {
+        alert("שגיאה בהעלאה לדרייב: "+msg);
+      }
     });
   }
   function showDriveStatus(msg){
