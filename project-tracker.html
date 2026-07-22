@@ -856,6 +856,24 @@
         }
         return;
       }
+      var renameDoc = e.target.closest("[data-doc-rename]");
+      if(renameDoc){
+        var jobR = getSelectedJob();
+        if(jobR){
+          var rCat = renameDoc.getAttribute("data-doccat");
+          var rIdx = Number(renameDoc.getAttribute("data-docidx"));
+          var curArr = (jobR.documents&&jobR.documents[rCat])||[];
+          var nn = prompt("שם הקישור:", (curArr[rIdx]&&curArr[rIdx].name)||"");
+          if(nn!==null){
+            var docsR = Object.assign({}, jobR.documents||{});
+            var arrR = (docsR[rCat]||[]).slice();
+            arrR[rIdx] = Object.assign({}, arrR[rIdx], {name:nn});
+            docsR[rCat] = arrR;
+            setJobField(selectedClientId, selectedJobId, "documents", docsR);
+          }
+        }
+        return;
+      }
       if(e.target.closest("#driveConnectBtn")){ connectDrive(); return; }
       var driveUp = e.target.closest("[data-drive-upload]");
       if(driveUp){
@@ -999,13 +1017,8 @@
         linkArr[docIdx] = linkObj;
         docs[catId] = linkArr;
         setJobField(selectedClientId, selectedJobId, "documents", docs);
-        if(dlf==="url"){
-          var docRow = e.target.closest(".doc-link-row");
-          var openLink = docRow ? docRow.querySelector(".doc-open-btn") : null;
-          if(openLink){
-            if(linkObj.url){ openLink.href = linkObj.url; openLink.classList.remove("disabled"); }
-            else { openLink.removeAttribute("href"); openLink.classList.add("disabled"); }
-          }
+        if(dlf==="url" && e.type==="change" && linkObj.url){
+          renderClientsNewDetail();
         }
         return;
       }
@@ -1896,11 +1909,16 @@
   }
   function docLinkRowHtml(catId, link, idx){
     var name = link.name||"", url = link.url||"";
-    var openAttrs = url ? ' href="'+escapeHtml(url)+'"' : '';
+    if(url){
+      return '<div class="doc-link-item">'+
+        '<a class="doc-link-btn" href="'+escapeHtml(url)+'" target="_blank" rel="noopener">📄 '+escapeHtml(name||"מסמך")+'</a>'+
+        '<button type="button" class="doc-icon-btn" data-doc-rename data-doccat="'+catId+'" data-docidx="'+idx+'" title="שינוי שם">✎</button>'+
+        '<button type="button" class="doc-icon-btn danger" data-del-doclink data-doccat="'+catId+'" data-docidx="'+idx+'" title="מחיקה">✕</button>'+
+      '</div>';
+    }
     return '<div class="doc-link-row">'+
       '<input type="text" data-doclinkfield="name" data-doccat="'+catId+'" data-docidx="'+idx+'" value="'+escapeHtml(name)+'" placeholder="שם הקישור">'+
-      '<input type="url" data-doclinkfield="url" data-doccat="'+catId+'" data-docidx="'+idx+'" value="'+escapeHtml(url)+'" placeholder="קישור לדרייב">'+
-      '<a class="doc-open-btn'+(url?"":" disabled")+'" target="_blank" rel="noopener" title="פתיחת הקישור"'+openAttrs+'>🔗</a>'+
+      '<input type="url" data-doclinkfield="url" data-doccat="'+catId+'" data-docidx="'+idx+'" value="'+escapeHtml(url)+'" placeholder="הדבק קישור">'+
       '<button type="button" class="del-line" data-del-doclink data-doccat="'+catId+'" data-docidx="'+idx+'">✕</button>'+
     '</div>';
   }
