@@ -1938,9 +1938,20 @@
           driveAccessToken = resp.access_token;
           var ctx = driveUploadCtx; driveUploadCtx = null;
           if(ctx) performDriveUpload(ctx);
-        } else { driveUploadCtx = null; alert("החיבור לדרייב לא הושלם."); }
+          else hideDriveStatus();
+        } else {
+          driveUploadCtx = null; hideDriveStatus();
+          alert("לא התקבלה הרשאה לדרייב. ודא שאישרת גישה בחלון של גוגל ונסה שוב." + (resp&&resp.error?("\n("+resp.error+")"):""));
+        }
       },
-      error_callback: function(){ driveUploadCtx=null; hideDriveStatus(); }
+      error_callback: function(err){
+        driveUploadCtx=null; hideDriveStatus();
+        var type = (err && (err.type||err.message)) || "לא ידוע";
+        if(type==="popup_closed" || type==="popup_failed_to_open")
+          alert("חלון האישור של גוגל נחסם או נסגר. אשר חלונות קופצים לאתר ונסה שוב.");
+        else
+          alert("החיבור לדרייב נכשל: " + type);
+      }
     });
     return driveTokenClient;
   }
@@ -1948,7 +1959,9 @@
     var tc = initDriveTokenClient();
     if(!tc){ alert("שירות הדרייב עדיין נטען - נסה שוב בעוד רגע."); return; }
     driveUploadCtx = ctx;
-    tc.requestAccessToken();
+    showDriveStatus("מבקש אישור גישה לדרייב...");
+    try{ tc.requestAccessToken(); }
+    catch(e){ hideDriveStatus(); driveUploadCtx=null; alert("שגיאה בפתיחת חלון האישור: "+(e&&e.message||e)); }
   }
   function ensureDriveFolder(){
     if(driveFolderId) return Promise.resolve(driveFolderId);
@@ -1960,7 +1973,10 @@
         method:"POST",
         headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
         body: JSON.stringify({name:"ניהול פרויקטים - מסמכים", mimeType:"application/vnd.google-apps.folder"})
-      }).then(function(r){ if(!r.ok) throw new Error("folder "+r.status); return r.json(); }).then(function(f){
+      }).then(function(r){
+        if(!r.ok) return r.text().then(function(t){ throw new Error("יצירת תיקייה נכשלה ("+r.status+"): "+t.slice(0,200)); });
+        return r.json();
+      }).then(function(f){
         driveFolderId = f.id;
         siteRef.update({driveFolderId: f.id});
         return f.id;
@@ -1978,7 +1994,10 @@
       return fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", {
         method:"POST", headers:{"Authorization":"Bearer "+driveAccessToken}, body:form
       });
-    }).then(function(r){ if(!r.ok) throw new Error("upload "+r.status); return r.json(); })
+    }).then(function(r){
+      if(!r.ok) return r.text().then(function(t){ throw new Error("העלאה נכשלה ("+r.status+"): "+t.slice(0,200)); });
+      return r.json();
+    })
     .then(function(fileObj){
       return fetch("https://www.googleapis.com/drive/v3/files/"+fileObj.id+"/permissions", {
         method:"POST", headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
