@@ -874,6 +874,8 @@
         }
         return;
       }
+      var docCatTab = e.target.closest("[data-doc-cat-tab]");
+      if(docCatTab){ docActiveCat = docCatTab.getAttribute("data-doc-cat-tab"); renderClientsNewDetail(); return; }
       if(e.target.closest("#driveConnectBtn")){ connectDrive(); return; }
       var driveUp = e.target.closest("[data-drive-upload]");
       if(driveUp){
@@ -1564,9 +1566,11 @@
   /* ---------- lead extras: needs assessment / negotiation / documents ---------- */
   var DOC_CATEGORIES = [
     {id:"pdf", label:"PDF"},
-    {id:"arch", label:"אדריכלות"},
-    {id:"plan", label:"תכנון"}
+    {id:"arch", label:"אדריכלית"},
+    {id:"plan", label:"תכנון"},
+    {id:"misc", label:"שונות"}
   ];
+  var docActiveCat = "pdf";
 
 
 
@@ -1928,19 +1932,24 @@
       '<button type="button" class="ghost-btn'+(driveAccessToken?" on":"")+'" id="driveConnectBtn">'+(driveAccessToken?"✓ הדרייב מחובר":"🔗 חבר את הדרייב שלי")+'</button>'+
       '<span class="drive-hint">'+(driveAccessToken?"אפשר להעלות קבצים ישירות לדרייב שלך.":"חבר פעם אחת כדי להעלות קבצים ישירות לדרייב שלך.")+'</span>'+
     '</div>' : '';
-    return driveBar + DOC_CATEGORIES.map(function(cat){
-      var links = docs[cat.id];
-      if(!Array.isArray(links)) links = [];
-      var rows = links.map(function(link,i){ return docLinkRowHtml(cat.id, link, i); }).join("");
-      return '<div class="doc-category">'+
-        '<div class="doc-cat-label">'+escapeHtml(cat.label)+'</div>'+
-        '<div class="doc-links">'+rows+'</div>'+
-        '<div class="doc-cat-actions">'+
-          '<button type="button" class="ghost-btn" data-add-doclink="'+cat.id+'">+ הוספת קישור</button>'+
-          (managerMode?'<button type="button" class="ghost-btn" data-drive-upload="'+cat.id+'">⬆ העלה קובץ לדרייב</button>':'')+
-        '</div>'+
-      '</div>';
-    }).join("");
+    if(!DOC_CATEGORIES.some(function(c){return c.id===docActiveCat;})) docActiveCat = DOC_CATEGORIES[0].id;
+    var tabs = '<div class="lead-tabs doc-subtabs">'+DOC_CATEGORIES.map(function(cat){
+      var cnt = Array.isArray(docs[cat.id]) ? docs[cat.id].length : 0;
+      return '<button type="button" class="ltab'+(docActiveCat===cat.id?" active":"")+'" data-doc-cat-tab="'+cat.id+'">'+escapeHtml(cat.label)+(cnt?' ('+cnt+')':'')+'</button>';
+    }).join("")+'</div>';
+    var cat = DOC_CATEGORIES.filter(function(c){return c.id===docActiveCat;})[0];
+    var links = docs[cat.id];
+    if(!Array.isArray(links)) links = [];
+    var rows = links.length ? links.map(function(link,i){ return docLinkRowHtml(cat.id, link, i); }).join("")
+      : '<div class="doc-empty">אין מסמכים בקטגוריה "'+escapeHtml(cat.label)+'".</div>';
+    var body = '<div class="doc-category">'+
+      '<div class="doc-links">'+rows+'</div>'+
+      '<div class="doc-cat-actions">'+
+        '<button type="button" class="ghost-btn" data-add-doclink="'+cat.id+'">+ הוספת קישור</button>'+
+        (managerMode?'<button type="button" class="ghost-btn" data-drive-upload="'+cat.id+'">⬆ העלה קובץ לדרייב</button>':'')+
+      '</div>'+
+    '</div>';
+    return driveBar + tabs + body;
   }
   /* ========== Google Drive upload ========== */
   var DRIVE_CLIENT_ID = "219477330845-gki8ir5c60m0n730f1uvr1sroeanva2c.apps.googleusercontent.com";
