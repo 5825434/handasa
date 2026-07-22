@@ -505,6 +505,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .doc-open-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;flex:none;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--accent);text-decoration:none;font-size:0.95rem;}
 .doc-open-btn:hover{border-color:var(--accent);background:var(--accent-soft);}
 .doc-open-btn.disabled{color:var(--ink-faint);pointer-events:none;opacity:0.5;}
+.doc-subtabs{margin-bottom:14px;}
+.doc-empty{padding:22px 12px;text-align:center;color:var(--ink-faint);font-size:0.85rem;}
 .doc-link-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
 .doc-link-item:last-child{border-bottom:none;}
 .doc-link-btn{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);color:var(--accent);text-decoration:none;font-size:0.87rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
