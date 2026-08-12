@@ -2000,14 +2000,10 @@
     try{
       var tokenData = {accessToken: accessToken, refreshToken: refreshToken, savedAt: Date.now()};
       localStorage.setItem("drive_tokens_"+currentSiteId, JSON.stringify(tokenData));
-    }catch(e){}
-    var updateData = {};
-    if(refreshToken) updateData.driveRefreshToken = refreshToken;
-    updateData.driveAccessToken = accessToken;
-    updateData.driveSavedAt = firebase.firestore.FieldValue.serverTimestamp();
-    db.collection("sites").doc(currentSiteId).update(updateData).catch(function(err){
-      console.error("Failed to save drive token:", err);
-    });
+      console.log("Drive token saved to localStorage only (Firestore writes removed)");
+    }catch(e){
+      console.error("Failed to save drive token:", e);
+    }
   }
   function restoreDriveTokenFromStorage(){
     console.log("restoreDriveTokenFromStorage called. currentUser:", !!currentUser, "currentSiteId:", currentSiteId);
@@ -2049,22 +2045,20 @@
   function ensureDriveFolder(){
     if(driveFolderId) return Promise.resolve(driveFolderId);
     if(!driveAccessToken) return Promise.reject(new Error("אין חיבור לדרייב - לחץ על 'חבר לדרייב' קודם"));
-    var sharedRef = db.collection("shared").doc("drive");
-    return sharedRef.get().then(function(doc){
-      var fid = (doc.data()||{}).folderId;
-      if(fid){ driveFolderId=fid; return fid; }
-      return fetch("https://www.googleapis.com/drive/v3/files?fields=id", {
-        method:"POST",
-        headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
-        body: JSON.stringify({name:"ניהול פרויקטים - מסמכים", mimeType:"application/vnd.google-apps.folder"})
-      }).then(function(r){
-        if(!r.ok) return r.text().then(function(t){ throw new Error("יצירת תיקייה נכשלה ("+r.status+"): "+t.slice(0,200)); });
-        return r.json();
-      }).then(function(f){
-        driveFolderId = f.id;
-        sharedRef.set({folderId: f.id}, {merge: true});
-        return f.id;
-      });
+    var savedFolderId = localStorage.getItem("drive_folder_id");
+    if(savedFolderId){ driveFolderId=savedFolderId; return Promise.resolve(savedFolderId); }
+    return fetch("https://www.googleapis.com/drive/v3/files?fields=id", {
+      method:"POST",
+      headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
+      body: JSON.stringify({name:"ניהול פרויקטים - מסמכים", mimeType:"application/vnd.google-apps.folder"})
+    }).then(function(r){
+      if(!r.ok) return r.text().then(function(t){ throw new Error("יצירת תיקייה נכשלה ("+r.status+"): "+t.slice(0,200)); });
+      return r.json();
+    }).then(function(f){
+      driveFolderId = f.id;
+      localStorage.setItem("drive_folder_id", f.id);
+      console.log("Drive folder created and saved to localStorage:", f.id);
+      return f.id;
     }).catch(function(err){
       console.error("ensureDriveFolder error:", err);
       throw err;
@@ -2146,10 +2140,8 @@
           if(r.status === 404 && t.indexOf("File not found") !== -1){
             console.log("Folder not found in Drive - resetting and trying again");
             driveFolderId = null;
-            var siteRef = db.collection("sites").doc(currentSiteId);
-            return siteRef.update({driveFolderId: null}).then(function(){
-              throw new Error("התיקייה בדרייב נמחקה. בדקה מחדש - נסה להעלות שוב.");
-            });
+            localStorage.removeItem("drive_folder_id");
+            throw new Error("התיקייה בדרייב נמחקה. בדקה מחדש - נסה להעלות שוב.");
           }
           throw new Error("העלאה נכשלה ("+r.status+"): "+t.slice(0,200));
         });
