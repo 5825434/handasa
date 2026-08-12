@@ -583,6 +583,7 @@
     attachSiteData();
     showView("clientsNew");
     applyAccessMode();
+    restoreDriveTokenFromStorage();
   }
 
   function openShareModal(){
@@ -1956,6 +1957,7 @@
   var DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
   var driveTokenClient = null;
   var driveAccessToken = null;
+  var driveRefreshToken = null;
   var driveFolderId = null;
   var drivePendingCtx = null;
 
@@ -1969,6 +1971,12 @@
       callback: function(resp){
         if(resp && resp.access_token){
           driveAccessToken = resp.access_token;
+          if(resp.refresh_token){
+            driveRefreshToken = resp.refresh_token;
+            saveDriveTokenToFirebase(resp.access_token, resp.refresh_token);
+          } else {
+            saveDriveTokenToFirebase(resp.access_token, driveRefreshToken);
+          }
           hideDriveStatus();
           if(currentView==="clientsNew") renderClientsNewDetail();
         } else {
@@ -1987,6 +1995,49 @@
     });
     return driveTokenClient;
   }
+  function saveDriveTokenToFirebase(accessToken, refreshToken){
+    if(!currentUser || !currentSiteId) return;
+    try{
+      var tokenData = {accessToken: accessToken, refreshToken: refreshToken, savedAt: Date.now()};
+      localStorage.setItem("drive_tokens_"+currentSiteId, JSON.stringify(tokenData));
+    }catch(e){}
+    var updateData = {};
+    if(refreshToken) updateData.driveRefreshToken = refreshToken;
+    updateData.driveAccessToken = accessToken;
+    updateData.driveSavedAt = firebase.firestore.FieldValue.serverTimestamp();
+    db.collection("sites").doc(currentSiteId).update(updateData).catch(function(err){
+      console.error("Failed to save drive token:", err);
+    });
+  }
+  function restoreDriveTokenFromStorage(){
+    console.log("restoreDriveTokenFromStorage called. currentUser:", !!currentUser, "currentSiteId:", currentSiteId);
+    if(!currentUser || !currentSiteId) { console.log("No user or site, skipping restore"); return Promise.resolve(null); }
+    try{
+      var key = "drive_tokens_"+currentSiteId;
+      console.log("Looking for localStorage key:", key);
+      var stored = localStorage.getItem(key);
+      console.log("Found in localStorage:", !!stored);
+      if(stored){
+        var data = JSON.parse(stored);
+        console.log("Parsed token data:", {hasAccessToken: !!data.accessToken, hasRefreshToken: !!data.refreshToken});
+        if(data.accessToken){
+          driveAccessToken = data.accessToken;
+          if(data.refreshToken) driveRefreshToken = data.refreshToken;
+          console.log("✓ Restored drive token from localStorage!");
+          if(currentView==="clientsNew") renderClientsNewDetail();
+          return Promise.resolve(driveAccessToken);
+        }
+      } else {
+        console.log("Nothing stored in localStorage for this key");
+      }
+    }catch(e){ console.error("Error restoring from localStorage:", e); }
+    return Promise.resolve(null);
+  }
+  function exchangeRefreshTokenForAccessToken(refreshToken){
+    driveRefreshToken = refreshToken;
+    saveDriveTokenToFirebase(driveAccessToken, refreshToken);
+    return Promise.resolve(driveAccessToken);
+  }
   function connectDrive(){
     var tc = initDriveTokenClient();
     if(!tc){ alert("שירות הדרייב עדיין נטען - נסה שוב בעוד רגע."); return; }
@@ -1994,8 +2045,10 @@
     try{ tc.requestAccessToken({prompt: driveAccessToken?"":"consent"}); }
     catch(e){ hideDriveStatus(); alert("שגיאה בפתיחת חלון האישור: "+(e&&e.message||e)); }
   }
+  var driveArchiveFolderId = null;
   function ensureDriveFolder(){
     if(driveFolderId) return Promise.resolve(driveFolderId);
+    if(!driveAccessToken) return Promise.reject(new Error("אין חיבור לדרייב - לחץ על 'חבר לדרייב' קודם"));
     var siteRef = db.collection("sites").doc(currentSiteId);
     return siteRef.get().then(function(doc){
       var fid = (doc.data()||{}).driveFolderId;
@@ -2012,16 +2065,76 @@
         siteRef.update({driveFolderId: f.id});
         return f.id;
       });
+    }).catch(function(err){
+      console.error("ensureDriveFolder error:", err);
+      throw err;
+    });
+  }
+  function ensureDriveArchiveFolder(){
+    if(driveArchiveFolderId) return Promise.resolve(driveArchiveFolderId);
+    return ensureDriveFolder().then(function(mainFolderId){
+      return fetch("https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent("'"+mainFolderId+"' in parents and name='Archive' and mimeType='application/vnd.google-apps.folder' and trashed=false")+"&fields=files(id)&pageSize=1", {
+        method:"GET",
+        headers:{"Authorization":"Bearer "+driveAccessToken}
+      }).then(function(r){
+        if(!r.ok) throw new Error("Search failed: "+r.status);
+        return r.json();
+      }).then(function(resp){
+        if(resp.files && resp.files.length>0){
+          driveArchiveFolderId = resp.files[0].id;
+          return driveArchiveFolderId;
+        }
+        return fetch("https://www.googleapis.com/drive/v3/files", {
+          method:"POST",
+          headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
+          body: JSON.stringify({name:"Archive", mimeType:"application/vnd.google-apps.folder", parents:[mainFolderId]})
+        }).then(function(r){
+          if(!r.ok) throw new Error("Create archive folder failed: "+r.status);
+          return r.json();
+        }).then(function(f){
+          driveArchiveFolderId = f.id;
+          return f.id;
+        });
+      });
+    });
+  }
+  function manageFileVersions(fileName){
+    if(!driveAccessToken || !driveFolderId) return Promise.resolve();
+    var query = "'"+driveFolderId+"' in parents and name='"+fileName.replace(/'/g, "\\'")+"' and trashed=false";
+    return fetch("https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent(query)+"&fields=files(id,name,createdTime)&orderBy=createdTime%20desc&pageSize=10", {
+      method:"GET",
+      headers:{"Authorization":"Bearer "+driveAccessToken}
+    }).then(function(r){
+      if(!r.ok) return null;
+      return r.json();
+    }).then(function(resp){
+      if(!resp || !resp.files || resp.files.length<=3) return null;
+      var filesToArchive = resp.files.slice(3);
+      return ensureDriveArchiveFolder().then(function(archiveId){
+        var promises = filesToArchive.map(function(f){
+          return fetch("https://www.googleapis.com/drive/v3/files/"+f.id+"?removeParents="+driveFolderId+"&addParents="+archiveId+"&fields=id", {
+            method:"PATCH",
+            headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"}
+          });
+        });
+        return Promise.all(promises);
+      });
+    }).catch(function(err){
+      console.warn("Version management failed:", err);
+      return null;
     });
   }
   function performDriveUpload(ctx){
     var file = ctx.file;
     showDriveStatus("מעלה לדרייב: "+file.name+" ...");
+    console.log("Starting upload for:", file.name, "FolderId:", driveFolderId, "Token exists:", !!driveAccessToken);
     ensureDriveFolder().then(function(folderId){
+      console.log("Got folder ID:", folderId, "File size:", file.size);
       var metadata = {name:file.name, parents:[folderId]};
       var form = new FormData();
       form.append("metadata", new Blob([JSON.stringify(metadata)], {type:"application/json"}));
       form.append("file", file);
+      console.log("Uploading with token:", driveAccessToken.substring(0,20)+"...");
       return fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", {
         method:"POST", headers:{"Authorization":"Bearer "+driveAccessToken}, body:form
       });
@@ -2035,6 +2148,8 @@
         body: JSON.stringify({role:"reader", type:"anyone"})
       }).then(function(){ return fileObj; }, function(){ return fileObj; });
     }).then(function(fileObj){
+      return manageFileVersions(fileObj.name).then(function(){ return fileObj; });
+    }).then(function(fileObj){
       var c = getClientNew(ctx.clientId);
       var jb = c && (c.jobs||[]).filter(function(j){return j.id===ctx.jobId;})[0];
       var docs = Object.assign({}, (jb&&jb.documents)||{});
@@ -2047,12 +2162,26 @@
     }).catch(function(err){
       hideDriveStatus();
       var msg = (err&&err.message)||String(err);
-      if(msg.indexOf("401")!==-1){
+      console.error("Drive upload error:", err, "Message:", msg, "Status:", err.status);
+      if(msg.indexOf("401")!==-1 && driveRefreshToken && !ctx.retried){
+        showDriveStatus("מחדש את החיבור לדרייב...");
+        ctx.retried = true;
+        exchangeRefreshTokenForAccessToken(driveRefreshToken).then(function(token){
+          if(token) performDriveUpload(ctx);
+          else {
+            hideDriveStatus();
+            alert("החיבור לדרייב פג. לחץ שוב על \"🔗 חבר את הדרייב שלי\" ונסה להעלות שוב.");
+          }
+        });
+      } else if(msg.indexOf("401")!==-1){
         driveAccessToken = null;
         if(currentView==="clientsNew") renderClientsNewDetail();
         alert("החיבור לדרייב פג. לחץ שוב על \"🔗 חבר את הדרייב שלי\" ונסה להעלות שוב.");
+      } else if(msg.indexOf("404")!==-1){
+        alert("שגיאה 404: הקובץ לא נמצא בדרייב.\n\nבואו ננסה שוב:\n1. לחץ \"🔗 חבר את הדרייב שלי\" מחדש\n2. נסה להעלות את הקובץ שוב");
+        console.error("404 error - checking folder:", driveFolderId);
       } else {
-        alert("שגיאה בהעלאה לדרייב: "+msg);
+        alert("שגיאה בהעלאה לדרייב: "+msg+"\n\nאם הבעיה נמשכת, ספר לי את הודעת השגיאה המדויקת.");
       }
     });
   }
