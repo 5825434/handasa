@@ -1931,7 +1931,7 @@
     var docs = job.documents||{};
     var driveBar = managerMode ? '<div class="drive-bar">'+
       '<button type="button" class="ghost-btn'+(driveAccessToken?" on":"")+'" id="driveConnectBtn">'+(driveAccessToken?"✓ הדרייב מחובר":"🔗 חבר את הדרייב שלי")+'</button>'+
-      '<span class="drive-hint">'+(driveAccessToken?"אפשר להעלות קבצים ישירות לדרייב שלך.":"חבר פעם אחת כדי להעלות קבצים ישירות לדרייב שלך.")+'</span>'+
+      '<span class="drive-hint">'+(driveAccessToken?"המנהל חיבר את הדרייב - עובדים יכולים להעלות קבצים.":"חבר פעם אחת כדי להעלות קבצים ישירות לדרייב שלך.")+'</span>'+
     '</div>' : '';
     if(!DOC_CATEGORIES.some(function(c){return c.id===docActiveCat;})) docActiveCat = DOC_CATEGORIES[0].id;
     var tabs = '<div class="lead-tabs doc-subtabs">'+DOC_CATEGORIES.map(function(cat){
@@ -1947,7 +1947,7 @@
       '<div class="doc-links">'+rows+'</div>'+
       '<div class="doc-cat-actions">'+
         '<button type="button" class="ghost-btn" data-add-doclink="'+cat.id+'">+ הוספת קישור</button>'+
-        (managerMode?'<button type="button" class="ghost-btn" data-drive-upload="'+cat.id+'">⬆ העלה קובץ לדרייב</button>':'')+
+        (driveAccessToken?'<button type="button" class="ghost-btn" data-drive-upload="'+cat.id+'">⬆ העלה קובץ לדרייב</button>':'')+
       '</div>'+
     '</div>';
     return driveBar + tabs + body;
