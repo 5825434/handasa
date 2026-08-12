@@ -2049,9 +2049,9 @@
   function ensureDriveFolder(){
     if(driveFolderId) return Promise.resolve(driveFolderId);
     if(!driveAccessToken) return Promise.reject(new Error("אין חיבור לדרייב - לחץ על 'חבר לדרייב' קודם"));
-    var siteRef = db.collection("sites").doc(currentSiteId);
-    return siteRef.get().then(function(doc){
-      var fid = (doc.data()||{}).driveFolderId;
+    var configRef = db.collection("config").doc("drive");
+    return configRef.get().then(function(doc){
+      var fid = (doc.data()||{}).folderId;
       if(fid){ driveFolderId=fid; return fid; }
       return fetch("https://www.googleapis.com/drive/v3/files?fields=id", {
         method:"POST",
@@ -2062,7 +2062,7 @@
         return r.json();
       }).then(function(f){
         driveFolderId = f.id;
-        siteRef.update({driveFolderId: f.id});
+        configRef.set({folderId: f.id}, {merge: true});
         return f.id;
       });
     }).catch(function(err){
