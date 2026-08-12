@@ -583,7 +583,7 @@
     attachSiteData();
     showView("clientsNew");
     applyAccessMode();
-    restoreDriveTokenFromStorage();
+    restoreDriveTokenFromStorage().then(function(){ checkAndShowNotifications(); });
   }
 
   function openShareModal(){
@@ -2073,11 +2073,112 @@
         driveFolderId = f.id;
         localStorage.setItem("drive_folder_id", f.id);
         console.log("Drive folder created and saved to localStorage:", f.id);
-        return f.id;
+        return ensureNotificationsFile(f.id).then(function(){ return f.id; });
       });
     }).catch(function(err){
       console.error("ensureDriveFolder error:", err);
       throw err;
+    });
+  }
+  var driveNotificationsFileId = null;
+  function writeNotification(notif){
+    if(!driveAccessToken || !driveNotificationsFileId) return Promise.resolve();
+    return fetch("https://www.googleapis.com/drive/v3/files/"+driveNotificationsFileId+"?fields=id", {
+      method:"GET",
+      headers:{"Authorization":"Bearer "+driveAccessToken}
+    }).then(function(r){
+      if(!r.ok) throw new Error("קריאת התראות נכשלה");
+      return readNotificationsContent();
+    }).then(function(existing){
+      var notifs = (existing&&existing.notifications)||[];
+      notifs.push(Object.assign({id: Date.now()+"_"+Math.random()}, notif));
+      var body = JSON.stringify({notifications: notifs});
+      return fetch("https://www.googleapis.com/upload/drive/v3/files/"+driveNotificationsFileId+"?uploadType=media", {
+        method:"PATCH",
+        headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
+        body: body
+      }).then(function(r){
+        if(!r.ok) throw new Error("כתיבת התראות נכשלה");
+        console.log("Notification written:", notif);
+        return r.json();
+      });
+    }).catch(function(err){
+      console.error("writeNotification error:", err);
+    });
+  }
+  function readNotificationsContent(){
+    if(!driveAccessToken || !driveNotificationsFileId) return Promise.resolve(null);
+    return fetch("https://www.googleapis.com/drive/v3/files/"+driveNotificationsFileId+"?alt=media", {
+      method:"GET",
+      headers:{"Authorization":"Bearer "+driveAccessToken}
+    }).then(function(r){
+      if(!r.ok) throw new Error("קריאת התראות נכשלה");
+      return r.json();
+    }).catch(function(err){
+      console.error("readNotificationsContent error:", err);
+      return null;
+    });
+  }
+  function checkAndShowNotifications(){
+    if(!driveAccessToken || !driveFolderId) return Promise.resolve();
+    return ensureNotificationsFile(driveFolderId).then(function(){
+      return readNotificationsContent();
+    }).then(function(data){
+      if(!data || !Array.isArray(data.notifications)) return;
+      var lastSeen = localStorage.getItem("notifications_seen_"+currentSiteId)||"0";
+      var newNotifs = data.notifications.filter(function(n){ return n.timestamp > parseInt(lastSeen); });
+      if(newNotifs.length > 0){
+        localStorage.setItem("notifications_seen_"+currentSiteId, Math.max.apply(null, newNotifs.map(function(n){return n.timestamp;}))+1);
+        newNotifs.forEach(function(n){
+          var msg = n.uploadedBy+" העלה \""+n.fileName+"\"";
+          showNotification(msg, n);
+        });
+      }
+    }).catch(function(err){
+      console.error("checkAndShowNotifications error:", err);
+    });
+  }
+  function showNotification(msg, data){
+    if(Notification && Notification.permission==="granted"){
+      new Notification("ניהול פרויקטים - עדכון", {body: msg, icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M6 32 L20 8 L34 32 Z' stroke='%234CAF50' stroke-width='2'/%3E%3C/svg%3E"});
+    }
+    var alertEl = document.createElement("div");
+    alertEl.style.cssText = "position:fixed;top:10px;right:10px;background:#4CAF50;color:white;padding:12px;border-radius:4px;z-index:9999;cursor:pointer;animation:slideIn 0.3s";
+    alertEl.textContent = msg;
+    alertEl.onclick = function(){ alertEl.remove(); };
+    document.body.appendChild(alertEl);
+    setTimeout(function(){ if(alertEl.parentNode) alertEl.remove(); }, 6000);
+  }
+  function ensureNotificationsFile(folderId){
+    if(driveNotificationsFileId) return Promise.resolve(driveNotificationsFileId);
+    var fileName = "notifications.json";
+    return fetch("https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent("'"+folderId+"' in parents and name='"+fileName+"' and trashed=false")+"&fields=files(id)&pageSize=1", {
+      method:"GET",
+      headers:{"Authorization":"Bearer "+driveAccessToken}
+    }).then(function(r){
+      return r.ok ? r.json() : Promise.reject(new Error("חיפוש notifications נכשל"));
+    }).then(function(result){
+      if(result.files && result.files.length > 0){
+        driveNotificationsFileId = result.files[0].id;
+        return driveNotificationsFileId;
+      }
+      var metadata = {name: fileName, parents: [folderId], mimeType: "application/json"};
+      var body = JSON.stringify({notifications:[]});
+      var form = new FormData();
+      form.append("metadata", new Blob([JSON.stringify(metadata)], {type:"application/json"}));
+      form.append("file", new Blob([body], {type:"application/json"}));
+      return fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
+        method:"POST",
+        headers:{"Authorization":"Bearer "+driveAccessToken},
+        body: form
+      }).then(function(r){
+        if(!r.ok) throw new Error("יצירת notifications נכשלה");
+        return r.json();
+      }).then(function(f){
+        driveNotificationsFileId = f.id;
+        console.log("Notifications file created:", f.id);
+        return f.id;
+      });
     });
   }
   function ensureDriveArchiveFolder(){
@@ -2179,6 +2280,7 @@
       arr.push({name: fileObj.name || file.name, url: fileObj.webViewLink || ""});
       docs[ctx.catId] = arr;
       setJobField(ctx.clientId, ctx.jobId, "documents", docs);
+      writeNotification({type:"file_upload", fileName: fileObj.name || file.name, catId: ctx.catId, uploadedBy: currentUser.displayName || currentUser.email, timestamp: Date.now()});
       hideDriveStatus();
       if(currentView==="clientsNew") renderClientsNewDetail();
     }).catch(function(err){
@@ -3110,6 +3212,13 @@
 </script>
 
 <footer class="site-footer">© נוצר ע"י תכנון נכון · T0527697956@GMAIL.COM</footer>
+
+<style>
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+</style>
 
 </body>
 </html>
