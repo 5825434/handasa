@@ -2042,6 +2042,68 @@
     catch(e){ hideDriveStatus(); alert("שגיאה בפתיחת חלון האישור: "+(e&&e.message||e)); }
   }
   var driveArchiveFolderId = null;
+  var driveFolderCache = {}; // {clientId: folderId}
+  var driveCategoryCache = {}; // {clientId_catId: folderId}
+
+  function ensureClientFolder(clientId, clientName){
+    if(driveFolderCache[clientId]) return Promise.resolve(driveFolderCache[clientId]);
+    if(!driveAccessToken || !driveFolderId) return Promise.reject(new Error("אין חיבור לדרייב"));
+    return fetch("https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent("'"+driveFolderId+"' in parents and name='"+clientName.replace(/'/g,"\\'")+"' and mimeType='application/vnd.google-apps.folder' and trashed=false")+"&fields=files(id)&pageSize=1", {
+      method:"GET",
+      headers:{"Authorization":"Bearer "+driveAccessToken}
+    }).then(function(r){
+      if(!r.ok) throw new Error("חיפוש תיקייה של לקוח נכשל");
+      return r.json();
+    }).then(function(result){
+      if(result.files && result.files.length > 0){
+        driveFolderCache[clientId] = result.files[0].id;
+        return result.files[0].id;
+      }
+      return fetch("https://www.googleapis.com/drive/v3/files", {
+        method:"POST",
+        headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
+        body: JSON.stringify({name: clientName, mimeType:"application/vnd.google-apps.folder", parents:[driveFolderId]})
+      }).then(function(r){
+        if(!r.ok) throw new Error("יצירת תיקייה של לקוח נכשלה");
+        return r.json();
+      }).then(function(f){
+        driveFolderCache[clientId] = f.id;
+        console.log("Client folder created:", clientName, f.id);
+        return f.id;
+      });
+    });
+  }
+
+  function ensureCategoryFolder(clientFolderId, clientId, catId, catLabel){
+    var cacheKey = clientId + "_" + catId;
+    if(driveCategoryCache[cacheKey]) return Promise.resolve(driveCategoryCache[cacheKey]);
+    if(!driveAccessToken) return Promise.reject(new Error("אין חיבור לדרייב"));
+    return fetch("https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent("'"+clientFolderId+"' in parents and name='"+catLabel+"' and mimeType='application/vnd.google-apps.folder' and trashed=false")+"&fields=files(id)&pageSize=1", {
+      method:"GET",
+      headers:{"Authorization":"Bearer "+driveAccessToken}
+    }).then(function(r){
+      if(!r.ok) throw new Error("חיפוש תיקייה של קטגוריה נכשל");
+      return r.json();
+    }).then(function(result){
+      if(result.files && result.files.length > 0){
+        driveCategoryCache[cacheKey] = result.files[0].id;
+        return result.files[0].id;
+      }
+      return fetch("https://www.googleapis.com/drive/v3/files", {
+        method:"POST",
+        headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
+        body: JSON.stringify({name: catLabel, mimeType:"application/vnd.google-apps.folder", parents:[clientFolderId]})
+      }).then(function(r){
+        if(!r.ok) throw new Error("יצירת תיקייה של קטגוריה נכשלה");
+        return r.json();
+      }).then(function(f){
+        driveCategoryCache[cacheKey] = f.id;
+        console.log("Category folder created:", catLabel, f.id);
+        return f.id;
+      });
+    });
+  }
+
   function ensureDriveFolder(){
     if(driveFolderId) return Promise.resolve(driveFolderId);
     if(!driveAccessToken) return Promise.reject(new Error("אין חיבור לדרייב - לחץ על 'חבר לדרייב' קודם"));
@@ -2239,15 +2301,22 @@
     var file = ctx.file;
     showDriveStatus("מעלה לדרייב: "+file.name+" ...");
     console.log("Starting upload for:", file.name, "FolderId:", driveFolderId, "Token exists:", !!driveAccessToken);
-    ensureDriveFolder().then(function(folderId){
-      console.log("Got folder ID:", folderId, "File size:", file.size);
-      var metadata = {name:file.name, parents:[folderId]};
-      var form = new FormData();
-      form.append("metadata", new Blob([JSON.stringify(metadata)], {type:"application/json"}));
-      form.append("file", file);
-      console.log("Uploading with token:", driveAccessToken.substring(0,20)+"...");
-      return fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", {
-        method:"POST", headers:{"Authorization":"Bearer "+driveAccessToken}, body:form
+    var c = getClientNew(ctx.clientId);
+    var clientName = (c && c.name) || ctx.clientId;
+    var catLabel = (DOC_CATEGORIES.find(function(cat){return cat.id===ctx.catId;}) || {label:ctx.catId}).label;
+    ensureDriveFolder().then(function(mainFolderId){
+      return ensureClientFolder(ctx.clientId, clientName).then(function(clientFolderId){
+        return ensureCategoryFolder(clientFolderId, ctx.clientId, ctx.catId, catLabel).then(function(categoryFolderId){
+          console.log("Got category folder:", categoryFolderId, "File size:", file.size);
+          var metadata = {name:file.name, parents:[categoryFolderId]};
+          var form = new FormData();
+          form.append("metadata", new Blob([JSON.stringify(metadata)], {type:"application/json"}));
+          form.append("file", file);
+          console.log("Uploading with token:", driveAccessToken.substring(0,20)+"...");
+          return fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", {
+            method:"POST", headers:{"Authorization":"Bearer "+driveAccessToken}, body:form
+          });
+        });
       });
     }).then(function(r){
       console.log("Upload response status:", r.status, "OK:", r.ok);
