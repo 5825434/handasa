@@ -2047,18 +2047,34 @@
     if(!driveAccessToken) return Promise.reject(new Error("אין חיבור לדרייב - לחץ על 'חבר לדרייב' קודם"));
     var savedFolderId = localStorage.getItem("drive_folder_id");
     if(savedFolderId){ driveFolderId=savedFolderId; return Promise.resolve(savedFolderId); }
-    return fetch("https://www.googleapis.com/drive/v3/files?fields=id", {
-      method:"POST",
-      headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
-      body: JSON.stringify({name:"ניהול פרויקטים - מסמכים", mimeType:"application/vnd.google-apps.folder"})
+    var folderName = "ניהול פרויקטים - מסמכים";
+    return fetch("https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent("name='"+folderName.replace(/'/g,"\\'")+"' and mimeType='application/vnd.google-apps.folder' and trashed=false")+"&fields=files(id)&pageSize=1", {
+      method:"GET",
+      headers:{"Authorization":"Bearer "+driveAccessToken}
     }).then(function(r){
-      if(!r.ok) return r.text().then(function(t){ throw new Error("יצירת תיקייה נכשלה ("+r.status+"): "+t.slice(0,200)); });
+      if(!r.ok) throw new Error("חיפוש תיקייה נכשל: "+r.status);
       return r.json();
-    }).then(function(f){
-      driveFolderId = f.id;
-      localStorage.setItem("drive_folder_id", f.id);
-      console.log("Drive folder created and saved to localStorage:", f.id);
-      return f.id;
+    }).then(function(result){
+      if(result.files && result.files.length > 0){
+        var existingId = result.files[0].id;
+        driveFolderId = existingId;
+        localStorage.setItem("drive_folder_id", existingId);
+        console.log("Found existing Drive folder:", existingId);
+        return existingId;
+      }
+      return fetch("https://www.googleapis.com/drive/v3/files?fields=id", {
+        method:"POST",
+        headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
+        body: JSON.stringify({name:folderName, mimeType:"application/vnd.google-apps.folder"})
+      }).then(function(r){
+        if(!r.ok) return r.text().then(function(t){ throw new Error("יצירת תיקייה נכשלה ("+r.status+"): "+t.slice(0,200)); });
+        return r.json();
+      }).then(function(f){
+        driveFolderId = f.id;
+        localStorage.setItem("drive_folder_id", f.id);
+        console.log("Drive folder created and saved to localStorage:", f.id);
+        return f.id;
+      });
     }).catch(function(err){
       console.error("ensureDriveFolder error:", err);
       throw err;
