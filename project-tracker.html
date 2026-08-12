@@ -2143,6 +2143,14 @@
       if(!r.ok) {
         return r.text().then(function(t){
           console.error("Upload error response:", t);
+          if(r.status === 404 && t.indexOf("File not found") !== -1){
+            console.log("Folder not found in Drive - resetting and trying again");
+            driveFolderId = null;
+            var siteRef = db.collection("sites").doc(currentSiteId);
+            return siteRef.update({driveFolderId: null}).then(function(){
+              throw new Error("התיקייה בדרייב נמחקה. בדקה מחדש - נסה להעלות שוב.");
+            });
+          }
           throw new Error("העלאה נכשלה ("+r.status+"): "+t.slice(0,200));
         });
       }
