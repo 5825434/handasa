@@ -2139,7 +2139,13 @@
         method:"POST", headers:{"Authorization":"Bearer "+driveAccessToken}, body:form
       });
     }).then(function(r){
-      if(!r.ok) return r.text().then(function(t){ throw new Error("העלאה נכשלה ("+r.status+"): "+t.slice(0,200)); });
+      console.log("Upload response status:", r.status, "OK:", r.ok);
+      if(!r.ok) {
+        return r.text().then(function(t){
+          console.error("Upload error response:", t);
+          throw new Error("העלאה נכשלה ("+r.status+"): "+t.slice(0,200));
+        });
+      }
       return r.json();
     })
     .then(function(fileObj){
