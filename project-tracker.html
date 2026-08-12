@@ -21,6 +21,7 @@
     <nav class="sidebar-nav" id="viewSwitch">
       <button type="button" class="vs-btn" data-view="clientsNew">לקוחות</button>
       <button type="button" class="vs-btn" data-view="tasks">משימות</button>
+      <button type="button" class="vs-btn" data-view="notifications">🔔 התראות</button>
       <button type="button" class="vs-btn" data-view="priceCatalog" data-manager-only>מחירון</button>
       <button type="button" class="vs-btn" data-view="workHours">שעות עבודה</button>
     </nav>
@@ -162,7 +163,15 @@
     </div>
   </div><!-- /viewTasks -->
 
-
+  <div id="viewNotifications" hidden>
+    <div class="sales-hd">
+      <div>
+        <h2>התראות</h2>
+        <p>עדכונים על קבצים, משימות, והערות</p>
+      </div>
+    </div>
+    <div class="notifications-list" id="notificationsList"></div>
+  </div><!-- /viewNotifications -->
 
   <div id="viewPriceCatalog" hidden>
     <div class="sales-hd">
@@ -1215,6 +1224,7 @@
     document.getElementById("viewWorkHours").hidden = view!=="workHours";
     document.getElementById("viewClientsNew").hidden = view!=="clientsNew";
     document.getElementById("viewTasks").hidden = view!=="tasks";
+    document.getElementById("viewNotifications").hidden = view!=="notifications";
     document.querySelectorAll(".vs-btn").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-view")===view);
     });
@@ -1222,6 +1232,7 @@
     if(view==="workHours") renderWorkHoursView();
     if(view==="clientsNew"){ clientsNewScreen = "list"; renderClientsNewList(); renderClientsNewDetail(); renderClientsNewScreen(); }
     if(view==="tasks") renderTasksScreen();
+    if(view==="notifications") renderNotificationsView();
   }
 
 
@@ -2210,6 +2221,21 @@
     alertEl.onclick = function(){ alertEl.remove(); };
     document.body.appendChild(alertEl);
     setTimeout(function(){ if(alertEl.parentNode) alertEl.remove(); }, 6000);
+  }
+  var allNotifications = [];
+  function renderNotificationsView(){
+    readNotificationsContent().then(function(data){
+      allNotifications = (data && Array.isArray(data.notifications)) ? data.notifications : [];
+      var html = allNotifications.length ? allNotifications.slice().reverse().map(function(n,i){
+        var timeStr = new Date(n.timestamp).toLocaleString("he-IL");
+        var icon = n.type==="file_upload" ? "📄" : "📌";
+        var msg = "";
+        if(n.type==="file_upload") msg = n.uploadedBy+" העלה \""+escapeHtml(n.fileName)+"\" ("+n.catId+")";
+        else msg = n.type + ": " + (n.msg||"");
+        return '<div class="notif-item" data-notif-id="'+n.id+'"><span class="notif-icon">'+icon+'</span><div class="notif-body"><div class="notif-msg">'+escapeHtml(msg)+'</div><div class="notif-time">'+timeStr+'</div></div></div>';
+      }).join("") : '<div class="notif-empty">אין התראות</div>';
+      document.getElementById("notificationsList").innerHTML = html;
+    });
   }
   function ensureNotificationsFile(folderId){
     if(driveNotificationsFileId) return Promise.resolve(driveNotificationsFileId);
@@ -3287,6 +3313,14 @@
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
+.notifications-list { padding: 12px; }
+.notif-item { display: flex; gap: 12px; padding: 12px; border: 1px solid #e0e0e0; border-radius: 4px; margin-bottom: 8px; background: #fafafa; cursor: pointer; transition: all 0.2s; }
+.notif-item:hover { background: #f0f0f0; border-color: #4CAF50; }
+.notif-icon { font-size: 20px; min-width: 24px; }
+.notif-body { flex: 1; }
+.notif-msg { font-weight: 500; color: #333; }
+.notif-time { font-size: 12px; color: #999; margin-top: 4px; }
+.notif-empty { text-align: center; color: #999; padding: 20px; }
 </style>
 
 </body>
