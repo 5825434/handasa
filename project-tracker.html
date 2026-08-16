@@ -592,9 +592,23 @@
     document.getElementById("shareBtn").hidden = !managerMode;
     document.getElementById("appShell").hidden = false;
     attachSiteData();
-    showView("clientsNew");
     applyAccessMode();
     restoreDriveTokenFromStorage().then(function(){ checkAndShowNotifications(); });
+    setTimeout(function(){ restoreViewState(); }, 500);
+  }
+  function restoreViewState(){
+    var savedView = localStorage.getItem("currentView") || "clientsNew";
+    var savedClientId = localStorage.getItem("currentClientId");
+    var savedJobId = localStorage.getItem("currentJobId");
+    var savedTab = localStorage.getItem("clientJobTab");
+    showView(savedView);
+    if(savedClientId && savedView === "clientsNew"){
+      selectedClientId = savedClientId;
+      selectedJobId = savedJobId || null;
+      clientJobTab = savedTab || "progress";
+      clientsNewScreen = "detail";
+      renderClientsNewScreen();
+    }
   }
 
   function openShareModal(){
@@ -767,6 +781,9 @@
       selectedClientId = row.getAttribute("data-select-client");
       selectedJobId = null;
       clientJobTab = "progress";
+      localStorage.setItem("currentClientId", selectedClientId);
+      localStorage.setItem("currentJobId", "");
+      localStorage.setItem("clientJobTab", "progress");
       clientDetailExpanded = false;
       clientsNewScreen = "detail";
       renderClientsNewList();
@@ -800,6 +817,8 @@
       if(selJob){
         selectedJobId = selJob.getAttribute("data-select-job");
         clientJobTab = "progress";
+        localStorage.setItem("currentJobId", selectedJobId);
+        localStorage.setItem("clientJobTab", "progress");
         renderClientsNewDetail();
         return;
       }
@@ -811,6 +830,7 @@
       var jobTabBtn = e.target.closest("[data-job-tab]");
       if(jobTabBtn){
         clientJobTab = jobTabBtn.getAttribute("data-job-tab");
+        localStorage.setItem("clientJobTab", clientJobTab);
         renderClientsNewDetail();
         return;
       }
@@ -1229,6 +1249,10 @@
 
   function showView(view){
     currentView = view;
+    localStorage.setItem("currentView", view);
+    localStorage.setItem("currentClientId", selectedClientId||"");
+    localStorage.setItem("currentJobId", selectedJobId||"");
+    localStorage.setItem("clientJobTab", clientJobTab||"");
     document.getElementById("viewPriceCatalog").hidden = view!=="priceCatalog";
     document.getElementById("viewWorkHours").hidden = view!=="workHours";
     document.getElementById("viewClientsNew").hidden = view!=="clientsNew";
@@ -3598,7 +3622,8 @@
     document.getElementById("propDownloadBtn").onclick = downloadProposalAsPDF;
     document.getElementById("propSaveDriveBtn").onclick = saveProposalToDrive;
     document.getElementById("propCancelBtn").onclick = closeProposalEditor;
-    overlay.querySelector(".close-modal").onclick = closeProposalEditor;
+    var closeBtn = overlay.querySelector(".close-modal");
+    if(closeBtn) closeBtn.onclick = closeProposalEditor;
     document.getElementById("changeLogo").onclick = uploadCompanyLogo;
     var logoPreview = document.getElementById("logoPreview");
     if(logoPreview) logoPreview.onclick = uploadCompanyLogo;
