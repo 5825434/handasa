@@ -139,9 +139,12 @@ input,select,textarea{font-family:inherit;color:inherit;}
 /* header */
 .hdr{display:flex;align-items:center;gap:14px;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px;}
 .hdr-id{display:flex;align-items:center;gap:12px;}
+.logo-section{display:flex;align-items:center;gap:8px;}
 .logo-container{display:flex;align-items:center;justify-content:center;flex:none;}
 .logo-container img{max-height:50px;cursor:pointer;transition:opacity 0.2s;}
 .logo-container img:hover{opacity:0.8;}
+.logo-btn{background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 8px;cursor:pointer;font-size:1.1rem;transition:all 0.2s;flex:none;}
+.logo-btn:hover{border-color:var(--accent);background:var(--accent-soft);}
 .mark{width:38px;height:38px;flex:none;}
 .hdr h1{font-size:1.5rem;margin:0;letter-spacing:-0.01em;text-wrap:balance;}
 .hdr p{margin:2px 0 0;color:var(--ink-soft);font-size:0.83rem;}

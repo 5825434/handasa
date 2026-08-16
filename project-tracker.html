@@ -31,7 +31,10 @@
 <div class="wrap">
   <div class="hdr">
     <div class="hdr-id">
-      <div id="logoContainer" class="logo-container"></div>
+      <div class="logo-section">
+        <div id="logoContainer" class="logo-container"></div>
+        <button type="button" class="logo-btn" id="uploadLogoBtn" title="העלה או שנה לוגו">🏢</button>
+      </div>
       <div>
         <h1>ניהול פרויקטים</h1>
         <p>שרטוט · קורות ועמודים · ברזל · הדפסה</p>
@@ -690,6 +693,7 @@
       });
     });
     document.getElementById("signOutBtn").addEventListener("click", function(){ auth.signOut(); });
+    document.getElementById("uploadLogoBtn").addEventListener("click", uploadCompanyLogo);
     document.getElementById("switchSiteBtn").addEventListener("click", function(){
       renderSiteList();
       document.getElementById("siteSwitcherOverlay").hidden = false;
