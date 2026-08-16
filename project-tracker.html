@@ -3264,17 +3264,35 @@
   function checkTaskReminders(){
     if(!window.Notification || Notification.permission!=="granted") return;
     var now=new Date();
+    var today=todayStr();
     personalTasks.forEach(function(t){
-      if(t.done || !isTaskOwner(t) || !t.reminder || t.reminder==="none" || !t.dueDate || !t.dueTime) return;
-      var due=new Date(t.dueDate+"T"+t.dueTime);
+      if(t.done || !isTaskOwner(t) || !t.dueDate) return;
+      var due=new Date(t.dueDate);
       if(isNaN(due)) return;
-      var lead=(t.reminder==="attime")?0:(Number(t.reminder)||0);
-      var fireAt=due.getTime()-lead*60000;
-      var key=t.id+":"+t.reminder;
-      if(firedReminders[key]) return;
-      if(now.getTime()>=fireAt && now.getTime()<=due.getTime()+120000){
-        firedReminders[key]=true;
-        try{ new Notification("תזכורת משימה", {body:(t.title||"משימה")+(lead?(" - עוד "+lead+" דק׳"):" - עכשיו")}); }catch(e){}
+      var daysUntilDue = Math.floor((due.getTime() - new Date(today).getTime()) / (1000*60*60*24));
+      var notifKey = t.id+":reminder";
+      if(firedReminders[notifKey]) return;
+      var shouldNotify = false;
+      var notifMsg = "";
+      if(daysUntilDue === 1 && !t.done){ shouldNotify=true; notifMsg="משימה חשובה מחר"; }
+      else if(daysUntilDue === 0 && !t.done){ shouldNotify=true; notifMsg="משימה לסיום היום!"; }
+      else if(daysUntilDue === -1){ shouldNotify=true; notifMsg="משימה באיחור!"; }
+      if(shouldNotify){
+        firedReminders[notifKey]=true;
+        try{ new Notification("תזכורת משימה", {body:(t.title||"משימה")+" - "+notifMsg}); }catch(e){}
+        writeNotification({type:"task_reminder", taskTitle:t.title||"משימה", daysUntilDue:daysUntilDue, dueDate:t.dueDate, timestamp:Date.now()});
+      }
+      if(t.reminder && t.reminder!=="none" && !t.done){
+        var dueTime=new Date(t.dueDate+"T"+(t.dueTime||"00:00"));
+        if(!isNaN(dueTime)){
+          var lead=(t.reminder==="attime")?0:(Number(t.reminder)||0);
+          var fireAt=dueTime.getTime()-lead*60000;
+          var timerKey=t.id+":"+t.reminder;
+          if(!firedReminders[timerKey] && now.getTime()>=fireAt && now.getTime()<=dueTime.getTime()+120000){
+            firedReminders[timerKey]=true;
+            try{ new Notification("תזכורת משימה", {body:(t.title||"משימה")+(lead?(" - עוד "+lead+" דק׳"):" - עכשיו")}); }catch(e){}
+          }
+        }
       }
     });
   }
