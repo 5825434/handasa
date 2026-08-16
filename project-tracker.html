@@ -3521,9 +3521,17 @@
             '<td style="padding:12px;text-align:center;border:1px solid #ddd;font-weight:bold;">₪'+(item.qty*item.unitPrice)+'</td>'+
           '</tr>';
         }).join("")+
+        '<tr style="border-bottom:1px solid #ddd;">'+
+          '<td colspan="3" style="padding:12px;text-align:right;border:1px solid #ddd;font-weight:bold;">סה״כ לפני מע״מ:</td>'+
+          '<td style="padding:12px;text-align:center;border:1px solid #ddd;font-weight:bold;">₪'+(function(){var total=0;currentProposal.items.forEach(function(i){total+=i.qty*i.unitPrice;});return Math.round(total*100)/100;}())+'</td>'+
+        '</tr>'+
+        '<tr style="border-bottom:1px solid #ddd;">'+
+          '<td colspan="3" style="padding:12px;text-align:right;border:1px solid #ddd;">מע״מ '+currentProposal.vatPercent+'%:</td>'+
+          '<td style="padding:12px;text-align:center;border:1px solid #ddd;">₪'+(function(){var total=0;currentProposal.items.forEach(function(i){total+=i.qty*i.unitPrice;});return Math.round(total*currentProposal.vatPercent/100*100)/100;}())+'</td>'+
+        '</tr>'+
         '<tr style="background:#f0f0f0;border-top:2px solid #333;">'+
-          '<td colspan="3" style="padding:12px;text-align:right;border:1px solid #ddd;font-weight:bold;">סה״כ הצעה:</td>'+
-          '<td style="padding:12px;text-align:center;border:1px solid #ddd;font-weight:bold;font-size:16px;">₪'+currentProposal.items.reduce(function(s,i){return s+i.qty*i.unitPrice;},0)+'</td>'+
+          '<td colspan="3" style="padding:12px;text-align:right;border:1px solid #ddd;font-weight:bold;font-size:16px;">סה״כ הצעה:</td>'+
+          '<td style="padding:12px;text-align:center;border:1px solid #ddd;font-weight:bold;font-size:16px;">₪'+(function(){var total=0;currentProposal.items.forEach(function(i){total+=i.qty*i.unitPrice;});return Math.round(total*(1+currentProposal.vatPercent/100)*100)/100;}())+'</td>'+
         '</tr>'+
       '</table>'+
       (currentProposal.notes ? '<div style="margin-top:20px;padding:15px;background:#fafafa;border-right:3px solid #333;"><strong>הערות:</strong><br>'+escapeHtml(currentProposal.notes).replace(/\n/g,"<br>")+'</div>' : '')+
@@ -3558,15 +3566,18 @@
     var job = getSelectedJob();
     var client = getClientNew(selectedClientId);
     if(!job || !client) return;
-    currentProposal = {
-      clientName: client.name || "לקוח",
-      jobTitle: job.title || "עבודה",
-      date: new Date().toISOString().slice(0,10),
-      items: (job.quoteLines || []).map(function(l){ return {name:l.name||"", qty:l.qty||1, unitPrice:l.unitPrice||0}; }),
-      notes: "",
-      signature: "",
-      driveMode: "shared"
-    };
+    if(!currentProposal){
+      currentProposal = {
+        clientName: client.name || "לקוח",
+        jobTitle: job.title || "עבודה",
+        date: new Date().toISOString().slice(0,10),
+        items: (job.quoteLines || []).map(function(l){ return {name:l.name||"", qty:l.qty||1, unitPrice:l.unitPrice||0}; }),
+        notes: "",
+        signature: "",
+        vatPercent: 17,
+        driveMode: "shared"
+      };
+    }
     var overlay = document.getElementById("proposalOverlay");
     if(!overlay) {
       overlay = document.createElement("div");
@@ -3590,7 +3601,8 @@
             '</label>'+
             '<label>שם הלקוח: <input type="text" id="propClientName" value="'+escapeHtml(currentProposal.clientName)+'"></label>'+
             '<label>שם העבודה: <input type="text" id="propJobTitle" value="'+escapeHtml(currentProposal.jobTitle)+'"></label>'+
-            '<label>תאריך: <input type="date" id="propDate" value="'+currentProposal.date+'"></label>'+
+            '<label>תאריך: <input type="date" id="propDate" value="'+(currentProposal.date||'')+'"></label>'+
+            '<label>מע"מ (%): <input type="number" id="propVat" value="'+(currentProposal.vatPercent||17)+'" min="0" max="100" style="width:80px;"></label>'+
           '</div>'+
           '<div class="proposal-section">'+
             '<h4>פריטים</h4>'+
@@ -3672,9 +3684,17 @@
             '<td style="padding:10px;text-align:center;border:1px solid #ddd;">₪'+(item.qty*item.unitPrice)+'</td>'+
           '</tr>';
         }).join("")+
+        '<tr style="border:1px solid #ddd;">'+
+          '<td colspan="3" style="padding:10px;text-align:left;border:1px solid #ddd;font-weight:bold;">סה"כ לפני מע"מ:</td>'+
+          '<td style="padding:10px;text-align:center;border:1px solid #ddd;font-weight:bold;">₪'+(function(){var total=0;currentProposal.items.forEach(function(i){total+=i.qty*i.unitPrice;});return Math.round(total*100)/100;}())+'</td>'+
+        '</tr>'+
+        '<tr style="border:1px solid #ddd;">'+
+          '<td colspan="3" style="padding:10px;text-align:left;border:1px solid #ddd;">מע"מ '+currentProposal.vatPercent+'%:</td>'+
+          '<td style="padding:10px;text-align:center;border:1px solid #ddd;">₪'+(function(){var total=0;currentProposal.items.forEach(function(i){total+=i.qty*i.unitPrice;});return Math.round(total*currentProposal.vatPercent/100*100)/100;}())+'</td>'+
+        '</tr>'+
         '<tr style="background:#f5f5f5;border:1px solid #ddd;font-weight:bold;">'+
           '<td colspan="3" style="padding:10px;text-align:left;border:1px solid #ddd;">סה"כ הצעה:</td>'+
-          '<td style="padding:10px;text-align:center;border:1px solid #ddd;">₪'+currentProposal.items.reduce(function(s,i){return s+i.qty*i.unitPrice;},0)+'</td>'+
+          '<td style="padding:10px;text-align:center;border:1px solid #ddd;font-size:14px;">₪'+(function(){var total=0;currentProposal.items.forEach(function(i){total+=i.qty*i.unitPrice;});return Math.round(total*(1+currentProposal.vatPercent/100)*100)/100;}())+'</td>'+
         '</tr>'+
       '</table>'+
       (currentProposal.notes ? '<p><strong>הערות:</strong><br>'+escapeHtml(currentProposal.notes).replace(/\n/g,"<br>")+'</p>' : '')+
@@ -3690,6 +3710,7 @@
     currentProposal.date = document.getElementById("propDate").value;
     currentProposal.notes = document.getElementById("propNotes").value;
     currentProposal.signature = document.getElementById("propSignature").value;
+    currentProposal.vatPercent = Number(document.getElementById("propVat").value)||17;
     var driveMode = document.querySelector("input[name='driveMode']:checked");
     if(driveMode) currentProposal.driveMode = driveMode.value;
     currentProposal.items = [];
