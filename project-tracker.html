@@ -597,11 +597,16 @@
     document.getElementById("appShell").hidden = false;
     attachSiteData();
     applyAccessMode();
-    companyLogo = null;
+    companyLogo = localStorage.getItem("company_logo_" + currentSiteId) || null;
+    updateLogoDisplay();
     db.collection("sites").doc(currentSiteId).get().then(function(doc){
       var data = doc.data() || {};
-      companyLogo = data.logo || null;
-      updateLogoDisplay();
+      if(data.logo && !companyLogo){
+        companyLogo = data.logo;
+        updateLogoDisplay();
+      }
+    }).catch(function(err){
+      console.warn("Error loading logo from Firestore:", err.message);
     });
     restoreDriveTokenFromStorage().then(function(){ checkAndShowNotifications(); });
     setTimeout(function(){ restoreViewState(); }, 500);
@@ -611,13 +616,6 @@
     var savedClientId = localStorage.getItem("currentClientId");
     var savedJobId = localStorage.getItem("currentJobId");
     var savedTab = localStorage.getItem("clientJobTab") || "progress";
-    db.collection("sites").doc(currentSiteId).get().then(function(doc){
-      var data = doc.data() || {};
-      companyLogo = data.logo || null;
-      updateLogoDisplay();
-    }).catch(function(err){
-      console.error("Error loading logo:", err);
-    });
     showView(savedView);
     if(savedClientId && savedView === "clientsNew"){
       selectedClientId = savedClientId;
@@ -3539,20 +3537,25 @@
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           var compressedData = canvas.toDataURL("image/jpeg", 0.7);
           console.log("Compressed logo data size:", compressedData.length);
+          companyLogo = compressedData;
+          try{
+            localStorage.setItem("company_logo_" + currentSiteId, compressedData);
+            console.log("Logo saved to localStorage");
+          }catch(err){
+            console.warn("localStorage full, trying Firestore only");
+          }
           db.collection("sites").doc(currentSiteId).update({logo: compressedData}).then(function(){
             console.log("Logo saved to Firestore");
-            companyLogo = compressedData;
-            updateLogoDisplay();
-            console.log("updateLogoDisplay called");
-            if(currentProposal){
-              if(previewMode) showProposalPreview();
-              else showProposalEditor();
-            }
-            if(currentView === "clientsNew") renderClientsNewDetail();
           }).catch(function(err){
-            console.error("Firestore error:", err);
-            alert("שגיאה בשמירה של הלוגו. נסה שוב.");
+            console.warn("Firestore write skipped:", err.message);
           });
+          updateLogoDisplay();
+          console.log("updateLogoDisplay called");
+          if(currentProposal){
+            if(previewMode) showProposalPreview();
+            else showProposalEditor();
+          }
+          if(currentView === "clientsNew") renderClientsNewDetail();
         };
         img.onerror = function(){
           console.error("Image load error");
@@ -3567,12 +3570,14 @@
   function updateLogoDisplay(){
     var logo = getCompanyLogo();
     var logoContainer = document.getElementById("logoContainer");
+    var uploadLogoBtn = document.getElementById("uploadLogoBtn");
     if(logo){
       if(logoContainer){
         logoContainer.innerHTML = '<img src="'+logo+'" id="mainHeaderLogo" title="לחץ לשינוי הלוגו" alt="לוגו חברה">';
         var mainLogo = document.getElementById("mainHeaderLogo");
         if(mainLogo) mainLogo.onclick = uploadCompanyLogo;
       }
+      if(uploadLogoBtn) uploadLogoBtn.style.display = "none";
       var headerLogo = document.getElementById("headerLogo");
       if(headerLogo) headerLogo.src = logo;
       else if(document.querySelector(".modal-header")){
@@ -3591,6 +3596,7 @@
       if(logoPreview) logoPreview.src = logo;
     } else if(logoContainer){
       logoContainer.innerHTML = '';
+      if(uploadLogoBtn) uploadLogoBtn.style.display = "inline-flex";
     }
   }
   function showProposalPreview(){
