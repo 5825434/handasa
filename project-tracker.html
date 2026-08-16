@@ -594,6 +594,12 @@
     document.getElementById("appShell").hidden = false;
     attachSiteData();
     applyAccessMode();
+    companyLogo = null;
+    db.collection("sites").doc(currentSiteId).get().then(function(doc){
+      var data = doc.data() || {};
+      companyLogo = data.logo || null;
+      updateLogoDisplay();
+    });
     restoreDriveTokenFromStorage().then(function(){ checkAndShowNotifications(); });
     setTimeout(function(){ restoreViewState(); }, 500);
   }
@@ -602,7 +608,13 @@
     var savedClientId = localStorage.getItem("currentClientId");
     var savedJobId = localStorage.getItem("currentJobId");
     var savedTab = localStorage.getItem("clientJobTab") || "progress";
-    updateLogoDisplay();
+    db.collection("sites").doc(currentSiteId).get().then(function(doc){
+      var data = doc.data() || {};
+      companyLogo = data.logo || null;
+      updateLogoDisplay();
+    }).catch(function(err){
+      console.error("Error loading logo:", err);
+    });
     showView(savedView);
     if(savedClientId && savedView === "clientsNew"){
       selectedClientId = savedClientId;
@@ -3489,11 +3501,11 @@
 
   /* ========== Proposal/Quote Generation ========== */
   var currentProposal = null;
-  function getCompanyLogo(){
-    return localStorage.getItem("company_logo") || null;
-  }
-  var companyLogo = getCompanyLogo();
+  var companyLogo = null;
   var previewMode = false;
+  function getCompanyLogo(){
+    return companyLogo;
+  }
   function uploadCompanyLogo(){
     var input = document.createElement("input");
     input.type = "file";
@@ -3523,22 +3535,20 @@
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           var compressedData = canvas.toDataURL("image/jpeg", 0.7);
           console.log("Compressed logo data size:", compressedData.length);
-          try{
-            localStorage.setItem("company_logo", compressedData);
-            console.log("Logo saved to localStorage");
-          }catch(err){
-            console.error("localStorage error:", err);
-            alert("שגיאה בשמירה של הלוגו - תמונה גדולה מדי. בחר תמונה קטנה יותר.");
-            return;
-          }
-          companyLogo = compressedData;
-          updateLogoDisplay();
-          console.log("updateLogoDisplay called");
-          if(currentProposal){
-            if(previewMode) showProposalPreview();
-            else showProposalEditor();
-          }
-          if(currentView === "clientsNew") renderClientsNewDetail();
+          db.collection("sites").doc(currentSiteId).update({logo: compressedData}).then(function(){
+            console.log("Logo saved to Firestore");
+            companyLogo = compressedData;
+            updateLogoDisplay();
+            console.log("updateLogoDisplay called");
+            if(currentProposal){
+              if(previewMode) showProposalPreview();
+              else showProposalEditor();
+            }
+            if(currentView === "clientsNew") renderClientsNewDetail();
+          }).catch(function(err){
+            console.error("Firestore error:", err);
+            alert("שגיאה בשמירה של הלוגו. נסה שוב.");
+          });
         };
         img.onerror = function(){
           console.error("Image load error");
