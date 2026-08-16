@@ -68,7 +68,6 @@
           <option value="completed">מיון: לפי הושלם</option>
         </select>
         <div class="spacer"></div>
-        <button type="button" class="ghost-btn" id="migrateOldDataBtn" data-manager-only>ייבוא לקוחות מהמבנה הישן (מכירות+פרויקטים)</button>
       </div>
     </div>
     <div id="clientsNewListScreen">
@@ -759,7 +758,6 @@
     document.getElementById("clientAddOverlay").addEventListener("click", function(e){
       if(e.target.id==="clientAddOverlay") closeClientAddModal();
     });
-    document.getElementById("migrateOldDataBtn").addEventListener("click", migrateOldDataToClients);
     function handleClientCardClick(e){
       var row = e.target.closest("[data-select-client]");
       if(!row) return;
