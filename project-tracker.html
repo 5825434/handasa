@@ -950,6 +950,17 @@
         renderClientsNewDetail();
         return;
       }
+      var taskDoneCheckbox = e.target.closest("[data-task-done]");
+      if(taskDoneCheckbox){
+        e.stopPropagation();
+        var taskId = taskDoneCheckbox.getAttribute("data-task-done");
+        updateTaskField(taskId, "done", taskDoneCheckbox.checked);
+        return;
+      }
+      if(e.target.closest("#addClientTaskBtn")){
+        showTaskModal(null, selectedClientId);
+        return;
+      }
       var notesToggle = e.target.closest("[data-t-notes-toggle]");
       if(notesToggle){
         e.stopPropagation();
@@ -1970,7 +1981,21 @@
   function jobTasksTabHtml(job){
     var editMode = editingBoardId===job.id;
     var stages = STAGE_META.map(function(sm){ return stageGroupHtml(job.id, sm, editMode); }).join("");
-    return '<div class="row-actions"><button type="button" class="task-edit-btn'+(editMode?" on":"")+'" data-task-edit="'+job.id+'">'+(editMode?"סיום עריכה":"עריכה")+'</button></div>'+stages;
+    var clientTasks = personalTasks.filter(function(t){ return t.clientId === selectedClientId; });
+    var tasksHtml = clientTasks.length ? '<div style="margin-top:20px;padding:15px;background:#f9f9f9;border-radius:8px;">'+
+      '<h4 style="margin-top:0;">משימות קשורות ללקוח זה:</h4>'+
+      clientTasks.map(function(t){
+        return '<div style="padding:10px;margin-bottom:8px;background:white;border-left:3px solid #1f4e79;border-radius:4px;">'+
+          '<div style="display:flex;gap:10px;align-items:center;">'+
+            '<input type="checkbox" '+(t.done?"checked":"")+' data-task-done="'+t.id+'" style="width:18px;height:18px;">'+
+            '<span style="flex:1;'+(t.done?'text-decoration:line-through;color:#999;':'')+'">'+escapeHtml(t.title||"משימה")+'</span>'+
+            '<small style="color:#666;">'+(t.dueDate?('עד '+t.dueDate):'')+'</small>'+
+          '</div>'+
+        '</div>';
+      }).join('')+
+    '</div>' : '';
+    return '<div class="row-actions"><button type="button" class="task-edit-btn'+(editMode?" on":"")+'" data-task-edit="'+job.id+'">'+(editMode?"סיום עריכה":"עריכה")+'</button>'+
+      '<button type="button" class="ghost-btn" id="addClientTaskBtn" style="margin-right:8px;">➕ הוסף משימה לקוח</button></div>'+stages+tasksHtml;
   }
   function jobServiceTabHtml(job){
     return SERVICE_SECTIONS.map(function(s){ return serviceSectionHtml(job.id, s); }).join("");
