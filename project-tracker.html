@@ -3437,18 +3437,88 @@
   /* ========== Proposal/Quote Generation ========== */
   var currentProposal = null;
   var companyLogo = localStorage.getItem("company_logo") || null;
-  function uploadCompanyLogo(file){
-    if(!file || !file.type.startsWith("image/")) {
-      alert("בחר קובץ תמונה בבקשה");
-      return;
-    }
-    var reader = new FileReader();
-    reader.onload = function(e){
-      companyLogo = e.target.result;
-      localStorage.setItem("company_logo", companyLogo);
-      if(currentProposal) showProposalEditor();
+  var previewMode = false;
+  function uploadCompanyLogo(){
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        companyLogo = ev.target.result;
+        localStorage.setItem("company_logo", companyLogo);
+        showProposalPreview();
+      };
+      reader.readAsDataURL(file);
     };
-    reader.readAsDataURL(file);
+    input.click();
+  }
+  function showProposalPreview(){
+    updateProposalFromUI();
+    if(!currentProposal) return;
+    var overlay = document.getElementById("proposalPreviewOverlay");
+    if(!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "proposalPreviewOverlay";
+      overlay.className = "modal-overlay";
+      overlay.style.zIndex = "10000";
+      document.body.appendChild(overlay);
+    }
+    var previewContent = '<div style="font-family:Georgia,serif;padding:40px;direction:rtl;text-align:right;background:white;">'+
+      (companyLogo ? '<div style="text-align:center;margin-bottom:30px;"><img src="'+companyLogo+'" style="max-height:80px;"></div>' : '')+
+      '<div style="border-bottom:2px solid #333;padding-bottom:20px;margin-bottom:30px;text-align:center;">'+
+        '<h1 style="margin:0 0 10px 0;color:#333;">הצעת מחיר</h1>'+
+      '</div>'+
+      '<div style="margin-bottom:30px;">'+
+        '<p style="margin:5px 0;"><strong>לקוח:</strong> '+escapeHtml(currentProposal.clientName)+'</p>'+
+        '<p style="margin:5px 0;"><strong>עבודה:</strong> '+escapeHtml(currentProposal.jobTitle)+'</p>'+
+        '<p style="margin:5px 0;"><strong>תאריך:</strong> '+currentProposal.date+'</p>'+
+      '</div>'+
+      '<table style="width:100%;border-collapse:collapse;margin:20px 0;font-family:Arial,sans-serif;">'+
+        '<tr style="background:#f0f0f0;border-bottom:2px solid #333;">'+
+          '<th style="padding:12px;text-align:right;border:1px solid #ddd;">פריט</th>'+
+          '<th style="padding:12px;width:80px;text-align:center;border:1px solid #ddd;">כמות</th>'+
+          '<th style="padding:12px;width:100px;text-align:center;border:1px solid #ddd;">מחיר ליח׳</th>'+
+          '<th style="padding:12px;width:100px;text-align:center;border:1px solid #ddd;">סה״כ</th>'+
+        '</tr>'+
+        currentProposal.items.map(function(item){
+          return '<tr style="border-bottom:1px solid #ddd;">'+
+            '<td style="padding:12px;text-align:right;border:1px solid #ddd;">'+escapeHtml(item.name)+'</td>'+
+            '<td style="padding:12px;text-align:center;border:1px solid #ddd;">'+item.qty+'</td>'+
+            '<td style="padding:12px;text-align:center;border:1px solid #ddd;">₪'+item.unitPrice+'</td>'+
+            '<td style="padding:12px;text-align:center;border:1px solid #ddd;font-weight:bold;">₪'+(item.qty*item.unitPrice)+'</td>'+
+          '</tr>';
+        }).join("")+
+        '<tr style="background:#f0f0f0;border-top:2px solid #333;">'+
+          '<td colspan="3" style="padding:12px;text-align:right;border:1px solid #ddd;font-weight:bold;">סה״כ הצעה:</td>'+
+          '<td style="padding:12px;text-align:center;border:1px solid #ddd;font-weight:bold;font-size:16px;">₪'+currentProposal.items.reduce(function(s,i){return s+i.qty*i.unitPrice;},0)+'</td>'+
+        '</tr>'+
+      '</table>'+
+      (currentProposal.notes ? '<div style="margin-top:20px;padding:15px;background:#fafafa;border-right:3px solid #333;"><strong>הערות:</strong><br>'+escapeHtml(currentProposal.notes).replace(/\n/g,"<br>")+'</div>' : '')+
+      (currentProposal.signature ? '<div style="margin-top:30px;text-align:left;"><strong>חתימה:</strong><br>'+escapeHtml(currentProposal.signature)+'</div>' : '')+
+    '</div>';
+    overlay.innerHTML = '<div class="modal-dialog" style="max-width:900px;max-height:90vh;overflow-y:auto;background:white;">'+
+      '<div class="modal-header">'+
+        '<h3>תצוגה מקדימה - הצעת מחיר</h3>'+
+        '<button type="button" class="close-modal">✕</button>'+
+      '</div>'+
+      '<div id="previewContent" style="padding:20px;">'+previewContent+'</div>'+
+      '<div class="modal-footer">'+
+        '<button type="button" class="pill-btn" id="previewDownloadBtn">📥 הורד כ-PDF</button>'+
+        '<button type="button" class="pill-btn" id="previewEditBtn">✎ חזור לעריכה</button>'+
+      '</div>'+
+    '</div>';
+    overlay.hidden = false;
+    overlay.style.display = "flex";
+    document.querySelector(".close-modal").onclick = closeProposalPreview;
+    document.getElementById("previewDownloadBtn").onclick = downloadProposalAsPDF;
+    document.getElementById("previewEditBtn").onclick = function(){ closeProposalPreview(); showProposalEditor(); };
+  }
+  function closeProposalPreview(){
+    var overlay = document.getElementById("proposalPreviewOverlay");
+    if(overlay) overlay.hidden = true;
   }
   function showProposalEditor(){
     var job = getSelectedJob();
@@ -3481,8 +3551,7 @@
           '<div class="proposal-section">'+
             '<h4>פרטי הצעה</h4>'+
             '<label>'+
-              (companyLogo ? '<img id="logoPreview" src="'+companyLogo+'" style="height:40px;margin-left:8px;cursor:pointer;vertical-align:middle;" title="לחץ לשינוי">' : '')+
-              '<input type="file" id="logoUpload" accept="image/*" style="display:none;">'+
+              (companyLogo ? '<img id="logoPreview" src="'+companyLogo+'" style="height:40px;margin-left:8px;cursor:pointer;vertical-align:middle;" title="לחץ לשינוי לוגו חדש">' : '')+
               '<button type="button" class="ghost-btn" id="changeLogo" style="margin-right:8px;">🏢 '+(companyLogo?'שנה לוגו':'העלה לוגו')+'</button>'+
             '</label>'+
             '<label>שם הלקוח: <input type="text" id="propClientName" value="'+escapeHtml(currentProposal.clientName)+'"></label>'+
@@ -3517,6 +3586,7 @@
         '</div>'+
       '</div>'+
       '<div class="modal-footer">'+
+        '<button type="button" id="propPreviewBtn" class="pill-btn">👁️ תצוגה מקדימה</button>'+
         '<button type="button" id="propDownloadBtn" class="pill-btn">📥 הורד כ-PDF</button>'+
         '<button type="button" id="propSaveDriveBtn" class="pill-btn">💾 שמור בדרייב</button>'+
         '<button type="button" id="propCancelBtn" class="ghost-btn">ביטול</button>'+
@@ -3524,17 +3594,16 @@
     '</div>';
     overlay.hidden = false;
     overlay.style.display = "flex";
+    document.getElementById("propPreviewBtn").onclick = showProposalPreview;
     document.getElementById("propDownloadBtn").onclick = downloadProposalAsPDF;
     document.getElementById("propSaveDriveBtn").onclick = saveProposalToDrive;
     document.getElementById("propCancelBtn").onclick = closeProposalEditor;
     overlay.querySelector(".close-modal").onclick = closeProposalEditor;
-    document.getElementById("changeLogo").onclick = function(){ document.getElementById("logoUpload").click(); };
-    var logoUpload = document.getElementById("logoUpload");
-    if(logoUpload) logoUpload.onchange = function(e){ if(e.target.files[0]) uploadCompanyLogo(e.target.files[0]); };
+    document.getElementById("changeLogo").onclick = uploadCompanyLogo;
     var logoPreview = document.getElementById("logoPreview");
-    if(logoPreview) logoPreview.onclick = function(){ document.getElementById("logoUpload").click(); };
+    if(logoPreview) logoPreview.onclick = uploadCompanyLogo;
     var headerLogo = document.getElementById("headerLogo");
-    if(headerLogo) headerLogo.onclick = function(){ document.getElementById("logoUpload").click(); };
+    if(headerLogo) headerLogo.onclick = uploadCompanyLogo;
   }
   function closeProposalEditor(){
     var overlay = document.getElementById("proposalOverlay");
