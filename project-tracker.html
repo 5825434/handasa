@@ -31,6 +31,7 @@
 <div class="wrap">
   <div class="hdr">
     <div class="hdr-id">
+      <div id="logoContainer" class="logo-container"></div>
       <div>
         <h1>ניהול פרויקטים</h1>
         <p>שרטוט · קורות ועמודים · ברזל · הדפסה</p>
@@ -601,6 +602,7 @@
     var savedClientId = localStorage.getItem("currentClientId");
     var savedJobId = localStorage.getItem("currentJobId");
     var savedTab = localStorage.getItem("clientJobTab") || "progress";
+    updateLogoDisplay();
     showView(savedView);
     if(savedClientId && savedView === "clientsNew"){
       selectedClientId = savedClientId;
@@ -3550,7 +3552,13 @@
   }
   function updateLogoDisplay(){
     var logo = getCompanyLogo();
+    var logoContainer = document.getElementById("logoContainer");
     if(logo){
+      if(logoContainer){
+        logoContainer.innerHTML = '<img src="'+logo+'" id="mainHeaderLogo" title="לחץ לשינוי הלוגו" alt="לוגו חברה">';
+        var mainLogo = document.getElementById("mainHeaderLogo");
+        if(mainLogo) mainLogo.onclick = uploadCompanyLogo;
+      }
       var headerLogo = document.getElementById("headerLogo");
       if(headerLogo) headerLogo.src = logo;
       else if(document.querySelector(".modal-header")){
@@ -3567,6 +3575,8 @@
       }
       var logoPreview = document.getElementById("logoPreview");
       if(logoPreview) logoPreview.src = logo;
+    } else if(logoContainer){
+      logoContainer.innerHTML = '';
     }
   }
   function showProposalPreview(){
