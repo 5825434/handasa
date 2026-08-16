@@ -3505,8 +3505,11 @@
         localStorage.setItem("company_logo", logoData);
         companyLogo = logoData;
         updateLogoDisplay();
-        if(previewMode) showProposalPreview();
-        else if(currentProposal) showProposalEditor();
+        if(currentProposal){
+          if(previewMode) showProposalPreview();
+          else showProposalEditor();
+        }
+        if(currentView === "clientsNew") renderClientsNewDetail();
       };
       reader.readAsDataURL(file);
     };
@@ -3645,7 +3648,7 @@
             '<h4>פרטי הצעה</h4>'+
             '<label>'+
               (getCompanyLogo() ? '<img id="logoPreview" src="'+getCompanyLogo()+'" style="height:40px;margin-left:8px;cursor:pointer;vertical-align:middle;" title="לחץ לשינוי לוגו חדש">' : '')+
-              '<button type="button" class="ghost-btn" id="changeLogo" style="margin-right:8px;">🏢 '+(companyLogo?'שנה לוגו':'העלה לוגו')+'</button>'+
+              '<button type="button" class="ghost-btn" id="changeLogo" style="margin-right:8px;">🏢 '+(getCompanyLogo()?'שנה לוגו':'העלה לוגו')+'</button>'+
             '</label>'+
             '<label>שם הלקוח: <input type="text" id="propClientName" value="'+escapeHtml(currentProposal.clientName)+'"></label>'+
             '<label>שם העבודה: <input type="text" id="propJobTitle" value="'+escapeHtml(currentProposal.jobTitle)+'"></label>'+
