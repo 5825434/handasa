@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ניהול פרויקטים הנדסיים</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -826,6 +827,10 @@
       var delJob = e.target.closest("[data-del-job]");
       if(delJob){
         if(confirm("למחוק את העבודה? הפעולה אינה הפיכה.")) deleteJob(selectedClientId, delJob.getAttribute("data-del-job"));
+        return;
+      }
+      if(e.target.closest("#jobCreateProposalBtn")){
+        showProposalEditor();
         return;
       }
       if(e.target.closest("#jobAddQuoteLineBtn")){
@@ -1902,7 +1907,8 @@
     }).join("");
     return '<div class="quote-lines-wrap">'+quoteRows+
       '<button type="button" class="ghost-btn" id="jobAddQuoteLineBtn">+ שורה</button>'+
-      '<div class="quote-summary-cell" data-quote-summary>סה"כ הצעה: '+fmtMoney(quoteLinesTotal(qLines))+'</div></div>';
+      '<div class="quote-summary-cell" data-quote-summary>סה"כ הצעה: '+fmtMoney(quoteLinesTotal(qLines))+'</div>'+
+      '<div style="margin-top:12px;"><button type="button" class="pill-btn" id="jobCreateProposalBtn">📄 צור הצעת מחיר</button></div></div>';
   }
   function jobNegotiationTabHtml(job){
     if(!managerMode) return '<div class="locked-note">מידע המשא ומתן גלוי למנהל בלבד.</div>';
@@ -3384,6 +3390,179 @@
     updateUserBadge();
     resolveSites();
   });
+
+  /* ========== Proposal/Quote Generation ========== */
+  var currentProposal = null;
+  function showProposalEditor(){
+    var job = getSelectedJob();
+    var client = getClientNew(selectedClientId);
+    if(!job || !client) return;
+    currentProposal = {
+      clientName: client.name || "לקוח",
+      jobTitle: job.title || "עבודה",
+      date: new Date().toISOString().slice(0,10),
+      items: (job.quoteLines || []).map(function(l){ return {name:l.name||"", qty:l.qty||1, unitPrice:l.unitPrice||0}; }),
+      notes: "",
+      signature: "",
+      driveMode: "shared"
+    };
+    var overlay = document.getElementById("proposalOverlay");
+    if(!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "proposalOverlay";
+      overlay.className = "modal-overlay";
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = '<div class="modal-dialog" style="max-width:900px;">'+
+      '<div class="modal-header">'+
+        '<h3>עריכת הצעת מחיר - '+escapeHtml(client.name)+'</h3>'+
+        '<button type="button" class="close-modal">✕</button>'+
+      '</div>'+
+      '<div class="modal-body">'+
+        '<div class="proposal-editor">'+
+          '<div class="proposal-section">'+
+            '<h4>פרטי הצעה</h4>'+
+            '<label>שם הלקוח: <input type="text" id="propClientName" value="'+escapeHtml(currentProposal.clientName)+'"></label>'+
+            '<label>שם העבודה: <input type="text" id="propJobTitle" value="'+escapeHtml(currentProposal.jobTitle)+'"></label>'+
+            '<label>תאריך: <input type="date" id="propDate" value="'+currentProposal.date+'"></label>'+
+          '</div>'+
+          '<div class="proposal-section">'+
+            '<h4>פריטים</h4>'+
+            '<div id="proposalItems" style="max-height:300px;overflow-y:auto;">'+
+              currentProposal.items.map(function(item,i){
+                return '<div class="prop-item" style="display:grid;grid-template-columns:1fr 100px 100px 1fr;gap:8px;margin-bottom:8px;align-items:center;">'+
+                  '<input type="text" placeholder="שם הפריט" value="'+escapeHtml(item.name)+'" data-prop-item-name="'+i+'">'+
+                  '<input type="number" placeholder="כמות" value="'+item.qty+'" min="0" data-prop-item-qty="'+i+'">'+
+                  '<input type="number" placeholder="מחיר יח" value="'+item.unitPrice+'" min="0" data-prop-item-price="'+i+'">'+
+                  '<div style="text-align:right;">₪'+(item.qty*item.unitPrice)+'</div>'+
+                '</div>';
+              }).join("")+
+            '</div>'+
+          '</div>'+
+          '<div class="proposal-section">'+
+            '<h4>הערות נוספות</h4>'+
+            '<textarea id="propNotes" style="width:100%;height:100px;" placeholder="הערות, תנאים, וכו...">'+escapeHtml(currentProposal.notes)+'</textarea>'+
+          '</div>'+
+          '<div class="proposal-section">'+
+            '<h4>חתימה דיגיטלית</h4>'+
+            '<input type="text" id="propSignature" placeholder="שם/פרטי" value="'+escapeHtml(currentProposal.signature)+'">'+
+          '</div>'+
+          '<div class="proposal-section">'+
+            '<label><input type="radio" name="driveMode" value="shared" '+(currentProposal.driveMode==="shared"?"checked":"")+' id="driveShared"> שמור בדרייב משותף (גלוי)</label>'+
+            '<label><input type="radio" name="driveMode" value="private" '+(currentProposal.driveMode==="private"?"checked":"")+' id="drivePrivate"> שמור בדרייב פרטי (רק לי)</label>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="modal-footer">'+
+        '<button type="button" id="propDownloadBtn" class="pill-btn">📥 הורד כ-PDF</button>'+
+        '<button type="button" id="propSaveDriveBtn" class="pill-btn">💾 שמור בדרייב</button>'+
+        '<button type="button" id="propCancelBtn" class="ghost-btn">ביטול</button>'+
+      '</div>'+
+    '</div>';
+    overlay.hidden = false;
+    overlay.style.display = "flex";
+    document.getElementById("propDownloadBtn").onclick = downloadProposalAsPDF;
+    document.getElementById("propSaveDriveBtn").onclick = saveProposalToDrive;
+    document.getElementById("propCancelBtn").onclick = closeProposalEditor;
+    overlay.querySelector(".close-modal").onclick = closeProposalEditor;
+  }
+  function closeProposalEditor(){
+    var overlay = document.getElementById("proposalOverlay");
+    if(overlay) overlay.hidden = true;
+  }
+  function downloadProposalAsPDF(){
+    updateProposalFromUI();
+    if(!currentProposal) return;
+    var html = '<div style="font-family:Arial;padding:40px;direction:rtl;text-align:right;">'+
+      '<h2>הצעת מחיר</h2>'+
+      '<p><strong>לקוח:</strong> '+escapeHtml(currentProposal.clientName)+'</p>'+
+      '<p><strong>עבודה:</strong> '+escapeHtml(currentProposal.jobTitle)+'</p>'+
+      '<p><strong>תאריך:</strong> '+currentProposal.date+'</p>'+
+      '<table style="width:100%;border-collapse:collapse;margin:20px 0;">'+
+        '<tr style="background:#f5f5f5;border:1px solid #ddd;">'+
+          '<th style="padding:10px;text-align:right;border:1px solid #ddd;">פריט</th>'+
+          '<th style="padding:10px;width:80px;border:1px solid #ddd;">כמות</th>'+
+          '<th style="padding:10px;width:100px;border:1px solid #ddd;">מחיר יח</th>'+
+          '<th style="padding:10px;width:100px;border:1px solid #ddd;">סה"כ</th>'+
+        '</tr>'+
+        currentProposal.items.map(function(item){
+          return '<tr style="border:1px solid #ddd;">'+
+            '<td style="padding:10px;border:1px solid #ddd;">'+escapeHtml(item.name)+'</td>'+
+            '<td style="padding:10px;text-align:center;border:1px solid #ddd;">'+item.qty+'</td>'+
+            '<td style="padding:10px;text-align:center;border:1px solid #ddd;">₪'+item.unitPrice+'</td>'+
+            '<td style="padding:10px;text-align:center;border:1px solid #ddd;">₪'+(item.qty*item.unitPrice)+'</td>'+
+          '</tr>';
+        }).join("")+
+        '<tr style="background:#f5f5f5;border:1px solid #ddd;font-weight:bold;">'+
+          '<td colspan="3" style="padding:10px;text-align:left;border:1px solid #ddd;">סה"כ הצעה:</td>'+
+          '<td style="padding:10px;text-align:center;border:1px solid #ddd;">₪'+currentProposal.items.reduce(function(s,i){return s+i.qty*i.unitPrice;},0)+'</td>'+
+        '</tr>'+
+      '</table>'+
+      (currentProposal.notes ? '<p><strong>הערות:</strong><br>'+escapeHtml(currentProposal.notes).replace(/\n/g,"<br>")+'</p>' : '')+
+      (currentProposal.signature ? '<p style="margin-top:40px;"><strong>חתימה:</strong> '+escapeHtml(currentProposal.signature)+'</p>' : '')+
+    '</div>';
+    var opt = {margin:10, filename:"proposal_"+currentProposal.clientName+"_"+currentProposal.date+".pdf", image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}};
+    html2pdf().set(opt).from(html).save();
+  }
+  function updateProposalFromUI(){
+    if(!currentProposal) return;
+    currentProposal.clientName = document.getElementById("propClientName").value;
+    currentProposal.jobTitle = document.getElementById("propJobTitle").value;
+    currentProposal.date = document.getElementById("propDate").value;
+    currentProposal.notes = document.getElementById("propNotes").value;
+    currentProposal.signature = document.getElementById("propSignature").value;
+    var driveMode = document.querySelector("input[name='driveMode']:checked");
+    if(driveMode) currentProposal.driveMode = driveMode.value;
+    currentProposal.items = [];
+    document.querySelectorAll("[data-prop-item-name]").forEach(function(el){
+      var i = Number(el.getAttribute("data-prop-item-name"));
+      currentProposal.items[i] = {
+        name: el.value,
+        qty: Number(document.querySelector("[data-prop-item-qty='"+i+"']").value)||0,
+        unitPrice: Number(document.querySelector("[data-prop-item-price='"+i+"']").value)||0
+      };
+    });
+  }
+  function ensureProposalsFolder(){
+    if(!driveAccessToken) return Promise.reject(new Error("אין חיבור לדרייב"));
+    return ensureDriveFolder().then(function(mainFolderId){
+      return ensureCategoryFolder(mainFolderId, selectedClientId, "proposals", "הצעות").then(function(folderData){
+        return folderData;
+      });
+    });
+  }
+  function saveProposalToDrive(){
+    updateProposalFromUI();
+    if(!driveAccessToken){
+      alert("חיבור לדרייב אינו פעיל. לחץ על 'חבר את הדרייב שלי' בטאב מסמכים.");
+      return;
+    }
+    var client = getClientNew(selectedClientId);
+    if(!client) return;
+    showDriveStatus("שומר הצעה לדרייב...");
+    var proposalData = JSON.stringify(currentProposal, null, 2);
+    var fileName = "proposal_"+client.name.replace(/[^a-z0-9]/gi,"_")+"_"+currentProposal.date+".json";
+    ensureProposalsFolder().then(function(folderId){
+      var metadata = {name:fileName, parents:[folderId]};
+      var form = new FormData();
+      form.append("metadata", new Blob([JSON.stringify(metadata)], {type:"application/json"}));
+      form.append("file", new Blob([proposalData], {type:"application/json"}));
+      return fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", {
+        method:"POST", headers:{"Authorization":"Bearer "+driveAccessToken}, body:form
+      }).then(function(r){
+        if(!r.ok) throw new Error("שמירה בדרייב נכשלה ("+r.status+")");
+        return r.json();
+      }).then(function(fileObj){
+        hideDriveStatus();
+        alert("הצעה נשמרה בהצלחה בדרייב!");
+        closeProposalEditor();
+        if(currentView==="clientsNew") renderClientsNewDetail();
+      });
+    }).catch(function(err){
+      hideDriveStatus();
+      alert("שגיאה בשמירה לדרייב: "+(err.message||String(err)));
+    });
+  }
 })();
 </script>
 
