@@ -3498,13 +3498,28 @@
     input.accept = "image/*";
     input.onchange = function(e){
       var file = e.target.files[0];
-      if(!file) return;
+      if(!file) { console.log("no file selected"); return; }
+      console.log("File selected:", file.name, file.size);
       var reader = new FileReader();
+      reader.onerror = function(err){
+        console.error("FileReader error:", err);
+        alert("שגיאה בקריאת הקובץ");
+      };
       reader.onload = function(ev){
+        console.log("FileReader onload fired");
         var logoData = ev.target.result;
-        localStorage.setItem("company_logo", logoData);
+        console.log("Logo data size:", logoData.length);
+        try{
+          localStorage.setItem("company_logo", logoData);
+          console.log("Logo saved to localStorage");
+        }catch(err){
+          console.error("localStorage error:", err);
+          alert("שגיאה בשמירה של הלוגו");
+          return;
+        }
         companyLogo = logoData;
         updateLogoDisplay();
+        console.log("updateLogoDisplay called");
         if(currentProposal){
           if(previewMode) showProposalPreview();
           else showProposalEditor();
@@ -3698,11 +3713,25 @@
     document.getElementById("propCancelBtn").onclick = function(){ closeProposalEditor(); };
     var closeBtn = overlay.querySelector(".close-modal");
     if(closeBtn) closeBtn.onclick = function(e){ e.preventDefault(); closeProposalEditor(); return false; };
-    document.getElementById("changeLogo").onclick = uploadCompanyLogo;
+    var changeLogoBtn = document.getElementById("changeLogo");
+    if(changeLogoBtn) {
+      changeLogoBtn.onclick = function(e){
+        console.log("Change logo button clicked");
+        uploadCompanyLogo();
+      };
+    } else {
+      console.log("changeLogo button not found");
+    }
     var logoPreview = document.getElementById("logoPreview");
-    if(logoPreview) logoPreview.onclick = uploadCompanyLogo;
+    if(logoPreview) logoPreview.onclick = function(e){
+      console.log("Logo preview clicked");
+      uploadCompanyLogo();
+    };
     var headerLogo = document.getElementById("headerLogo");
-    if(headerLogo) headerLogo.onclick = uploadCompanyLogo;
+    if(headerLogo) headerLogo.onclick = function(e){
+      console.log("Header logo clicked");
+      uploadCompanyLogo();
+    };
   }
   function closeProposalEditor(){
     var overlay = document.getElementById("proposalOverlay");
