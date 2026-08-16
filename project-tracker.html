@@ -3507,24 +3507,42 @@
       };
       reader.onload = function(ev){
         console.log("FileReader onload fired");
-        var logoData = ev.target.result;
-        console.log("Logo data size:", logoData.length);
-        try{
-          localStorage.setItem("company_logo", logoData);
-          console.log("Logo saved to localStorage");
-        }catch(err){
-          console.error("localStorage error:", err);
-          alert("שגיאה בשמירה של הלוגו");
-          return;
-        }
-        companyLogo = logoData;
-        updateLogoDisplay();
-        console.log("updateLogoDisplay called");
-        if(currentProposal){
-          if(previewMode) showProposalPreview();
-          else showProposalEditor();
-        }
-        if(currentView === "clientsNew") renderClientsNewDetail();
+        var logoDataUrl = ev.target.result;
+        console.log("Original logo data size:", logoDataUrl.length);
+        var img = new Image();
+        img.onload = function(){
+          var canvas = document.createElement("canvas");
+          var ctx = canvas.getContext("2d");
+          var maxWidth = 300;
+          var maxHeight = 150;
+          var ratio = Math.min(maxWidth/img.width, maxHeight/img.height);
+          canvas.width = img.width * ratio;
+          canvas.height = img.height * ratio;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var compressedData = canvas.toDataURL("image/jpeg", 0.7);
+          console.log("Compressed logo data size:", compressedData.length);
+          try{
+            localStorage.setItem("company_logo", compressedData);
+            console.log("Logo saved to localStorage");
+          }catch(err){
+            console.error("localStorage error:", err);
+            alert("שגיאה בשמירה של הלוגו - תמונה גדולה מדי. בחר תמונה קטנה יותר.");
+            return;
+          }
+          companyLogo = compressedData;
+          updateLogoDisplay();
+          console.log("updateLogoDisplay called");
+          if(currentProposal){
+            if(previewMode) showProposalPreview();
+            else showProposalEditor();
+          }
+          if(currentView === "clientsNew") renderClientsNewDetail();
+        };
+        img.onerror = function(){
+          console.error("Image load error");
+          alert("שגיאה בקריאת התמונה");
+        };
+        img.src = logoDataUrl;
       };
       reader.readAsDataURL(file);
     };
