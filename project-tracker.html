@@ -3476,14 +3476,37 @@
       if(!file) return;
       var reader = new FileReader();
       reader.onload = function(ev){
-        companyLogo = ev.target.result;
-        localStorage.setItem("company_logo", companyLogo);
+        var logoData = ev.target.result;
+        localStorage.setItem("company_logo", logoData);
+        companyLogo = logoData;
+        updateLogoDisplay();
         if(previewMode) showProposalPreview();
         else if(currentProposal) showProposalEditor();
       };
       reader.readAsDataURL(file);
     };
     input.click();
+  }
+  function updateLogoDisplay(){
+    var logo = getCompanyLogo();
+    if(logo){
+      var headerLogo = document.getElementById("headerLogo");
+      if(headerLogo) headerLogo.src = logo;
+      else if(document.querySelector(".modal-header")){
+        var header = document.querySelector(".modal-header");
+        if(!header.querySelector("#headerLogo")){
+          var img = document.createElement("img");
+          img.id = "headerLogo";
+          img.src = logo;
+          img.style = "height:50px;margin-right:12px;cursor:pointer;";
+          img.title = "לחץ לשינוי הלוגו";
+          img.onclick = uploadCompanyLogo;
+          header.insertBefore(img, header.firstChild);
+        }
+      }
+      var logoPreview = document.getElementById("logoPreview");
+      if(logoPreview) logoPreview.src = logo;
+    }
   }
   function showProposalPreview(){
     updateProposalFromUI();
@@ -3574,7 +3597,7 @@
         items: (job.quoteLines || []).map(function(l){ return {name:l.name||"", qty:l.qty||1, unitPrice:l.unitPrice||0}; }),
         notes: "",
         signature: "",
-        vatPercent: 17,
+        vatPercent: 18,
         driveMode: "shared"
       };
     }
@@ -3640,6 +3663,7 @@
     '</div>';
     overlay.hidden = false;
     overlay.style.display = "flex";
+    updateLogoDisplay();
     document.getElementById("propPreviewBtn").onclick = showProposalPreview;
     document.getElementById("propDownloadBtn").onclick = downloadProposalAsPDF;
     document.getElementById("propSaveDriveBtn").onclick = saveProposalToDrive;
