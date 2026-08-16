@@ -966,6 +966,12 @@
         renderClientsNewDetail();
         return;
       }
+      var openTask = e.target.closest("[data-open-task]");
+      if(openTask){
+        var taskId = openTask.getAttribute("data-open-task");
+        openTaskModal(taskId);
+        return;
+      }
       var taskDoneCheckbox = e.target.closest("[data-task-done]");
       if(taskDoneCheckbox){
         e.stopPropagation();
@@ -2001,9 +2007,9 @@
     var tasksHtml = clientTasks.length ? '<div style="margin-top:20px;padding:15px;background:#f9f9f9;border-radius:8px;">'+
       '<h4 style="margin-top:0;">משימות קשורות ללקוח זה:</h4>'+
       clientTasks.map(function(t){
-        return '<div style="padding:10px;margin-bottom:8px;background:white;border-left:3px solid #1f4e79;border-radius:4px;">'+
+        return '<div style="padding:10px;margin-bottom:8px;background:white;border-left:3px solid #1f4e79;border-radius:4px;cursor:pointer;" data-open-task="'+t.id+'">'+
           '<div style="display:flex;gap:10px;align-items:center;">'+
-            '<input type="checkbox" '+(t.done?"checked":"")+' data-task-done="'+t.id+'" style="width:18px;height:18px;">'+
+            '<input type="checkbox" '+(t.done?"checked":"")+' data-task-done="'+t.id+'" style="width:18px;height:18px;" onclick="event.stopPropagation();">'+
             '<span style="flex:1;'+(t.done?'text-decoration:line-through;color:#999;':'')+'">'+escapeHtml(t.title||"משימה")+'</span>'+
             '<small style="color:#666;">'+(t.dueDate?('עד '+t.dueDate):'')+'</small>'+
           '</div>'+
@@ -3078,7 +3084,7 @@
         ownerUid:currentUser.uid, ownerName:(currentUser.displayName||currentUser.email||""),
         type:taskModal.type, title:d.title, description:d.description,
         dueDate:d.dueDate, dueTime:d.dueTime, quadrant:d.quadrant, categoryId:d.categoryId,
-        clientId:d.clientId, done:false, shared:false, subtasks:d.subtasks, recurrence:d.recurrence,
+        clientId:d.clientId, done:false, shared:!managerMode, subtasks:d.subtasks, recurrence:d.recurrence,
         estMin:d.estMin, reminder:d.reminder, assignedTo:d.assignedTo, tags:d.tags,
         timer:{elapsedSec:0,running:false,runStartedAt:null},
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
