@@ -629,3 +629,18 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .proposal-section textarea{padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;color:var(--ink);background:var(--surface);}
 .proposal-section input:focus,
 .proposal-section textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+.negotiation-fields{display:flex;flex-direction:column;gap:0;}
+.neg-section{border-bottom:1px solid var(--border);padding:15px 0;}
+.neg-section:first-child{padding-top:0;}
+.neg-section:last-child{border-bottom:none;padding-bottom:0;}
+.neg-section h4{margin:0 0 12px 0;color:var(--ink);}
+.neg-section label{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+.neg-section label:last-child{margin-bottom:0;}
+.neg-section input[type="text"],
+.neg-section input[type="date"],
+.neg-section input[type="number"],
+.neg-section select,
+.neg-section textarea{padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;color:var(--ink);background:var(--surface);}
+.neg-section input:focus,
+.neg-section select:focus,
+.neg-section textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}

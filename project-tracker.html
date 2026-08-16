@@ -1010,6 +1010,10 @@
         else if(negf==="advancePercent") neg[negf] = Number(e.target.value)||0;
         else neg[negf] = e.target.value;
         setJobField(selectedClientId, selectedJobId, "negotiation", neg);
+        if(negf==="status" && e.target.value==="accepted"){
+          var c = getClientNew(selectedClientId);
+          writeNotification({type:"proposal_accepted", clientName: c&&c.name||"", jobTitle: job2.title||"", timestamp: Date.now()});
+        }
         return;
       }
       var nf = e.target.getAttribute("data-needsfield");
@@ -1913,12 +1917,28 @@
   function jobNegotiationTabHtml(job){
     if(!managerMode) return '<div class="locked-note">מידע המשא ומתן גלוי למנהל בלבד.</div>';
     var neg = job.negotiation||{};
+    var statusOptions = ["", "טיוטה", "נשלחה", "מקובלת", "נדחתה"];
+    var statusValues = ["", "draft", "sent", "accepted", "rejected"];
     return '<div class="negotiation-fields">'+
-      '<label>אושר בתאריך <input type="date" data-negfield="approvedAt" value="'+(neg.approvedAt||"")+'"></label>'+
-      '<label>אחוז מקדמה <input type="number" data-negfield="advancePercent" value="'+(neg.advancePercent||0)+'"></label>'+
-      '<label>אמצעי תשלום <input type="text" data-negfield="paymentMethod" value="'+escapeHtml(neg.paymentMethod||"")+'"></label>'+
-      '<label>מקדמה שולמה בתאריך <input type="date" data-negfield="advancePaidDate" value="'+(neg.advancePaidDate||"")+'"></label>'+
-      '<label><input type="checkbox" data-negfield="advancePaid"'+(neg.advancePaid?" checked":"")+'> מקדמה שולמה</label>'+
+      '<div class="neg-section">'+
+        '<h4>סטטוס הצעה</h4>'+
+        '<label>סטטוס <select data-negfield="status">'+
+          statusOptions.map(function(opt,i){ return '<option value="'+statusValues[i]+'"'+(neg.status===statusValues[i]?" selected":"")+'>'+opt+'</option>'; }).join("")+
+        '</select></label>'+
+        '<label>אושר בתאריך <input type="date" data-negfield="approvedAt" value="'+(neg.approvedAt||"")+'"></label>'+
+      '</div>'+
+      '<div class="neg-section">'+
+        '<h4>תנאי תשלום</h4>'+
+        '<label>אחוז מקדמה (%) <input type="number" data-negfield="advancePercent" value="'+(neg.advancePercent||0)+'" min="0" max="100"></label>'+
+        '<label>אמצעי תשלום <input type="text" data-negfield="paymentMethod" value="'+escapeHtml(neg.paymentMethod||"")+'"></label>'+
+        '<label>תאריך יעד לתשלום מקדמה <input type="date" data-negfield="paymentReminderDate" value="'+(neg.paymentReminderDate||"")+'"></label>'+
+        '<label>מקדמה שולמה בתאריך <input type="date" data-negfield="advancePaidDate" value="'+(neg.advancePaidDate||"")+'"></label>'+
+        '<label><input type="checkbox" data-negfield="advancePaid"'+(neg.advancePaid?" checked":"")+'> מקדמה שולמה</label>'+
+      '</div>'+
+      '<div class="neg-section">'+
+        '<h4>הערות משא ומתן</h4>'+
+        '<textarea data-negfield="notes" placeholder="רשמו כאן הערות על משא ומתן, שיחות, תנאים שונים, וכו..." style="width:100%;height:120px;">'+escapeHtml(neg.notes||"")+'</textarea>'+
+      '</div>'+
     '</div>';
   }
   function jobTasksTabHtml(job){
@@ -3271,6 +3291,28 @@
   function requestReminderPermission(){
     try{ if(window.Notification && Notification.permission==="default"){ Notification.requestPermission(); } }catch(e){}
   }
+  function checkPaymentReminders(){
+    if(!managerMode) return;
+    var today = todayStr();
+    var tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    var tomorrowStr = tomorrow.toISOString().slice(0,10);
+    clients.forEach(function(c){
+      (c.jobs||[]).forEach(function(job){
+        var neg = job.negotiation||{};
+        if(!neg.paymentReminderDate || neg.advancePaid) return;
+        var remKey = job.id+":payment";
+        if(firedReminders[remKey]) return;
+        var daysUntil = Math.floor((new Date(neg.paymentReminderDate).getTime() - new Date(today).getTime()) / (1000*60*60*24));
+        if(daysUntil === 0 || daysUntil === 1){
+          firedReminders[remKey] = true;
+          var msg = daysUntil === 0 ? "תשלום מקדמה עד היום!" : "תשלום מקדמה מחר!";
+          try{ new Notification("תזכורת תשלום", {body: (c.name||"לקוח") + " - " + msg}); }catch(e){}
+          writeNotification({type:"payment_reminder", clientName: c.name||"", jobTitle: job.title||"", dueDate: neg.paymentReminderDate, timestamp: Date.now()});
+        }
+      });
+    });
+  }
   function checkTaskReminders(){
     if(!window.Notification || Notification.permission!=="granted") return;
     var now=new Date();
@@ -3333,6 +3375,7 @@
   }
   setInterval(function(){
     checkTaskReminders();
+    checkPaymentReminders();
     if(currentView!=="tasks") return;
     personalTasks.forEach(function(t){
       if(t.timer && t.timer.running){
