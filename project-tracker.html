@@ -366,6 +366,7 @@
         <div class="field full"><label>דחיפות וחשיבות</label><div class="qpicker" id="pm-quadrant"></div></div>
         <div class="field"><label>קטגוריה</label><select id="pm-category"></select></div>
         <div class="field"><label>שייך ללקוח (אופציונלי)</label><select id="pm-client"></select></div>
+        <div class="field"><label>הקצה לעובד (אופציונלי)</label><select id="pm-assignedTo"><option value="">ללא הקצאה</option></select></div>
         <div class="field ptask-when"><label>חזרתיות</label><select id="pm-recurrence">
           <option value="none">ללא חזרה</option><option value="daily">יומי</option>
           <option value="weekly">שבועי</option><option value="monthly">חודשי</option>
@@ -2828,7 +2829,7 @@
   function blankTaskData(type){
     return {type:type||"task", title:"", description:"", dueDate:"", dueTime:"",
       quadrant:"n", categoryId:(taskCategories[0]?taskCategories[0].id:""), clientId:"",
-      recurrence:"none", estMin:0, reminder:"none", subtasks:[], shared:false, ownerName:""};
+      recurrence:"none", estMin:0, reminder:"none", subtasks:[], shared:false, ownerName:"", assignedTo:""};
   }
   function openTaskModal(id, type){
     if(id){
@@ -2839,7 +2840,7 @@
           categoryId:t.categoryId||"", clientId:t.clientId||"", recurrence:t.recurrence||"none",
           estMin:t.estMin||0, reminder:t.reminder||"none",
           subtasks:(t.subtasks||[]).map(function(s){return {text:s.text||"",done:!!s.done};}),
-          shared:!!t.shared, ownerName:t.ownerName||""}};
+          shared:!!t.shared, ownerName:t.ownerName||"", assignedTo:t.assignedTo||""}};
     } else {
       taskModal={open:true, id:null, type:type||"task", owner:true, data:blankTaskData(type)};
     }
@@ -2881,6 +2882,10 @@
       '<option value="">ללא קישור</option>'+clients.map(function(c){
         return '<option value="'+c.id+'"'+(d.clientId===c.id?" selected":"")+'>'+escapeHtml(c.name||"(ללא שם)")+'</option>';
       }).join("");
+    var assignedToOptions = '<option value="">ללא הקצאה</option>';
+    if(currentUser.displayName) assignedToOptions += '<option value="'+currentUser.displayName+'"'+(d.assignedTo===currentUser.displayName?" selected":"")+'>אני ('+currentUser.displayName+')</option>';
+    assignedToOptions += '<option value="כל הצוות"'+(d.assignedTo==="כל הצוות"?" selected":"")+'>כל הצוות</option>';
+    document.getElementById("pm-assignedTo").innerHTML = assignedToOptions;
     renderModalQuadrant();
     renderModalSubtasks();
     document.querySelectorAll("#ptaskModalOverlay .ptask-when").forEach(function(el){ el.style.display=isIdea?"none":""; });
@@ -2911,6 +2916,7 @@
     d.recurrence=document.getElementById("pm-recurrence").value;
     d.categoryId=document.getElementById("pm-category").value;
     d.clientId=document.getElementById("pm-client").value;
+    d.assignedTo=document.getElementById("pm-assignedTo").value;
     d.estMin=Number(document.getElementById("pm-estMin").value)||0;
     d.reminder=document.getElementById("pm-reminder").value;
     if(d.reminder!=="none") requestReminderPermission();
@@ -2918,7 +2924,7 @@
       personalTasksCol().doc(taskModal.id).update({
         title:d.title, description:d.description, dueDate:d.dueDate, dueTime:d.dueTime,
         quadrant:d.quadrant, categoryId:d.categoryId, clientId:d.clientId, recurrence:d.recurrence,
-        estMin:d.estMin, reminder:d.reminder, subtasks:d.subtasks
+        estMin:d.estMin, reminder:d.reminder, subtasks:d.subtasks, assignedTo:d.assignedTo
       });
     } else {
       personalTasksCol().add({
@@ -2926,7 +2932,7 @@
         type:taskModal.type, title:d.title, description:d.description,
         dueDate:d.dueDate, dueTime:d.dueTime, quadrant:d.quadrant, categoryId:d.categoryId,
         clientId:d.clientId, done:false, shared:false, subtasks:d.subtasks, recurrence:d.recurrence,
-        estMin:d.estMin, reminder:d.reminder,
+        estMin:d.estMin, reminder:d.reminder, assignedTo:d.assignedTo,
         timer:{elapsedSec:0,running:false,runStartedAt:null},
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -2984,6 +2990,9 @@
         if(taskFilters.bucket!=="all" && taskBucket(t)!==taskFilters.bucket) return false;
       }
       if(taskDisplayPrefs.hideDone && t.done) return false;
+      if(t.assignedTo && !managerMode){
+        if(t.assignedTo!=="כל הצוות" && t.assignedTo!==currentUser.displayName) return false;
+      }
       if(q){
         var hay=((t.title||"")+" "+(t.description||"")).toLowerCase();
         if(hay.indexOf(q)===-1) return false;
@@ -3053,6 +3062,7 @@
       if(lc) meta.push('<span class="ptask-client-chip" data-ptask-goclient="'+t.clientId+'" title="מעבר לכרטיס הלקוח">👤 '+escapeHtml(lc.name||"לקוח")+'</span>');
     }
     if(p.showSubProgress && subs.length) meta.push('<span class="ptask-mi">☑ '+subDone+'/'+subs.length+'</span>');
+    if(t.assignedTo) meta.push('<span class="ptask-mi" title="הוקצה ל">👤 '+escapeHtml(t.assignedTo)+'</span>');
     if(t.shared) meta.push('<span class="ptask-mi" title="משותפת">👥'+(owner?"":" "+escapeHtml(t.ownerName||""))+'</span>');
     var footer = "";
     if(t.type!=="idea"){
