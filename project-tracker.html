@@ -3536,13 +3536,17 @@
     '</div>';
     overlay.hidden = false;
     overlay.style.display = "flex";
-    document.querySelector(".close-modal").onclick = closeProposalPreview;
+    var closeBtn = overlay.querySelector(".close-modal");
+    if(closeBtn) closeBtn.onclick = closeProposalPreview;
     document.getElementById("previewDownloadBtn").onclick = downloadProposalAsPDF;
-    document.getElementById("previewEditBtn").onclick = function(){ closeProposalPreview(); showProposalEditor(); };
+    document.getElementById("previewEditBtn").onclick = function(){ closeProposalPreview(); setTimeout(function(){ showProposalEditor(); }, 100); };
   }
   function closeProposalPreview(){
     var overlay = document.getElementById("proposalPreviewOverlay");
-    if(overlay) overlay.hidden = true;
+    if(overlay) {
+      overlay.hidden = true;
+      overlay.style.display = "none";
+    }
   }
   function showProposalEditor(){
     var job = getSelectedJob();
@@ -3621,9 +3625,9 @@
     document.getElementById("propPreviewBtn").onclick = showProposalPreview;
     document.getElementById("propDownloadBtn").onclick = downloadProposalAsPDF;
     document.getElementById("propSaveDriveBtn").onclick = saveProposalToDrive;
-    document.getElementById("propCancelBtn").onclick = closeProposalEditor;
+    document.getElementById("propCancelBtn").onclick = function(){ closeProposalEditor(); };
     var closeBtn = overlay.querySelector(".close-modal");
-    if(closeBtn) closeBtn.onclick = closeProposalEditor;
+    if(closeBtn) closeBtn.onclick = function(e){ e.preventDefault(); closeProposalEditor(); return false; };
     document.getElementById("changeLogo").onclick = uploadCompanyLogo;
     var logoPreview = document.getElementById("logoPreview");
     if(logoPreview) logoPreview.onclick = uploadCompanyLogo;
@@ -3632,7 +3636,10 @@
   }
   function closeProposalEditor(){
     var overlay = document.getElementById("proposalOverlay");
-    if(overlay) overlay.hidden = true;
+    if(overlay) {
+      overlay.hidden = true;
+      overlay.style.display = "none";
+    }
   }
   function downloadProposalAsPDF(){
     updateProposalFromUI();
