@@ -3616,13 +3616,25 @@
       overlay.style.zIndex = "10000";
       document.body.appendChild(overlay);
     }
-    var previewContent = '<div style="font-family:Georgia,serif;padding:40px;direction:rtl;text-align:right;background:white;">'+
-      (getCompanyLogo() ? '<div style="text-align:center;margin-bottom:30px;"><img src="'+getCompanyLogo()+'" style="max-height:80px;"></div>' : '')+
-      '<div style="border-bottom:2px solid #333;padding-bottom:20px;margin-bottom:30px;text-align:center;">'+
-        '<h1 style="margin:0 0 10px 0;color:#333;">הצעת מחיר</h1>'+
+    var previewContent = '<div style="background:#1f4e79;color:white;padding:30px;text-align:center;margin:-20px -20px 30px -20px;">'+
+      '<h1 style="margin:0 0 5px 0;font-size:28px;">הצעה למתן שירות הנדסי</h1>'+
+      '<p style="margin:0;font-size:14px;">'+escapeHtml(currentProposal.clientName)+'</p>'+
+      '<p style="margin:5px 0 0 0;font-size:12px;">'+currentProposal.date+'</p>'+
+    '</div>'+
+    '<div style="font-family:Arial,sans-serif;padding:20px;direction:rtl;text-align:right;background:white;">'+
+      (getCompanyLogo() ? '<div style="text-align:center;margin-bottom:20px;"><img src="'+getCompanyLogo()+'" style="max-height:60px;"></div>' : '')+
+      '<div style="margin-bottom:20px;display:flex;justify-content:space-between;font-size:13px;">'+
+        '<div>'+
+          '<p style="margin:0;"><strong>הצעה חדשה</strong></p>'+
+          '<p style="margin:3px 0 0 0;color:#666;">לתמיכה: 0523232352</p>'+
+        '</div>'+
+        '<div style="text-align:left;">'+
+          '<p style="margin:0;"><strong>'+escapeHtml(currentProposal.clientName)+'</strong></p>'+
+          '<p style="margin:3px 0 0 0;color:#666;">'+escapeHtml(currentProposal.jobTitle)+'</p>'+
+        '</div>'+
       '</div>'+
-      '<div style="margin-bottom:30px;">'+
-        '<p style="margin:5px 0;"><strong>לקוח:</strong> '+escapeHtml(currentProposal.clientName)+'</p>'+
+      '<hr style="border:none;border-top:1px solid #ddd;margin:20px 0;"/>'+
+      '<div style="margin-bottom:20px;">'+
         '<p style="margin:5px 0;"><strong>עבודה:</strong> '+escapeHtml(currentProposal.jobTitle)+'</p>'+
         '<p style="margin:5px 0;"><strong>תאריך:</strong> '+currentProposal.date+'</p>'+
       '</div>'+
@@ -3798,12 +3810,28 @@
     updateProposalFromUI();
     if(!currentProposal) return;
     var logoHtml = getCompanyLogo() ? '<div style="text-align:center;margin-bottom:20px;"><img src="'+getCompanyLogo()+'" style="max-height:60px;"></div>' : '';
-    var html = '<div style="font-family:Arial;padding:40px;direction:rtl;text-align:right;">'+
+    var html = '<div style="background:#1f4e79;color:white;padding:30px;text-align:center;margin-bottom:30px;">'+
+      '<h1 style="margin:0 0 5px 0;font-size:28px;">הצעה למתן שירות הנדסי</h1>'+
+      '<p style="margin:0;font-size:14px;">'+escapeHtml(currentProposal.clientName)+'</p>'+
+      '<p style="margin:5px 0 0 0;font-size:12px;">'+currentProposal.date+'</p>'+
+    '</div>'+
+    '<div style="font-family:Arial;padding:40px;direction:rtl;text-align:right;">'+
       logoHtml+
-      '<h2>הצעת מחיר</h2>'+
-      '<p><strong>לקוח:</strong> '+escapeHtml(currentProposal.clientName)+'</p>'+
-      '<p><strong>עבודה:</strong> '+escapeHtml(currentProposal.jobTitle)+'</p>'+
-      '<p><strong>תאריך:</strong> '+currentProposal.date+'</p>'+
+      '<div style="margin-bottom:20px;display:flex;justify-content:space-between;font-size:13px;">'+
+        '<div>'+
+          '<p style="margin:0;"><strong>הצעה חדשה</strong></p>'+
+          '<p style="margin:3px 0 0 0;color:#666;">לתמיכה: 0523232352</p>'+
+        '</div>'+
+        '<div style="text-align:left;">'+
+          '<p style="margin:0;"><strong>'+escapeHtml(currentProposal.clientName)+'</strong></p>'+
+          '<p style="margin:3px 0 0 0;color:#666;">'+escapeHtml(currentProposal.jobTitle)+'</p>'+
+        '</div>'+
+      '</div>'+
+      '<hr style="border:none;border-top:1px solid #ddd;margin:20px 0;"/>'+
+      '<div style="margin-bottom:20px;">'+
+        '<p style="margin:5px 0;"><strong>עבודה:</strong> '+escapeHtml(currentProposal.jobTitle)+'</p>'+
+        '<p style="margin:5px 0;"><strong>תאריך:</strong> '+currentProposal.date+'</p>'+
+      '</div>'+
       '<table style="width:100%;border-collapse:collapse;margin:20px 0;">'+
         '<tr style="background:#f5f5f5;border:1px solid #ddd;">'+
           '<th style="padding:10px;text-align:right;border:1px solid #ddd;">פריט</th>'+
