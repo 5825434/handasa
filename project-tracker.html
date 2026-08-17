@@ -24,6 +24,7 @@
       <button type="button" class="vs-btn" data-view="tasks">משימות</button>
       <button type="button" class="vs-btn" data-view="notifications">🔔 התראות</button>
       <button type="button" class="vs-btn" data-view="priceCatalog" data-manager-only>מחירון</button>
+      <button type="button" class="vs-btn" data-view="proposalTemplates" data-manager-only>🎨 תבניות הצעות</button>
       <button type="button" class="vs-btn" data-view="workHours">שעות עבודה</button>
     </nav>
   </aside>
@@ -202,8 +203,26 @@
     </div>
   </div><!-- /viewPriceCatalog -->
 
-
-
+  <div id="viewProposalTemplates" hidden>
+    <div class="sales-hd">
+      <div>
+        <h2>🎨 תבניות הצעות מחיר</h2>
+        <p>העלה תבנית מותאמת לחברה שלך. הטקסט יתווסף אוטומטית על התמונה.</p>
+      </div>
+    </div>
+    <div style="padding:20px;background:#f9f9f9;border-radius:10px;margin-bottom:20px;">
+      <h3>העלאת תבנית</h3>
+      <input type="file" id="templateImageInput" accept="image/*" style="margin-bottom:10px;">
+      <button type="button" class="pill-btn" id="uploadTemplateBtn">📸 העלה תבנית</button>
+      <div id="templateUploadStatus" style="margin-top:10px;"></div>
+    </div>
+    <div id="templatePreview" style="border:2px solid #ddd;border-radius:10px;padding:20px;background:white;">
+      <h3>תצוגה מקדימה של התבנית</h3>
+      <div id="templatePreviewArea" style="text-align:center;color:#999;">
+        <p>עדיין לא הועלתה תבנית</p>
+      </div>
+    </div>
+  </div><!-- /viewProposalTemplates -->
 
   <div id="viewWorkHours" hidden>
     <div class="sales-hd">
@@ -598,6 +617,7 @@
     attachSiteData();
     applyAccessMode();
     companyLogo = localStorage.getItem("company_logo_" + currentSiteId) || null;
+    proposalTemplate = localStorage.getItem("proposal_template_" + currentSiteId) || null;
     updateLogoDisplay();
     db.collection("sites").doc(currentSiteId).get().then(function(doc){
       var data = doc.data() || {};
@@ -605,8 +625,11 @@
         companyLogo = data.logo;
         updateLogoDisplay();
       }
+      if(data.proposalTemplate && !proposalTemplate){
+        proposalTemplate = data.proposalTemplate;
+      }
     }).catch(function(err){
-      console.warn("Error loading logo from Firestore:", err.message);
+      console.warn("Error loading site data:", err.message);
     });
     restoreDriveTokenFromStorage().then(function(){ checkAndShowNotifications(); });
     setTimeout(function(){ restoreViewState(); }, 500);
@@ -692,6 +715,7 @@
     });
     document.getElementById("signOutBtn").addEventListener("click", function(){ auth.signOut(); });
     document.getElementById("uploadLogoBtn").addEventListener("click", uploadCompanyLogo);
+    document.getElementById("uploadTemplateBtn").addEventListener("click", uploadProposalTemplate);
     document.getElementById("switchSiteBtn").addEventListener("click", function(){
       renderSiteList();
       document.getElementById("siteSwitcherOverlay").hidden = false;
@@ -1289,6 +1313,7 @@
     localStorage.setItem("currentJobId", selectedJobId||"");
     localStorage.setItem("clientJobTab", clientJobTab||"");
     document.getElementById("viewPriceCatalog").hidden = view!=="priceCatalog";
+    document.getElementById("viewProposalTemplates").hidden = view!=="proposalTemplates";
     document.getElementById("viewWorkHours").hidden = view!=="workHours";
     document.getElementById("viewClientsNew").hidden = view!=="clientsNew";
     document.getElementById("viewTasks").hidden = view!=="tasks";
@@ -1297,6 +1322,7 @@
       b.classList.toggle("active", b.getAttribute("data-view")===view);
     });
     if(view==="priceCatalog") renderCatalogTable();
+    if(view==="proposalTemplates") renderTemplatePreview();
     if(view==="workHours") renderWorkHoursView();
     if(view==="clientsNew"){ clientsNewScreen = "list"; renderClientsNewList(); renderClientsNewDetail(); renderClientsNewScreen(); }
     if(view==="tasks") renderTasksScreen();
@@ -3510,9 +3536,59 @@
   /* ========== Proposal/Quote Generation ========== */
   var currentProposal = null;
   var companyLogo = null;
+  var proposalTemplate = null;
   var previewMode = false;
   function getCompanyLogo(){
     return companyLogo;
+  }
+  function uploadProposalTemplate(){
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        var templateDataUrl = ev.target.result;
+        var img = new Image();
+        img.onload = function(){
+          proposalTemplate = templateDataUrl;
+          try{
+            localStorage.setItem("proposal_template_" + currentSiteId, templateDataUrl);
+          }catch(err){
+            console.warn("localStorage full for template");
+          }
+          db.collection("sites").doc(currentSiteId).update({proposalTemplate: templateDataUrl}).catch(function(err){
+            console.warn("Firestore template save skipped");
+          });
+          renderTemplatePreview();
+          showTemplateStatus("✅ התבנית הועלתה בהצלחה!");
+        };
+        img.onerror = function(){
+          showTemplateStatus("❌ שגיאה בקריאת התמונה");
+        };
+        img.src = templateDataUrl;
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }
+  function renderTemplatePreview(){
+    var area = document.getElementById("templatePreviewArea");
+    if(!area) return;
+    if(proposalTemplate){
+      area.innerHTML = '<img src="'+proposalTemplate+'" style="max-width:100%;max-height:400px;border-radius:8px;">';
+    } else {
+      area.innerHTML = '<p style="color:#999;">עדיין לא הועלתה תבנית</p>';
+    }
+  }
+  function showTemplateStatus(msg){
+    var statusEl = document.getElementById("templateUploadStatus");
+    if(statusEl){
+      statusEl.innerHTML = '<div style="padding:10px;background:white;border-radius:6px;color:#333;">'+msg+'</div>';
+      setTimeout(function(){ statusEl.innerHTML = ''; }, 3000);
+    }
   }
   function uploadCompanyLogo(){
     var input = document.createElement("input");
