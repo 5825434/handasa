@@ -1226,6 +1226,13 @@
       if(timerBtn){ e.stopPropagation(); togglePtaskTimer(timerBtn.getAttribute("data-ptask-timer")); refreshTasksUI(); return; }
       var timerReset = e.target.closest("[data-ptask-timer-reset]");
       if(timerReset){ e.stopPropagation(); resetPtaskTimer(timerReset.getAttribute("data-ptask-timer-reset")); refreshTasksUI(); return; }
+      var priorityEl = e.target.closest(".ptask-priority");
+      if(priorityEl){
+        e.stopPropagation();
+        var taskItem = e.target.closest("[data-ptask-open]");
+        if(taskItem) changePriority(taskItem.getAttribute("data-ptask-open"));
+        return;
+      }
       var card = e.target.closest("[data-ptask-open]");
       if(card){ openTaskModal(card.getAttribute("data-ptask-open")); }
     }
@@ -2994,6 +3001,26 @@
   function deletePersonalTask(id){
     personalTasksCol().doc(id).delete();
   }
+  function changePriority(taskId){
+    var task = getPersonalTask(taskId);
+    if(!task || !isTaskOwner(task)) return;
+    var maxP = 0;
+    personalTasks.forEach(function(t){ if(!t.done && t.priority) maxP = Math.max(maxP, t.priority); });
+    var newP = prompt("עדיפות חדשה (1-"+maxP+"):", task.priority||1);
+    if(!newP || isNaN(newP)) return;
+    newP = Math.max(1, Math.min(maxP, Number(newP)));
+    if(newP === task.priority) return;
+    var oldP = task.priority || maxP + 1;
+    var tasksToUpdate = [];
+    personalTasks.forEach(function(t){
+      if(t.done || !t.priority || t.id === taskId) return;
+      if(newP < oldP && t.priority >= newP && t.priority < oldP) tasksToUpdate.push({id:t.id, newPriority:t.priority+1});
+      else if(newP > oldP && t.priority > oldP && t.priority <= newP) tasksToUpdate.push({id:t.id, newPriority:t.priority-1});
+    });
+    setPersonalTaskField(taskId, "priority", newP);
+    tasksToUpdate.forEach(function(u){ setPersonalTaskField(u.id, "priority", u.newPriority); });
+    refreshTasksUI();
+  }
 
   /* ---- task modal (compact add/edit) ---- */
   var taskModal = {open:false, id:null, type:"task", owner:true, data:null};
@@ -3100,12 +3127,14 @@
         estMin:d.estMin, reminder:d.reminder, subtasks:d.subtasks, assignedTo:d.assignedTo, tags:d.tags
       });
     } else {
+      var maxPriority = 0;
+      personalTasks.forEach(function(t){ if(!t.done && t.priority) maxPriority = Math.max(maxPriority, t.priority); });
       personalTasksCol().add({
         ownerUid:currentUser.uid, ownerName:(currentUser.displayName||currentUser.email||""),
         type:taskModal.type, title:d.title, description:d.description,
         dueDate:d.dueDate, dueTime:d.dueTime, quadrant:d.quadrant, categoryId:d.categoryId,
         clientId:d.clientId, done:false, shared:!managerMode, subtasks:d.subtasks, recurrence:d.recurrence,
-        estMin:d.estMin, reminder:d.reminder, assignedTo:d.assignedTo, tags:d.tags,
+        estMin:d.estMin, reminder:d.reminder, assignedTo:d.assignedTo, tags:d.tags, priority:maxPriority+1,
         timer:{elapsedSec:0,running:false,runStartedAt:null},
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -3178,6 +3207,8 @@
     var s=taskDisplayPrefs.sort;
     return list.slice().sort(function(a,b){
       if((a.done?1:0)!==(b.done?1:0)) return a.done?1:-1;
+      var ap=(a.priority||999), bp=(b.priority||999);
+      if(ap!==bp) return ap-bp;
       if(s==="date"){
         var ad=a.dueDate||"9999-99-99", bd=b.dueDate||"9999-99-99";
         if(ad!==bd) return ad<bd?-1:1;
@@ -3248,8 +3279,9 @@
         '<button type="button" class="ptask-resetbtn" data-ptask-timer-reset="'+t.id+'" title="איפוס">↺</button>'+
       '</div>';
     }
-    return '<div class="ptask-item'+(t.done?" done":"")+'" style="border-inline-start-color:'+qcolor+'" data-ptask-open="'+t.id+'">'+
+    return '<div class="ptask-item'+(t.done?" done":"")+'" style="border-inline-start-color:'+qcolor+'" data-ptask-open="'+t.id+'" data-priority="'+(t.priority||999)+'">'+
       '<div class="ptask-head">'+
+        '<div class="ptask-priority" title="עדיפות" style="font-weight:bold;color:var(--accent);min-width:24px;text-align:center;">'+(t.priority||'-')+'</div>'+
         '<button type="button" class="ptask-check'+(t.done?" checked":"")+'"'+(owner?"":" disabled")+' data-ptask-done="'+t.id+'" aria-label="סימון בוצע"></button>'+
         '<div class="ptask-main">'+
           '<div class="ptask-title">'+escapeHtml(t.title||"(ללא כותרת)")+(t.type==="idea"?' <span class="ptask-idea-tag">💡 רעיון</span>':'')+'</div>'+

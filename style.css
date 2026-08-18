@@ -557,6 +557,8 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .ptask-check.checked{background:var(--pay-paid);border-color:var(--pay-paid);}
 .ptask-check.checked::after{content:"";position:absolute;inset:0;margin:auto;width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg);}
 .ptask-check:disabled{opacity:0.5;cursor:default;}
+.ptask-priority{display:flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;font-size:0.85rem;padding:2px;border-radius:4px;background:var(--accent-soft);color:var(--accent);cursor:grab;user-select:none;}
+.ptask-priority:active{cursor:grabbing;}
 .ptask-main{flex:1;min-width:0;}
 .ptask-title{font-size:0.95rem;font-weight:700;line-height:1.35;}
 .ptask-item.done .ptask-title{text-decoration:line-through;color:var(--ink-faint);}
