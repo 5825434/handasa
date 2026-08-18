@@ -965,6 +965,12 @@
         showProposalEditor();
         return;
       }
+      if(e.target.closest("#jobSaveProposalDriveBtn")){
+        if(!driveAccessToken){ alert("קודם לחץ על הכפתור \"🔗 חבר את הדרייב שלי\" בtab המסמכים."); return; }
+        if(!currentProposal) showProposalEditor();
+        setTimeout(function(){ saveProposalToDrive(); }, 100);
+        return;
+      }
       if(e.target.closest("#jobUploadTemplateBtn")){
         uploadProposalTemplate();
         return;
@@ -2208,7 +2214,10 @@
     return '<div class="quote-lines-wrap">'+quoteRows+
       '<button type="button" class="ghost-btn" id="jobAddQuoteLineBtn">+ שורה</button>'+
       '<div class="quote-summary-cell" data-quote-summary>סה"כ הצעה: '+fmtMoney(quoteLinesTotal(qLines))+'</div>'+
-      '<div style="margin-top:12px;"><button type="button" class="pill-btn" id="jobCreateProposalBtn">📄 צור הצעת מחיר</button></div></div>';
+      '<div style="margin-top:12px;display:flex;gap:8px;">'+
+        '<button type="button" class="pill-btn" id="jobCreateProposalBtn">📄 צור הצעת מחיר</button>'+
+        '<button type="button" class="pill-btn" id="jobSaveProposalDriveBtn"'+(driveAccessToken?'':" style='opacity:0.5;cursor:not-allowed;'")+'">💾 שמור בדרייב</button>'+
+      '</div></div>';
   }
   function jobNegotiationTabHtml(job){
     if(!managerMode) return '<div class="locked-note">מידע המשא ומתן גלוי למנהל בלבד.</div>';
