@@ -3320,6 +3320,10 @@
     meta.push('<span class="ptask-prio"><span class="dot" style="background:'+qcolor+'"></span>'+PRIORITY_SHORT[t.quadrant||"n"]+'</span>');
     if(p.showDue && t.dueDate) meta.push('<span class="ptask-mi'+(late?" late":"")+'">📅 '+fmtDate(t.dueDate)+(t.dueTime?" · "+escapeHtml(t.dueTime):"")+'</span>');
     if(t.recurrence && t.recurrence!=="none") meta.push('<span class="ptask-mi" title="חוזרת">🔁</span>');
+    var taskCat = t.taskCategory || (t.clientId ? "work" : "personal");
+    var taskCatIcon = taskCat === "shared" ? "👥" : (taskCat === "work" ? "💼" : "🏠");
+    var taskCatLabel = taskCat === "shared" ? "משותף" : (taskCat === "work" ? "עבודה" : "אישי");
+    meta.push('<span class="ptask-mi" title="'+taskCatLabel+'">'+taskCatIcon+'</span>');
     if(p.showCategory && cat) meta.push('<span class="ptask-cat-chip" style="background:'+cat.color+'22;color:'+cat.color+'">'+escapeHtml((cat.icon||"")+" "+cat.name)+'</span>');
     if(t.clientId){
       var lc = getClientNew(t.clientId);
