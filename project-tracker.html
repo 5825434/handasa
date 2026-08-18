@@ -3416,11 +3416,14 @@
     var overdueC=active.filter(function(t){ return t.dueDate && t.dueDate<today; }).length;
     var urgentC=active.filter(function(t){ return t.quadrant==="uq" || t.quadrant==="q"; }).length;
     var ideasC=personalTasks.filter(function(t){ return t.type==="idea"; }).length;
+    var allTasks=personalTasks.filter(function(t){ return t.type!=="idea"; });
+    var completedC=allTasks.filter(function(t){ return t.done; }).length;
+    var completionPct=allTasks.length>0?Math.round((completedC/allTasks.length)*100):0;
     var cards=[
       {n:todayC, l:"להיום", cls:""},
       {n:overdueC, l:"באיחור", cls:overdueC?" money":""},
       {n:urgentC, l:"דחופות", cls:""},
-      {n:ideasC, l:"רעיונות", cls:""}
+      {n:completedC+"/"+allTasks.length, l:"סיימתי ("+completionPct+"%)", cls:""}
     ];
     wrap.innerHTML=cards.map(function(c){
       return '<div class="stat'+c.cls+'"><div class="n">'+c.n+'</div><div class="l">'+c.l+'</div></div>';
