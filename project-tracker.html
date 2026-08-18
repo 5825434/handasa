@@ -113,6 +113,7 @@
           <button type="button" class="chip" data-ptask-view="calendar">📅 לוח שנה</button>
         </div>
         <div class="spacer"></div>
+        <button type="button" class="ghost-btn" id="ptaskArchiveBtn" title="הצג/הסתר ארכיון משימות שהושלמו">📁 ארכיון</button>
         <button type="button" class="ghost-btn" id="ptaskSettingsBtn">⚙ תצוגה</button>
       </div>
       <div class="toolbar-row" id="ptaskBucketRow">
@@ -498,6 +499,7 @@
   var taskCalMonth = new Date();
   var taskCalSelected = "";
   var firedReminders = {};
+  var showArchive = false;
 
   function uid(){ return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -1152,6 +1154,11 @@
     document.getElementById("ptaskAddIdeaBtn").addEventListener("click", function(){ openTaskModal(null, "idea"); });
     document.getElementById("ptaskSearch").addEventListener("input", function(e){
       taskFilters.search = e.target.value; renderTasksView();
+    });
+    document.getElementById("ptaskArchiveBtn").addEventListener("click", function(){
+      showArchive = !showArchive;
+      document.getElementById("ptaskArchiveBtn").classList.toggle("active", showArchive);
+      renderTasksView();
     });
     document.getElementById("ptaskSettingsBtn").addEventListener("click", function(){
       var panel = document.getElementById("ptaskSettingsPanel");
@@ -3369,6 +3376,17 @@
     var container = document.getElementById("tasksList");
     if(!container) return;
     var list = sortPersonalTasks(filterPersonalTasks());
+    if(showArchive){
+      list = list.filter(function(t){ return t.done; });
+      if(!list.length){
+        container.innerHTML = '<div class="empty">אין משימות שהושלמו עדיין.</div>';
+        return;
+      }
+      container.innerHTML = '<div style="padding:12px;color:var(--ink-muted);font-size:0.9rem;">📁 ארכיון - משימות שהושלמו</div>'+
+        list.map(personalTaskCardHtml).join("");
+      return;
+    }
+    list = list.filter(function(t){ return !t.done; });
     if(!list.length){
       container.innerHTML = '<div class="empty">אין משימות תואמות. הוסף משימה חדשה למעלה.</div>';
       return;
