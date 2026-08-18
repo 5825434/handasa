@@ -3535,10 +3535,12 @@
     var allTasks=personalTasks.filter(function(t){ return t.type!=="idea"; });
     var completedC=allTasks.filter(function(t){ return t.done; }).length;
     var completionPct=allTasks.length>0?Math.round((completedC/allTasks.length)*100):0;
+    var completedTodayC=personalTasks.filter(function(t){ return t.type!=="idea" && t.done && t.dueDate===today; }).length;
     var cards=[
       {n:todayC, l:"להיום", cls:""},
       {n:overdueC, l:"באיחור", cls:overdueC?" money":""},
       {n:urgentC, l:"דחופות", cls:""},
+      {n:completedTodayC, l:"סיימתי היום", cls:""},
       {n:completedC+"/"+allTasks.length, l:"סיימתי ("+completionPct+"%)", cls:""}
     ];
     wrap.innerHTML=cards.map(function(c){
