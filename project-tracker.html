@@ -587,10 +587,8 @@
   function selectSite(siteId){
     detachSiteData();
     currentSiteId = siteId;
-    managerMode = (siteId === currentUser.uid);
     document.getElementById("siteSwitcherOverlay").hidden = true;
     document.getElementById("switchSiteBtn").hidden = mySites.length <= 1;
-    document.getElementById("shareBtn").hidden = !managerMode;
     document.getElementById("appShell").hidden = false;
     attachSiteData();
     applyAccessMode();
@@ -599,6 +597,8 @@
     updateLogoDisplay();
     db.collection("sites").doc(currentSiteId).get().then(function(doc){
       var data = doc.data() || {};
+      managerMode = (data.ownerUid === currentUser.uid);
+      document.getElementById("shareBtn").hidden = !managerMode;
       if(data.logo && !companyLogo){
         companyLogo = data.logo;
         updateLogoDisplay();
@@ -608,6 +608,7 @@
       }
     }).catch(function(err){
       console.warn("Error loading site data:", err.message);
+      managerMode = false;
     });
     restoreDriveTokenFromStorage().then(function(){ checkAndShowNotifications(); });
     setTimeout(function(){ restoreViewState(); }, 500);
