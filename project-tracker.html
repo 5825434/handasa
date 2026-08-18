@@ -329,7 +329,14 @@
       </div>
       <div class="field">
         <label>מקור הגעה</label>
-        <select id="ca-source"><option value="">-</option><option value="אדריכל/ית">אדריכל/ית</option><option value="מפקח">מפקח</option><option value="המלצה">המלצה</option><option value="גוגל">גוגל</option><option value="פייסבוק">פייסבוק</option><option value="אחר">אחר</option></select>
+        <input type="text" id="ca-source" list="ca-source-list" placeholder="בחר או הזן..."><datalist id="ca-source-list">
+          <option value="אדריכל/ית"></option>
+          <option value="מפקח"></option>
+          <option value="המלצה"></option>
+          <option value="גוגל"></option>
+          <option value="פייסבוק"></option>
+          <option value="אחר"></option>
+        </datalist>
       </div>
       <div class="field"><label>תאריך פניה</label><input type="date" id="ca-inquiryDate"></div>
       <div class="field full" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
