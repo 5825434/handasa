@@ -123,6 +123,7 @@
           <button type="button" class="chip" data-ptask-bucket="overdue">באיחור</button>
           <button type="button" class="chip" data-ptask-bucket="upcoming">בקרוב</button>
           <button type="button" class="chip" data-ptask-bucket="ideas">רעיונות 💡</button>
+          <button type="button" class="chip" data-ptask-bucket="shared">👥 משותפות</button>
         </div>
         <div class="chipset" id="ptaskCategoryChips" style="margin-top:12px;">
           <button type="button" class="chip active" data-ptask-category="all">הכל</button>
@@ -3259,7 +3260,8 @@
   function filterPersonalTasks(){
     var q=(taskFilters.search||"").trim().toLowerCase();
     return personalTasks.filter(function(t){
-      if(taskFilters.bucket==="ideas"){ if(t.type!=="idea") return false; }
+      if(taskFilters.bucket==="shared"){ if(!t.shared && t.ownerUid!==currentUser.uid) return false; }
+      else if(taskFilters.bucket==="ideas"){ if(t.type!=="idea") return false; }
       else {
         if(t.type==="idea") return false;
         if(taskFilters.bucket!=="all" && taskBucket(t)!==taskFilters.bucket) return false;
