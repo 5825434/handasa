@@ -330,6 +330,7 @@
         <select id="ca-source"><option value="">-</option><option value="אדריכל/ית">אדריכל/ית</option><option value="מפקח">מפקח</option><option value="המלצה">המלצה</option><option value="גוגל">גוגל</option><option value="פייסבוק">פייסבוק</option><option value="אחר">אחר</option></select>
       </div>
       <div class="field"><label>תאריך פניה</label><input type="date" id="ca-inquiryDate"></div>
+      <div class="field"><label>צבע תיוג</label><input type="color" id="ca-color" value="#2f6fb0" title="בחר צבע לתיוג הלקוח"></div>
       <div class="field full"><label>מה הלקוח רוצה</label><textarea id="ca-wantedWork" placeholder="תיאור חופשי של מה שהלקוח מעוניין לבצע..."></textarea></div>
     </div>
     <div class="modal-actions lead-actions">
@@ -1833,6 +1834,7 @@
       workType:document.getElementById("ca-workType").value,
       source:document.getElementById("ca-source").value,
       inquiryDate:document.getElementById("ca-inquiryDate").value,
+      color:document.getElementById("ca-color").value,
       wantedWork:document.getElementById("ca-wantedWork").value
     });
     closeClientAddModal();
