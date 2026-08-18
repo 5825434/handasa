@@ -42,6 +42,7 @@
     </div>
     <div class="mgr-toggle">
       <span id="userBadge" class="user-badge"></span>
+      <div id="sessionSwitcher" style="display:inline-flex;"></div>
       <button class="ghost-btn" id="demoModeBtn" type="button">תצוגת דמו</button>
       <button class="ghost-btn" id="shareBtn" type="button" hidden>שיתוף האתר</button>
       <button class="ghost-btn" id="switchSiteBtn" type="button" hidden>החלפת אתר</button>
@@ -448,6 +449,70 @@
   var currentSiteId = null;
   var mySites = [];
   var siteUnsubscribers = [];
+  var cachedSessions = {};
+
+  function saveCachedSession(){
+    if(!currentUser) return;
+    try{
+      var sessionData = {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        displayName: currentUser.displayName || currentUser.email,
+        photoURL: currentUser.photoURL,
+        timestamp: Date.now()
+      };
+      var allSessions = {};
+      try{
+        allSessions = JSON.parse(localStorage.getItem("firebase_sessions")||"{}");
+      }catch(e){}
+      allSessions[currentUser.uid] = sessionData;
+      localStorage.setItem("firebase_sessions", JSON.stringify(allSessions));
+      console.log("Saved session for:", currentUser.email);
+    }catch(e){ console.error("Failed to save session:", e); }
+  }
+
+  function loadCachedSessions(){
+    try{
+      cachedSessions = JSON.parse(localStorage.getItem("firebase_sessions")||"{}");
+    }catch(e){ cachedSessions = {}; }
+  }
+
+  function logoutAndSwitchSession(uid){
+    var sess = cachedSessions[uid];
+    if(!sess){
+      console.log("Session not found for:", uid);
+      return;
+    }
+    auth.signOut().then(function(){
+      console.log("Signed out, ready to sign in with:", sess.email);
+      setTimeout(function(){
+        alert("גלוש עם "+sess.email+" בחלון החדש הנפתח");
+        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(err){
+          console.error("Sign in error:", err);
+        });
+      }, 100);
+    });
+  }
+
+  function renderSessionSwitcher(){
+    loadCachedSessions();
+    var sessionCount = Object.keys(cachedSessions).length;
+    if(sessionCount <= 0){
+      document.getElementById("sessionSwitcher").innerHTML = "";
+      return;
+    }
+    var html = '<div style="display:inline-flex;align-items:center;gap:6px;margin-left:12px;">';
+    Object.keys(cachedSessions).forEach(function(uid){
+      var s = cachedSessions[uid];
+      var isActive = currentUser && uid === currentUser.uid;
+      var bgStyle = isActive ? 'background:var(--accent);color:white;' : '';
+      html += '<button type="button" class="ghost-btn" style="'+bgStyle+'font-size:0.9rem;padding:4px 8px;" data-session-uid="'+uid+'">' +
+              (s.displayName.length > 15 ? s.displayName.substring(0,12)+"..." : s.displayName) +
+              '</button>';
+    });
+    html += '</div>';
+    document.getElementById("sessionSwitcher").innerHTML = html;
+  }
   var myHourlyRate = 0;
   var myWorkEntries = [];
   var demoMode = false;
@@ -719,6 +784,14 @@
       });
     });
     document.getElementById("signOutBtn").addEventListener("click", function(){ auth.signOut(); });
+    document.getElementById("sessionSwitcher").addEventListener("click", function(e){
+      var btn = e.target.closest("[data-session-uid]");
+      if(btn){
+        var targetUid = btn.getAttribute("data-session-uid");
+        if(currentUser && targetUid === currentUser.uid) return;
+        logoutAndSwitchSession(targetUid);
+      }
+    });
     document.getElementById("uploadLogoBtn").addEventListener("click", uploadCompanyLogo);
     document.getElementById("switchSiteBtn").addEventListener("click", function(){
       renderSiteList();
@@ -3806,6 +3879,7 @@
   }
 
   bindStatic();
+  loadCachedSessions();
   auth.onAuthStateChanged(function(user){
     currentUser = user;
     if(!user){
@@ -3814,10 +3888,13 @@
       document.getElementById("appShell").hidden = true;
       document.getElementById("siteSwitcherOverlay").hidden = true;
       document.getElementById("loginOverlay").hidden = false;
+      renderSessionSwitcher();
       return;
     }
+    saveCachedSession();
     document.getElementById("loginOverlay").hidden = true;
     updateUserBadge();
+    renderSessionSwitcher();
     resolveSites();
   });
 
