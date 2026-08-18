@@ -393,10 +393,7 @@
           <option value="none">ללא חזרה</option><option value="daily">יומי</option>
           <option value="weekly">שבועי</option><option value="monthly">חודשי</option>
         </select></div>
-        <div class="field ptask-when"><label>משך זמן משוער</label><select id="pm-estMin">
-          <option value="0">ללא</option><option value="15">15 דק׳</option><option value="30">30 דק׳</option>
-          <option value="45">45 דק׳</option><option value="60">שעה</option><option value="120">שעתיים</option>
-        </select></div>
+        <div class="field ptask-when"><label>משך זמן משוער (בדקות)</label><input type="number" id="pm-estMin" min="0" step="5" placeholder="0 = ללא" title="הזן מספר דקות"></div>
         <div class="field ptask-when"><label>תזכורת</label><select id="pm-reminder">
           <option value="none">ללא תזכורת</option><option value="attime">בזמן המשימה</option>
           <option value="15">15 דק׳ לפני</option><option value="30">30 דק׳ לפני</option><option value="60">שעה לפני</option>
