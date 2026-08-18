@@ -3242,6 +3242,9 @@
     renderModalSubtasks();
     document.querySelectorAll("#ptaskModalOverlay .ptask-when").forEach(function(el){ el.style.display=isIdea?"none":""; });
     document.querySelector("#ptaskModalOverlay .ptask-subs-field").style.display=isIdea?"none":"";
+    if(isIdea){
+      document.querySelectorAll("#ptaskModalOverlay .ptask-when").forEach(function(el){ el.style.display="none"; });
+    }
     var shareBtn=document.getElementById("pm-share");
     shareBtn.textContent=d.shared?"✓ משותף":"🔗 שתף";
     shareBtn.classList.toggle("on", d.shared);
