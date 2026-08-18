@@ -123,6 +123,12 @@
           <button type="button" class="chip" data-ptask-bucket="upcoming">בקרוב</button>
           <button type="button" class="chip" data-ptask-bucket="ideas">רעיונות 💡</button>
         </div>
+        <div class="chipset" id="ptaskCategoryChips" style="margin-top:12px;">
+          <button type="button" class="chip active" data-ptask-category="all">הכל</button>
+          <button type="button" class="chip" data-ptask-category="work">עבודה</button>
+          <button type="button" class="chip" data-ptask-category="shared">משותף</button>
+          <button type="button" class="chip" data-ptask-category="personal">אישי</button>
+        </div>
       </div>
       <div class="ptask-settings-panel" id="ptaskSettingsPanel" hidden>
         <div class="filter-group-lbl">קיבוץ לפי</div>
@@ -366,6 +372,12 @@
         <div class="field ptask-when"><label>תאריך יעד</label><input type="date" id="pm-dueDate"></div>
         <div class="field ptask-when"><label>שעה</label><input type="time" id="pm-dueTime"></div>
         <div class="field full"><label>דחיפות וחשיבות</label><div class="qpicker" id="pm-quadrant"></div></div>
+        <div class="field"><label>סוג משימה</label><select id="pm-taskCategory">
+          <option value="personal">אישי</option><option value="work">עבודה</option><option value="shared">משותף</option>
+        </select></div>
+        <div class="field" id="pm-sharedWithField" style="display:none;"><label>שתף עם</label><select id="pm-sharedWith">
+          <option value="">בחר עובד או צוות</option>
+        </select></div>
         <div class="field"><label>קטגוריה</label><select id="pm-category"></select></div>
         <div class="field"><label>שייך ללקוח (אופציונלי)</label><select id="pm-client"></select></div>
         <div class="field"><label>הקצה לעובד (אופציונלי)</label><select id="pm-assignedTo"><option value="">ללא הקצאה</option></select></div>
@@ -476,7 +488,7 @@
   var sharedTasks = [];
   var taskCategories = [];
   var expandedTaskId = null;
-  var taskFilters = {search:"", bucket:"all"};
+  var taskFilters = {search:"", bucket:"all", category:"all"};
   var TASK_PREF_DEFAULTS = {groupBy:"bucket", sort:"urgency", showCategory:true, showDue:true, showSubProgress:true, hideDone:false};
   var taskDisplayPrefs = Object.assign({}, TASK_PREF_DEFAULTS);
   var TASK_CAT_ICONS = ["📁","🏠","💼","📞","👨‍👩‍👧","🛒","📐","🔧","☕","💰","⭐","📌"];
@@ -1152,6 +1164,15 @@
       syncTaskBucketChips();
       renderTasksView();
     });
+    document.getElementById("ptaskCategoryChips").addEventListener("click", function(e){
+      var chip = e.target.closest("[data-ptask-category]");
+      if(!chip) return;
+      taskFilters.category = chip.getAttribute("data-ptask-category");
+      document.querySelectorAll("#ptaskCategoryChips .chip").forEach(function(b){
+        b.classList.toggle("active", b.getAttribute("data-ptask-category")===taskFilters.category);
+      });
+      renderTasksView();
+    });
     document.getElementById("ptaskViewChips").addEventListener("click", function(e){
       var chip = e.target.closest("[data-ptask-view]");
       if(!chip) return;
@@ -1278,6 +1299,18 @@
     document.getElementById("pm-subtasks").addEventListener("change", function(e){
       var dn=e.target.getAttribute("data-pm-sub-done");
       if(dn!==null && taskModal.data){ taskModal.data.subtasks[Number(dn)].done=e.target.checked; }
+    });
+    document.getElementById("pm-taskCategory").addEventListener("change", function(e){
+      var cat = e.target.value;
+      var sharedField = document.getElementById("pm-sharedWithField");
+      if(cat === "shared"){
+        sharedField.style.display = "";
+        var select = document.getElementById("pm-sharedWith");
+        select.innerHTML = '<option value="">בחר עובד או צוות</option><option value="all-team">כל הצוות</option>';
+      } else {
+        sharedField.style.display = "none";
+      }
+      if(taskModal.data) taskModal.data.taskCategory = cat;
     });
   }
 
@@ -3072,6 +3105,15 @@
     document.getElementById("pm-recurrence").value=d.recurrence;
     document.getElementById("pm-estMin").value=String(d.estMin||0);
     document.getElementById("pm-reminder").value=d.reminder||"none";
+    var taskCat = d.taskCategory || (d.clientId ? "work" : "personal");
+    document.getElementById("pm-taskCategory").value = taskCat;
+    var sharedField = document.getElementById("pm-sharedWithField");
+    if(taskCat === "shared"){
+      sharedField.style.display = "";
+      document.getElementById("pm-sharedWith").value = d.sharedWith || "";
+    } else {
+      sharedField.style.display = "none";
+    }
     document.getElementById("pm-category").innerHTML =
       '<option value="">ללא קטגוריה</option>'+taskCategories.map(function(c){
         return '<option value="'+c.id+'"'+(d.categoryId===c.id?" selected":"")+'>'+escapeHtml((c.icon||"")+" "+c.name)+'</option>';
@@ -3121,20 +3163,34 @@
     d.reminder=document.getElementById("pm-reminder").value;
     if(d.reminder!=="none") requestReminderPermission();
     if(taskModal.id){
+      d.taskCategory = document.getElementById("pm-taskCategory").value;
+      var sharedWith = null;
+      if(d.taskCategory === "shared"){
+        var sharedInput = document.getElementById("pm-sharedWith");
+        if(sharedInput) sharedWith = sharedInput.value || null;
+      }
       personalTasksCol().doc(taskModal.id).update({
         title:d.title, description:d.description, dueDate:d.dueDate, dueTime:d.dueTime,
         quadrant:d.quadrant, categoryId:d.categoryId, clientId:d.clientId, recurrence:d.recurrence,
-        estMin:d.estMin, reminder:d.reminder, subtasks:d.subtasks, assignedTo:d.assignedTo, tags:d.tags
+        estMin:d.estMin, reminder:d.reminder, subtasks:d.subtasks, assignedTo:d.assignedTo, tags:d.tags,
+        taskCategory:d.taskCategory, sharedWith:sharedWith
       });
     } else {
       var maxPriority = 0;
       personalTasks.forEach(function(t){ if(!t.done && t.priority) maxPriority = Math.max(maxPriority, t.priority); });
+      d.taskCategory = document.getElementById("pm-taskCategory").value;
+      var sharedWith = null;
+      if(d.taskCategory === "shared"){
+        var sharedInput = document.getElementById("pm-sharedWith");
+        if(sharedInput) sharedWith = sharedInput.value || null;
+      }
       personalTasksCol().add({
         ownerUid:currentUser.uid, ownerName:(currentUser.displayName||currentUser.email||""),
         type:taskModal.type, title:d.title, description:d.description,
         dueDate:d.dueDate, dueTime:d.dueTime, quadrant:d.quadrant, categoryId:d.categoryId,
         clientId:d.clientId, done:false, shared:!managerMode, subtasks:d.subtasks, recurrence:d.recurrence,
         estMin:d.estMin, reminder:d.reminder, assignedTo:d.assignedTo, tags:d.tags, priority:maxPriority+1,
+        taskCategory:d.taskCategory, sharedWith:sharedWith,
         timer:{elapsedSec:0,running:false,runStartedAt:null},
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -3190,6 +3246,10 @@
       else {
         if(t.type==="idea") return false;
         if(taskFilters.bucket!=="all" && taskBucket(t)!==taskFilters.bucket) return false;
+      }
+      if(taskFilters.category!=="all"){
+        var cat = t.taskCategory || (t.clientId ? "work" : "personal");
+        if(cat !== taskFilters.category) return false;
       }
       if(taskDisplayPrefs.hideDone && t.done) return false;
       if(t.assignedTo && !managerMode){
