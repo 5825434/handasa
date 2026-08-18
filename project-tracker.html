@@ -386,7 +386,7 @@
           <option value="">בחר עובד או צוות</option>
         </select></div>
         <div class="field"><label>קטגוריה</label><select id="pm-category"></select></div>
-        <div class="field"><label>שייך ללקוח (אופציונלי)</label><select id="pm-client"></select></div>
+        <div class="field"><label>שייך ללקוח (אופציונלי)</label><input type="text" id="pm-client" list="pm-client-list" placeholder="חפש לפי שם לקוח או איש קשר..."><datalist id="pm-client-list"></datalist></div>
         <div class="field"><label>הקצה לעובד (אופציונלי)</label><select id="pm-assignedTo"><option value="">ללא הקצאה</option></select></div>
         <div class="field full"><label>תגיות (משמשות לסינכרון)</label><input type="text" id="pm-tags" placeholder="#general #client-אהרון #urgent (הפרד בחלל)"><div id="pm-tagsDisplay" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div></div>
         <div class="field ptask-when"><label>חזרתיות</label><select id="pm-recurrence">
@@ -3212,10 +3212,12 @@
       '<option value="">ללא קטגוריה</option>'+taskCategories.map(function(c){
         return '<option value="'+c.id+'"'+(d.categoryId===c.id?" selected":"")+'>'+escapeHtml((c.icon||"")+" "+c.name)+'</option>';
       }).join("");
-    document.getElementById("pm-client").innerHTML =
-      '<option value="">ללא קישור</option>'+clients.map(function(c){
-        return '<option value="'+c.id+'"'+(d.clientId===c.id?" selected":"")+'>'+escapeHtml(c.name||"(ללא שם)")+'</option>';
-      }).join("");
+    document.getElementById("pm-client").value = d.clientId ? (clients.find(function(c){ return c.id===d.clientId; }) || {}).name || "" : "";
+    document.getElementById("pm-client-list").innerHTML = clients.map(function(c){
+      var contacts = (c.contacts||[]).map(function(ct){ return ct.name; }).join(" / ");
+      var displayText = escapeHtml(c.name||"(ללא שם)") + (contacts ? " • "+escapeHtml(contacts) : "");
+      return '<option value="'+c.id+'">'+displayText+'</option>';
+    }).join("");
     var assignedToOptions = '<option value="">ללא הקצאה</option>';
     if(currentUser.displayName) assignedToOptions += '<option value="'+currentUser.displayName+'"'+(d.assignedTo===currentUser.displayName?" selected":"")+'>אני ('+currentUser.displayName+')</option>';
     assignedToOptions += '<option value="כל הצוות"'+(d.assignedTo==="כל הצוות"?" selected":"")+'>כל הצוות</option>';
@@ -3250,7 +3252,13 @@
     d.dueTime=document.getElementById("pm-dueTime").value;
     d.recurrence=document.getElementById("pm-recurrence").value;
     d.categoryId=document.getElementById("pm-category").value;
-    d.clientId=document.getElementById("pm-client").value;
+    var clientInput = document.getElementById("pm-client").value.trim();
+    if(clientInput){
+      var foundClient = clients.find(function(c){ return c.name === clientInput; });
+      d.clientId = foundClient ? foundClient.id : "";
+    } else {
+      d.clientId = "";
+    }
     d.assignedTo=document.getElementById("pm-assignedTo").value;
     d.tags=document.getElementById("pm-tags").value;
     d.estMin=Number(document.getElementById("pm-estMin").value)||0;
