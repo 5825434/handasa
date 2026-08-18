@@ -382,7 +382,7 @@
         <div class="field"><label>קטגוריה</label><select id="pm-category"></select></div>
         <div class="field"><label>שייך ללקוח (אופציונלי)</label><select id="pm-client"></select></div>
         <div class="field"><label>הקצה לעובד (אופציונלי)</label><select id="pm-assignedTo"><option value="">ללא הקצאה</option></select></div>
-        <div class="field full"><label>תגיות (משמשות לסינכרון)</label><input type="text" id="pm-tags" placeholder="#general #client-אהרון #urgent (הפרד בחלל)"></div>
+        <div class="field full"><label>תגיות (משמשות לסינכרון)</label><input type="text" id="pm-tags" placeholder="#general #client-אהרון #urgent (הפרד בחלל)"><div id="pm-tagsDisplay" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div></div>
         <div class="field ptask-when"><label>חזרתיות</label><select id="pm-recurrence">
           <option value="none">ללא חזרה</option><option value="daily">יומי</option>
           <option value="weekly">שבועי</option><option value="monthly">חודשי</option>
@@ -1312,6 +1312,14 @@
         sharedField.style.display = "none";
       }
       if(taskModal.data) taskModal.data.taskCategory = cat;
+    });
+    document.getElementById("pm-tags").addEventListener("input", function(e){
+      var tagsStr = e.target.value || "";
+      var tags = tagsStr.trim().split(/\s+/).filter(function(t){return t.length>0;});
+      var display = document.getElementById("pm-tagsDisplay");
+      display.innerHTML = tags.map(function(tag){
+        return '<span style="background:var(--accent-soft);color:var(--accent);padding:4px 10px;border-radius:12px;font-size:0.85rem;white-space:nowrap;">'+escapeHtml(tag)+'</span>';
+      }).join("");
     });
   }
 
