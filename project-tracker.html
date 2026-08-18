@@ -2023,8 +2023,13 @@
     var q = (clientFilters.search||"").trim().toLowerCase();
     var list = clients.filter(function(c){
       if(!q) return true;
-      return (c.name||"").toLowerCase().indexOf(q)!==-1 || (c.phone||"").indexOf(q)!==-1 ||
+      var clientMatch = (c.name||"").toLowerCase().indexOf(q)!==-1 || (c.phone||"").indexOf(q)!==-1 ||
         (c.address||"").toLowerCase().indexOf(q)!==-1;
+      if(clientMatch) return true;
+      var contactsMatch = (c.contacts||[]).some(function(ct){
+        return (ct.name||"").toLowerCase().indexOf(q)!==-1 || (ct.phone||"").indexOf(q)!==-1 || (ct.role||"").toLowerCase().indexOf(q)!==-1;
+      });
+      return contactsMatch;
     });
     list.sort(function(a,b){ return clientSortValue(b) - clientSortValue(a); });
     var html = list.length ? list.map(clientListRowHtml).join("") :
