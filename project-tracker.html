@@ -588,6 +588,7 @@
         var d = doc.data();
         mySites.push({id: doc.id, label: "אתר של " + (d.ownerName || d.ownerEmail), isOwner: false});
       });
+      document.getElementById("switchSiteBtn").hidden = mySites.length <= 1;
       if(mySites.length === 1){
         selectSite(mySites[0].id);
       } else {
