@@ -3446,9 +3446,10 @@
     var taskCatLabel = taskCat === "shared" ? "משותף" : (taskCat === "work" ? "עבודה" : "אישי");
     meta.push('<span class="ptask-mi" title="'+taskCatLabel+'">'+taskCatIcon+'</span>');
     if(p.showCategory && cat) meta.push('<span class="ptask-cat-chip" style="background:'+cat.color+'22;color:'+cat.color+'">'+escapeHtml((cat.icon||"")+" "+cat.name)+'</span>');
+    var clientName = "";
     if(t.clientId){
       var lc = getClientNew(t.clientId);
-      if(lc) meta.push('<span class="ptask-client-chip" data-ptask-goclient="'+t.clientId+'" title="מעבר לכרטיס הלקוח">👤 '+escapeHtml(lc.name||"לקוח")+'</span>');
+      if(lc) clientName = lc.name||"לקוח";
     }
     if(p.showSubProgress && subs.length) meta.push('<span class="ptask-mi">☑ '+subDone+'/'+subs.length+'</span>');
     if(t.assignedTo) meta.push('<span class="ptask-mi" title="הוקצה ל">👤 '+escapeHtml(t.assignedTo)+'</span>');
@@ -3469,7 +3470,9 @@
         '<div class="ptask-priority" title="עדיפות" style="font-weight:bold;color:var(--accent);min-width:24px;text-align:center;">'+(t.priority||'-')+'</div>'+
         '<button type="button" class="ptask-check'+(t.done?" checked":"")+'"'+(owner?"":" disabled")+' data-ptask-done="'+t.id+'" aria-label="סימון בוצע"></button>'+
         '<div class="ptask-main">'+
-          '<div class="ptask-title">'+escapeHtml(t.title||"(ללא כותרת)")+(t.type==="idea"?' <span class="ptask-idea-tag">💡 רעיון</span>':'')+'</div>'+
+          '<div class="ptask-title">'+escapeHtml(t.title||"(ללא כותרת)")+(t.type==="idea"?' <span class="ptask-idea-tag">💡 רעיון</span>':'')+
+            (clientName?' <span style="font-size:0.9rem;color:var(--accent);font-weight:500;">👤 '+escapeHtml(clientName)+'</span>':'')+
+          '</div>'+
           (t.description?'<div class="ptask-desc">'+escapeHtml(t.description)+'</div>':'')+
           '<div class="ptask-meta">'+meta.join("")+'</div>'+
         '</div>'+
