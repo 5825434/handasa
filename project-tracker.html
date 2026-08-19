@@ -109,19 +109,25 @@
         <button type="button" class="pill-btn add-lead-btn" id="ptaskAddBtn"><span>+</span> משימה חדשה</button>
         <button type="button" class="ghost-btn" id="ptaskAddIdeaBtn">💡 רעיון</button>
         <div class="search-box"><input type="text" id="ptaskSearch" placeholder="חיפוש במשימות..."></div>
+      </div>
+      <div class="toolbar-row">
+        <button type="button" class="ghost-btn" id="ptaskArchiveBtn" title="הצג/הסתר ארכיון משימות שהושלמו">📁 ארכיון</button>
+        <div class="chipset" id="ptaskViewChips">
+          <button type="button" class="chip active" data-ptask-view="list">📋 רשימה</button>
+          <button type="button" class="chip" data-ptask-view="calendar">📅 לוח שנה</button>
+        </div>
         <select id="ptaskSort">
           <option value="urgency">מיון: לפי דחיפות וחשיבות</option>
           <option value="date">מיון: לפי תאריך יעד</option>
           <option value="priority">מיון: לפי מספור</option>
           <option value="difficulty">מיון: לפי קושי</option>
         </select>
-        <label class="switch-label" title="בכל מיון, מציג קודם את המשימות הקשות יותר"><input type="checkbox" id="ptaskDifficultyBoost"> 🔴 קשות קודם</label>
-        <div class="chipset" id="ptaskViewChips">
-          <button type="button" class="chip active" data-ptask-view="list">📋 רשימה</button>
-          <button type="button" class="chip" data-ptask-view="calendar">📅 לוח שנה</button>
-        </div>
+        <select id="ptaskDifficultyBoost" title="תעדוף משני לפי קושי, בכל מיון">
+          <option value="">ללא תעדוף קושי</option>
+          <option value="hard">🔴 קשות קודם</option>
+          <option value="easy">🟢 קלות קודם</option>
+        </select>
         <div class="spacer"></div>
-        <button type="button" class="ghost-btn" id="ptaskArchiveBtn" title="הצג/הסתר ארכיון משימות שהושלמו">📁 ארכיון</button>
         <button type="button" class="ghost-btn" id="ptaskSettingsBtn">⚙ תצוגה</button>
       </div>
       <div class="toolbar-row" id="ptaskBucketRow">
@@ -133,10 +139,10 @@
           <button type="button" class="chip" data-ptask-bucket="ideas">רעיונות 💡</button>
           <button type="button" class="chip" data-ptask-bucket="shared">👥 משותפות</button>
         </div>
-        <div class="chipset" id="ptaskCategoryChips" style="margin-top:12px;">
+        <div class="spacer"></div>
+        <div class="chipset" id="ptaskCategoryChips">
           <button type="button" class="chip active" data-ptask-category="all">הכל</button>
           <button type="button" class="chip" data-ptask-category="work">עבודה</button>
-          <button type="button" class="chip" data-ptask-category="shared">משותף</button>
           <button type="button" class="chip" data-ptask-category="personal">אישי</button>
         </div>
       </div>
@@ -559,7 +565,7 @@
   var taskCategories = [];
   var expandedTaskId = null;
   var taskFilters = {search:"", bucket:"all", category:"all"};
-  var TASK_PREF_DEFAULTS = {groupBy:"bucket", sort:"urgency", difficultyBoost:false, showCategory:true, showDue:true, showSubProgress:true, hideDone:false};
+  var TASK_PREF_DEFAULTS = {groupBy:"bucket", sort:"urgency", difficultyBoost:"", showCategory:true, showDue:true, showSubProgress:true, hideDone:false};
   var taskDisplayPrefs = Object.assign({}, TASK_PREF_DEFAULTS);
   var TASK_CAT_ICONS = ["📁","🏠","💼","📞","👨‍👩‍👧","🛒","📐","🔧","☕","💰","⭐","📌","📅","📧","🚗","🏗","✅","🎨","📊","🔧","🌐","⚙️"];
   var TASK_CAT_COLORS = ["#7c5cbf","#2f8f5b","#2f6fb0","#d97f2b","#b3432e","#a8720f","#0d7a3f","#6d7a87"];
@@ -1375,7 +1381,7 @@
       saveTaskPrefs(); renderTasksView();
     });
     document.getElementById("ptaskDifficultyBoost").addEventListener("change", function(e){
-      taskDisplayPrefs.difficultyBoost = e.target.checked;
+      taskDisplayPrefs.difficultyBoost = e.target.value;
       saveTaskPrefs(); renderTasksView();
     });
     document.getElementById("ptaskSettingsPanel").addEventListener("change", function(e){
@@ -3702,10 +3708,17 @@
     });
   }
   function taskSortValue(t){ return QORDER.indexOf(t.quadrant||"n"); }
-  function difficultySortValue(t){ return (DIFFICULTY_META[t.difficulty||""]||DIFFICULTY_META[""]).order; }
+  var DIFFICULTY_RANK_HARD_FIRST = {hard:0, medium:1, easy:2, "":3};
+  var DIFFICULTY_RANK_EASY_FIRST = {easy:0, medium:1, hard:2, "":3};
+  function difficultyRank(t, dir){
+    var map = dir==="easy" ? DIFFICULTY_RANK_EASY_FIRST : DIFFICULTY_RANK_HARD_FIRST;
+    var key = t.difficulty||"";
+    return map[key]!==undefined ? map[key] : 3;
+  }
   function sortPersonalTasks(list){
     var s=taskDisplayPrefs.sort;
     var boost=taskDisplayPrefs.difficultyBoost;
+    var dir = boost || "hard";
     return list.slice().sort(function(a,b){
       if((a.done?1:0)!==(b.done?1:0)) return a.done?1:-1;
       var primary=0;
@@ -3715,13 +3728,13 @@
       } else if(s==="priority"){
         primary = (a.priority||999)-(b.priority||999);
       } else if(s==="difficulty"){
-        primary = difficultySortValue(a)-difficultySortValue(b);
+        primary = difficultyRank(a,dir)-difficultyRank(b,dir);
       } else {
         primary = taskSortValue(a)-taskSortValue(b);
       }
       if(primary!==0) return primary;
       if(boost && s!=="difficulty"){
-        var diff = difficultySortValue(a)-difficultySortValue(b);
+        var diff = difficultyRank(a,boost)-difficultyRank(b,boost);
         if(diff!==0) return diff;
       }
       if(s!=="priority"){
@@ -3881,8 +3894,8 @@
     });
     var sortSel = document.getElementById("ptaskSort");
     if(sortSel) sortSel.value = taskDisplayPrefs.sort;
-    var boostCb = document.getElementById("ptaskDifficultyBoost");
-    if(boostCb) boostCb.checked = !!taskDisplayPrefs.difficultyBoost;
+    var boostSel = document.getElementById("ptaskDifficultyBoost");
+    if(boostSel) boostSel.value = taskDisplayPrefs.difficultyBoost||"";
     document.querySelectorAll("[data-ptask-pref]").forEach(function(cb){
       cb.checked = !!taskDisplayPrefs[cb.getAttribute("data-ptask-pref")];
     });
