@@ -348,6 +348,7 @@ input,select,textarea{font-family:inherit;color:inherit;}
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(10,14,20,0.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}
 .overlay[hidden]{display:none;}
+#drivePickerOverlay{z-index:10500;}
 .modal{background:var(--surface);border-radius:12px;padding:22px;width:100%;max-width:340px;box-shadow:var(--shadow);}
 .modal h2{margin:0 0 4px;font-size:1.05rem;}
 .modal p{margin:0 0 14px;color:var(--ink-soft);font-size:0.82rem;}
