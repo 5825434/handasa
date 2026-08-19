@@ -4539,8 +4539,7 @@
         items: (job.quoteLines || []).map(function(l){ return {name:l.name||"", qty:l.qty||1, unitPrice:l.unitPrice||0}; }),
         notes: "",
         signature: "",
-        vatPercent: 18,
-        driveMode: "shared"
+        vatPercent: 18
       };
     }
     var overlay = document.getElementById("proposalOverlay");
@@ -4604,10 +4603,6 @@
             '<h4>חתימה דיגיטלית</h4>'+
             '<input type="text" id="propSignature" placeholder="שם/פרטי" value="'+escapeHtml(currentProposal.signature)+'">'+
           '</div>'+
-          '<div class="proposal-section">'+
-            '<label><input type="radio" name="driveMode" value="shared" '+(currentProposal.driveMode==="shared"?"checked":"")+' id="driveShared"> שמור בדרייב משותף (גלוי)</label>'+
-            '<label><input type="radio" name="driveMode" value="private" '+(currentProposal.driveMode==="private"?"checked":"")+' id="drivePrivate"> שמור בדרייב פרטי (רק לי)</label>'+
-          '</div>'+
         '</div>'+
       '</div>'+
       '<div class="modal-footer">'+
@@ -4665,19 +4660,22 @@
       overlay.style.display = "none";
     }
   }
+  function ltrIsolate(text){
+    return '<span dir="ltr" style="unicode-bidi:isolate;">'+escapeHtml(text)+'</span>';
+  }
   function buildProposalHtml(){
     var logoHtml = getCompanyLogo() ? '<div style="text-align:center;margin-bottom:20px;"><img src="'+getCompanyLogo()+'" style="max-height:60px;"></div>' : '';
-    return '<div style="background:#1f4e79;color:white;padding:30px;text-align:center;margin-bottom:30px;">'+
+    return '<div dir="rtl" style="background:#1f4e79;color:white;padding:30px;text-align:center;margin-bottom:30px;">'+
       '<h1 style="margin:0 0 5px 0;font-size:28px;">הצעה למתן שירות הנדסי</h1>'+
       '<p style="margin:0;font-size:14px;">'+escapeHtml(currentProposal.clientName)+'</p>'+
-      '<p style="margin:5px 0 0 0;font-size:12px;">'+currentProposal.date+'</p>'+
+      '<p style="margin:5px 0 0 0;font-size:12px;">'+ltrIsolate(currentProposal.date)+'</p>'+
     '</div>'+
-    '<div style="font-family:Arial;padding:40px;direction:rtl;text-align:right;">'+
+    '<div dir="rtl" style="font-family:Arial;padding:40px;direction:rtl;text-align:right;">'+
       logoHtml+
       '<div style="margin-bottom:20px;display:flex;justify-content:space-between;font-size:13px;">'+
         '<div>'+
           '<p style="margin:0;"><strong>הצעה חדשה</strong></p>'+
-          '<p style="margin:3px 0 0 0;color:#666;">לתמיכה: 0523232352</p>'+
+          '<p style="margin:3px 0 0 0;color:#666;">לתמיכה: '+ltrIsolate("0523232352")+'</p>'+
         '</div>'+
         '<div style="text-align:left;">'+
           '<p style="margin:0;"><strong>'+escapeHtml(currentProposal.clientName)+'</strong></p>'+
@@ -4687,7 +4685,7 @@
       '<hr style="border:none;border-top:1px solid #ddd;margin:20px 0;"/>'+
       '<div style="margin-bottom:20px;">'+
         '<p style="margin:5px 0;"><strong>עבודה:</strong> '+escapeHtml(currentProposal.jobTitle)+'</p>'+
-        '<p style="margin:5px 0;"><strong>תאריך:</strong> '+currentProposal.date+'</p>'+
+        '<p style="margin:5px 0;"><strong>תאריך:</strong> '+ltrIsolate(currentProposal.date)+'</p>'+
       '</div>'+
       '<table style="width:100%;border-collapse:collapse;margin:20px 0;">'+
         '<tr style="background:#f5f5f5;border:1px solid #ddd;">'+
@@ -4721,17 +4719,30 @@
       (currentProposal.signature ? '<p style="margin-top:40px;"><strong>חתימה:</strong> '+escapeHtml(currentProposal.signature)+'</p>' : '')+
     '</div>';
   }
+  function renderProposalContainer(){
+    var container = document.createElement("div");
+    container.setAttribute("dir", "rtl");
+    container.style.cssText = "position:fixed;top:0;left:-99999px;width:800px;background:#fff;";
+    container.innerHTML = buildProposalHtml();
+    document.body.appendChild(container);
+    return container;
+  }
   function downloadProposalAsPDF(){
     updateProposalFromUI();
     if(!currentProposal) return;
-    var html = buildProposalHtml();
-    var opt = {margin:10, filename:"proposal_"+currentProposal.clientName+"_"+currentProposal.date+".pdf", image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}};
-    html2pdf().set(opt).from(html).save();
+    var container = renderProposalContainer();
+    var opt = {margin:10, filename:"proposal_"+currentProposal.clientName+"_"+currentProposal.date+".pdf", image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2,letterRendering:true,useCORS:true}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}};
+    html2pdf().set(opt).from(container).save().then(function(){
+      document.body.removeChild(container);
+    });
   }
   function generateProposalPdfBlob(){
-    var html = buildProposalHtml();
-    var opt = {margin:10, image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}};
-    return html2pdf().set(opt).from(html).outputPdf("blob");
+    var container = renderProposalContainer();
+    var opt = {margin:10, image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2,letterRendering:true,useCORS:true}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}};
+    return html2pdf().set(opt).from(container).outputPdf("blob").then(function(blob){
+      document.body.removeChild(container);
+      return blob;
+    });
   }
   function updateProposalFromUI(){
     if(!currentProposal) return;
@@ -4741,8 +4752,6 @@
     currentProposal.notes = document.getElementById("propNotes").value;
     currentProposal.signature = document.getElementById("propSignature").value;
     currentProposal.vatPercent = Number(document.getElementById("propVat").value)||17;
-    var driveMode = document.querySelector("input[name='driveMode']:checked");
-    if(driveMode) currentProposal.driveMode = driveMode.value;
     currentProposal.items = [];
     document.querySelectorAll("[data-prop-item-name]").forEach(function(el){
       var i = Number(el.getAttribute("data-prop-item-name"));
