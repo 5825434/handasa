@@ -4736,17 +4736,52 @@
       (currentProposal.signature ? '<p style="margin-top:40px;"><strong>חתימה:</strong> '+escapeHtml(currentProposal.signature)+'</p>' : '')+
     '</div>';
   }
+  function waitForProposalImages(node){
+    var imgs = Array.prototype.slice.call(node.querySelectorAll("img"));
+    if(!imgs.length) return Promise.resolve();
+    return Promise.all(imgs.map(function(img){
+      if(img.complete) return Promise.resolve();
+      return new Promise(function(done){ img.onload = img.onerror = function(){ done(); }; });
+    }));
+  }
+  /* html2pdf measures its source element BEFORE attaching it to the page, so a
+     detached node (what .from(htmlString) builds internally) reports width 0 and
+     the capture area comes out wrong - blank gap on top, content cut off. Build a
+     real attached node with an explicit width instead, hidden via an offscreen
+     wrapper so the node itself keeps plain static positioning. */
+  function withProposalNode(action){
+    var wrapper = document.createElement("div");
+    wrapper.style.cssText = "position:absolute;top:0;left:-10000px;width:794px;";
+    var node = document.createElement("div");
+    node.style.cssText = "width:794px;background:#ffffff;";
+    node.innerHTML = buildProposalHtml();
+    wrapper.appendChild(node);
+    document.body.appendChild(wrapper);
+    function cleanup(){ if(wrapper.parentNode) wrapper.parentNode.removeChild(wrapper); }
+    return waitForProposalImages(node).then(function(){
+      return action(node);
+    }).then(function(res){ cleanup(); return res; }, function(err){ cleanup(); throw err; });
+  }
+  function proposalPdfOptions(filename){
+    var opt = {margin:10, image:{type:"jpeg",quality:0.98},
+      html2canvas:{scale:2, backgroundColor:"#ffffff"},
+      jsPDF:{orientation:"portrait", unit:"mm", format:"a4"}};
+    if(filename) opt.filename = filename;
+    return opt;
+  }
   function downloadProposalAsPDF(){
     updateProposalFromUI();
     if(!currentProposal) return;
-    var html = buildProposalHtml();
-    var opt = {margin:10, filename:"proposal_"+currentProposal.clientName+"_"+currentProposal.date+".pdf", image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}};
-    html2pdf().set(opt).from(html).save();
+    var opt = proposalPdfOptions("proposal_"+currentProposal.clientName+"_"+currentProposal.date+".pdf");
+    withProposalNode(function(node){
+      return html2pdf().set(opt).from(node).save();
+    });
   }
   function generateProposalPdfBlob(){
-    var html = buildProposalHtml();
-    var opt = {margin:10, image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}};
-    return html2pdf().set(opt).from(html).outputPdf("blob");
+    var opt = proposalPdfOptions();
+    return withProposalNode(function(node){
+      return html2pdf().set(opt).from(node).outputPdf("blob");
+    });
   }
   function updateProposalFromUI(){
     if(!currentProposal) return;
