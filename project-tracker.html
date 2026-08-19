@@ -1338,20 +1338,20 @@
       var bucketChip = e.target.closest("[data-ptask-bucket]");
       if(bucketChip){
         taskFilters.bucket = bucketChip.getAttribute("data-ptask-bucket");
+        taskFilters.category = "all";
         if(taskFilters.bucket==="all"){
-          taskFilters.category = "all";
           showArchive = false;
-          syncTaskCategoryChips();
           updateArchiveBtnLabel();
         }
-        syncTaskBucketChips();
+        syncFilterChips();
         renderTasksView();
         return;
       }
       var catChip = e.target.closest("[data-ptask-category]");
       if(catChip){
         taskFilters.category = catChip.getAttribute("data-ptask-category");
-        syncTaskCategoryChips();
+        taskFilters.bucket = "all";
+        syncFilterChips();
         renderTasksView();
         return;
       }
@@ -3609,7 +3609,8 @@
         });
       });
       taskFilters.bucket = (taskModal.type==="idea") ? "ideas" : (taskFilters.bucket==="ideas"?"all":taskFilters.bucket);
-      syncTaskBucketChips();
+      if(taskModal.type==="idea") taskFilters.category = "all";
+      syncFilterChips();
     }
     closeTaskModal();
     refreshTasksUI();
@@ -3896,14 +3897,15 @@
     btn.textContent = showArchive ? "↩ חזרה למשימות" : "📁 ארכיון";
     btn.title = showArchive ? "יציאה מהארכיון וחזרה לרשימת המשימות" : "הצג את המשימות שהועברו לארכיון";
   }
-  function syncTaskBucketChips(){
+  function syncFilterChips(){
+    var categoryActive = taskFilters.category!=="all";
     document.querySelectorAll("[data-ptask-bucket]").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-ptask-bucket")===taskFilters.bucket);
+      var val = b.getAttribute("data-ptask-bucket");
+      b.classList.toggle("active", !categoryActive && val===taskFilters.bucket);
     });
-  }
-  function syncTaskCategoryChips(){
     document.querySelectorAll("[data-ptask-category]").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-ptask-category")===taskFilters.category);
+      var val = b.getAttribute("data-ptask-category");
+      b.classList.toggle("active", categoryActive && val===taskFilters.category);
     });
   }
   function renderTaskSettingsPanel(){
@@ -4084,8 +4086,7 @@
   }
   function renderTasksScreen(){
     loadTaskPrefs();
-    syncTaskBucketChips();
-    syncTaskCategoryChips();
+    syncFilterChips();
     updateArchiveBtnLabel();
     renderTaskSettingsPanel();
     renderTaskCatManager();
