@@ -183,6 +183,7 @@
         <p>עדכונים על קבצים, משימות, והערות</p>
       </div>
     </div>
+    <div class="notifications-list" id="taskNotifSection"></div>
     <div class="notifications-list" id="notificationsList"></div>
   </div><!-- /viewNotifications -->
 
@@ -699,9 +700,11 @@
         proposalTemplate = data.proposalTemplate;
       }
       buildTeamMembersFromSiteData(data);
+      attachTaskNotificationsListener();
     }).catch(function(err){
       console.warn("Error loading site data:", err.message);
       managerMode = false;
+      attachTaskNotificationsListener();
     });
     restoreDriveTokenFromStorage().then(function(){ checkAndShowNotifications(); });
     setTimeout(function(){ restoreViewState(); }, 500);
@@ -1489,19 +1492,30 @@
       }
       if(taskModal.data) taskModal.data.taskCategory = cat;
     });
-    document.getElementById("notificationsList").addEventListener("click", function(e){
-      var markBtn = e.target.closest("[data-notif-mark]");
+    document.getElementById("taskNotifSection").addEventListener("click", function(e){
+      var markBtn = e.target.closest("[data-notif-handled]");
       if(markBtn){
-        var idx = Number(markBtn.getAttribute("data-notif-mark"));
-        taskNotifications.splice(idx, 1);
-        renderNotificationsTab();
+        e.stopPropagation();
+        taskNotifCol().doc(markBtn.getAttribute("data-notif-handled")).update({status:"handled"});
         return;
       }
-      var dismissBtn = e.target.closest("[data-notif-dismiss]");
-      if(dismissBtn){
-        var idx = Number(dismissBtn.getAttribute("data-notif-dismiss"));
-        taskNotifications.splice(idx, 1);
-        renderNotificationsTab();
+      var postponeBtn = e.target.closest("[data-notif-postpone]");
+      if(postponeBtn){
+        e.stopPropagation();
+        var notifId = postponeBtn.getAttribute("data-notif-postpone");
+        var taskId = postponeBtn.getAttribute("data-notif-taskid");
+        var newDate = prompt("לדחות למועד חדש (YYYY-MM-DD):", todayStr());
+        if(!newDate) return;
+        personalTasksCol().doc(taskId).update({dueDate:newDate}).then(function(){
+          return taskNotifCol().doc(notifId).update({status:"handled"});
+        });
+        return;
+      }
+      var openBtn = e.target.closest("[data-notif-open]");
+      if(openBtn){
+        var openTaskId = openBtn.getAttribute("data-notif-open");
+        showView("tasks");
+        setTimeout(function(){ openTaskModal(openTaskId); }, 50);
         return;
       }
     });
@@ -1548,7 +1562,7 @@
     if(view==="workHours") renderWorkHoursView();
     if(view==="clientsNew"){ clientsNewScreen = "list"; renderClientsNewList(); renderClientsNewDetail(); renderClientsNewScreen(); }
     if(view==="tasks") renderTasksScreen();
-    if(view==="notifications") renderNotificationsView();
+    if(view==="notifications"){ renderTaskNotifications(); renderNotificationsView(); }
   }
 
 
@@ -3263,6 +3277,7 @@
   /* ========== personal tasks module ========== */
   function personalTasksCol(){ return db.collection("sites").doc(currentSiteId).collection("tasks"); }
   function ptaskCatsCol(){ return db.collection("sites").doc(currentSiteId).collection("taskCategories"); }
+  function taskNotifCol(){ return db.collection("sites").doc(currentSiteId).collection("taskNotifications"); }
 
   function loadTaskPrefs(){
     try{
@@ -3299,6 +3314,43 @@
       if(currentView==="tasks"){ refreshTasksUI(); renderTaskCatManager(); }
     });
     siteUnsubscribers.push(unsub);
+  }
+  function isNotifVisibleToMe(n){
+    if(managerMode) return true;
+    if(!n.assignedTo) return false;
+    var myEmailL = (currentUser.email||"").toLowerCase();
+    return n.assignedTo==="כל הצוות" || n.assignedTo===currentUser.displayName || n.assignedTo.toLowerCase()===myEmailL;
+  }
+  function attachTaskNotificationsListener(){
+    var unsub = taskNotifCol().where("status","==","new").onSnapshot(function(snap){
+      taskNotifications = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; })
+        .filter(isNotifVisibleToMe)
+        .sort(function(a,b){
+          var at=(a.createdAt&&a.createdAt.toMillis)?a.createdAt.toMillis():0;
+          var bt=(b.createdAt&&b.createdAt.toMillis)?b.createdAt.toMillis():0;
+          return bt-at;
+        });
+      updateNotifBadge();
+      if(currentView==="notifications") renderTaskNotifications();
+    }, function(err){});
+    siteUnsubscribers.push(unsub);
+  }
+  function updateNotifBadge(){
+    var btn = document.querySelector('[data-view="notifications"]');
+    if(!btn) return;
+    var n = taskNotifications.length;
+    var existing = btn.querySelector(".notif-badge");
+    if(n>0){
+      if(!existing){
+        existing = document.createElement("span");
+        existing.className = "notif-badge";
+        existing.style.cssText = "background:#d64545;color:#fff;border-radius:10px;padding:1px 7px;font-size:0.72rem;margin-right:6px;font-weight:bold;";
+        btn.appendChild(existing);
+      }
+      existing.textContent = n;
+    } else if(existing){
+      existing.remove();
+    }
   }
   function seedTaskCategoriesForNewSite(siteId){
     var col = db.collection("sites").doc(siteId).collection("taskCategories");
@@ -3516,16 +3568,16 @@
           var c = clients.find(function(cl){ return cl.id === d.clientId; });
           if(c) clientName = c.name;
         }
-        taskNotifications.push({
-          id: ref.id,
+        taskNotifCol().add({
+          taskId: ref.id,
           title: d.title,
           clientName: clientName,
-          createdBy: currentUser.displayName || currentUser.email || "Unknown",
-          assignedTo: d.assignedTo || "כל הצוות",
-          createdAt: new Date(),
-          status: "new"
+          createdByName: currentUser.displayName || currentUser.email || "Unknown",
+          createdByUid: currentUser.uid,
+          assignedTo: d.assignedTo || "",
+          status: "new",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        if(document.getElementById("notificationsTab")) renderNotificationsTab();
       });
       taskFilters.bucket = (taskModal.type==="idea") ? "ideas" : (taskFilters.bucket==="ideas"?"all":taskFilters.bucket);
       syncTaskBucketChips();
@@ -3564,24 +3616,27 @@
   }
   function deleteTaskCategory(id){ ptaskCatsCol().doc(id).delete(); }
 
-  function renderNotificationsTab(){
-    var list = document.getElementById("notificationsList");
+  function renderTaskNotifications(){
+    var list = document.getElementById("taskNotifSection");
     if(!list) return;
     if(!taskNotifications.length){
-      list.innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:var(--ink-muted);">אין התראות חדשות</div>';
+      list.innerHTML = "";
       return;
     }
-    var html = '<div style="padding:12px 0;border-bottom:1px solid var(--border);"><strong>משימות חדשות</strong></div>';
-    html += taskNotifications.map(function(notif, idx){
-      return '<div style="padding:12px;border-bottom:1px solid var(--border-soft);background:var(--bg-alt);margin:8px 0;border-radius:6px;">'+
+    var html = '<div style="padding:12px 0;"><strong>📌 משימות חדשות</strong></div>';
+    html += taskNotifications.map(function(notif){
+      var assignedLabel = notif.assignedTo || "";
+      var assignedMember = teamMembers.find(function(m){ return m.email===(notif.assignedTo||"").toLowerCase(); });
+      if(assignedMember) assignedLabel = assignedMember.name;
+      return '<div style="padding:12px;border-bottom:1px solid var(--border-soft);background:var(--bg-alt);margin:8px 0;border-radius:6px;cursor:pointer;" data-notif-open="'+notif.taskId+'">'+
         '<div style="font-weight:bold;">'+escapeHtml(notif.title)+'</div>'+
         (notif.clientName ? '<div style="font-size:0.85rem;color:var(--accent);">👤 '+escapeHtml(notif.clientName)+'</div>' : '')+
         '<div style="font-size:0.8rem;color:var(--ink-muted);margin-top:4px;">'+
-          'הוצר על ידי: '+escapeHtml(notif.createdBy)+' | הוקצה ל: '+escapeHtml(notif.assignedTo)+
+          'עלה ע"י: '+escapeHtml(notif.createdByName||"")+(assignedLabel?' | מיועד ל: '+escapeHtml(assignedLabel):'')+
         '</div>'+
         '<div style="margin-top:8px;display:flex;gap:8px;">'+
-          '<button type="button" class="ghost-btn" style="font-size:0.85rem;" data-notif-mark="'+idx+'">✓ טופל</button>'+
-          '<button type="button" class="ghost-btn" style="font-size:0.85rem;" data-notif-dismiss="'+idx+'">✕ בטל</button>'+
+          '<button type="button" class="ghost-btn" style="font-size:0.85rem;" data-notif-handled="'+notif.id+'">✓ טופל</button>'+
+          '<button type="button" class="ghost-btn" style="font-size:0.85rem;" data-notif-postpone="'+notif.id+'" data-notif-taskid="'+notif.taskId+'">⏰ דחה</button>'+
         '</div>'+
       '</div>';
     }).join("");
@@ -4002,6 +4057,8 @@
     taskCategories = [];
     expandedTaskId = null;
     teamMembers = [];
+    taskNotifications = [];
+    updateNotifBadge();
     document.getElementById("demoBanner").hidden = true;
     document.getElementById("demoModeBtn").textContent = "תצוגת דמו";
   }
