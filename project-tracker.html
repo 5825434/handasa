@@ -4719,30 +4719,17 @@
       (currentProposal.signature ? '<p style="margin-top:40px;"><strong>חתימה:</strong> '+escapeHtml(currentProposal.signature)+'</p>' : '')+
     '</div>';
   }
-  function renderProposalContainer(){
-    var container = document.createElement("div");
-    container.setAttribute("dir", "rtl");
-    container.style.cssText = "position:fixed;top:0;left:0;width:800px;background:#fff;z-index:-9999;pointer-events:none;";
-    container.innerHTML = buildProposalHtml();
-    document.body.appendChild(container);
-    return container;
-  }
   function downloadProposalAsPDF(){
     updateProposalFromUI();
     if(!currentProposal) return;
-    var container = renderProposalContainer();
-    var opt = {margin:10, filename:"proposal_"+currentProposal.clientName+"_"+currentProposal.date+".pdf", image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2,letterRendering:true,useCORS:true}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}};
-    html2pdf().set(opt).from(container).save().then(function(){
-      document.body.removeChild(container);
-    });
+    var html = buildProposalHtml();
+    var opt = {margin:10, filename:"proposal_"+currentProposal.clientName+"_"+currentProposal.date+".pdf", image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2,letterRendering:true,useCORS:true}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}, pagebreak:{mode:["avoid-all","css","legacy"]}};
+    html2pdf().set(opt).from(html).save();
   }
   function generateProposalPdfBlob(){
-    var container = renderProposalContainer();
-    var opt = {margin:10, image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2,letterRendering:true,useCORS:true}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}};
-    return html2pdf().set(opt).from(container).outputPdf("blob").then(function(blob){
-      document.body.removeChild(container);
-      return blob;
-    });
+    var html = buildProposalHtml();
+    var opt = {margin:10, image:{type:"jpeg",quality:0.98}, html2canvas:{scale:2,letterRendering:true,useCORS:true}, jsPDF:{orientation:"portrait",unit:"mm",format:"a4"}, pagebreak:{mode:["avoid-all","css","legacy"]}};
+    return html2pdf().set(opt).from(html).outputPdf("blob");
   }
   function updateProposalFromUI(){
     if(!currentProposal) return;
