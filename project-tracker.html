@@ -1405,6 +1405,22 @@
         if(ct && canCompleteTask(ct)){ setPersonalTaskField(cid, "done", !ct.done); refreshTasksUI(); }
         return;
       }
+      var archiveBtn = e.target.closest("[data-ptask-archive]");
+      if(archiveBtn){
+        e.stopPropagation();
+        var aid = archiveBtn.getAttribute("data-ptask-archive");
+        var at = getPersonalTask(aid);
+        if(at && canCompleteTask(at)){ setPersonalTaskField(aid, "archived", true); refreshTasksUI(); }
+        return;
+      }
+      var unarchiveBtn = e.target.closest("[data-ptask-unarchive]");
+      if(unarchiveBtn){
+        e.stopPropagation();
+        var uid2 = unarchiveBtn.getAttribute("data-ptask-unarchive");
+        var ut = getPersonalTask(uid2);
+        if(ut && canCompleteTask(ut)){ setPersonalTaskField(uid2, "archived", false); refreshTasksUI(); }
+        return;
+      }
       var timerBtn = e.target.closest("[data-ptask-timer]");
       if(timerBtn){ e.stopPropagation(); togglePtaskTimer(timerBtn.getAttribute("data-ptask-timer")); refreshTasksUI(); return; }
       var timerReset = e.target.closest("[data-ptask-timer-reset]");
@@ -2074,7 +2090,6 @@
       workType:document.getElementById("ca-workType").value,
       source:document.getElementById("ca-source").value,
       inquiryDate:document.getElementById("ca-inquiryDate").value,
-      color:document.getElementById("ca-color").value,
       contacts:clientFormContacts,
       wantedWork:document.getElementById("ca-wantedWork").value
     });
@@ -3588,7 +3603,15 @@
         if(t.assignedTo!=="כל הצוות" && t.assignedTo!==currentUser.displayName && t.assignedTo.toLowerCase()!==myEmailL) return false;
       }
       if(q){
-        var hay=((t.title||"")+" "+(t.description||"")).toLowerCase();
+        var hayParts = [t.title||"", t.description||"", t.tags||""];
+        if(t.clientId){
+          var qc = getClientNew(t.clientId);
+          if(qc){
+            hayParts.push(qc.name||"");
+            (qc.contacts||[]).forEach(function(ct){ hayParts.push(ct.name||""); });
+          }
+        }
+        var hay = hayParts.join(" ").toLowerCase();
         if(hay.indexOf(q)===-1) return false;
       }
       return true;
@@ -3681,10 +3704,17 @@
         '<button type="button" class="ptask-resetbtn" data-ptask-timer-reset="'+t.id+'" title="איפוס">↺</button>'+
       '</div>';
     }
+    var archiveBtnHtml = "";
+    if(t.archived){
+      archiveBtnHtml = '<button type="button" class="ghost-btn" data-ptask-unarchive="'+t.id+'" title="שחזר מהארכיון" style="padding:3px 8px;font-size:0.72rem;white-space:nowrap;">↩ שחזור</button>';
+    } else if(t.done){
+      archiveBtnHtml = '<button type="button" class="ghost-btn" data-ptask-archive="'+t.id+'" title="העבר לארכיון" style="padding:3px 8px;font-size:0.72rem;white-space:nowrap;">📦 ארכוב</button>';
+    }
     return '<div class="ptask-item'+(t.done?" done":"")+'" style="border-inline-start-color:'+qcolor+'" data-ptask-open="'+t.id+'" data-priority="'+(t.priority||999)+'">'+
       '<div class="ptask-head">'+
         '<div class="ptask-priority" title="עדיפות" style="font-weight:bold;color:var(--accent);min-width:24px;text-align:center;">'+(t.priority||'-')+'</div>'+
         '<button type="button" class="ptask-check'+(t.done?" checked":"")+'"'+(canCompleteTask(t)?"":" disabled")+' data-ptask-done="'+t.id+'" aria-label="סימון בוצע"></button>'+
+        archiveBtnHtml+
         '<div class="ptask-main">'+
           '<div class="ptask-title">'+escapeHtml(t.title||"(ללא כותרת)")+(t.type==="idea"?' <span class="ptask-idea-tag">💡 רעיון</span>':'')+
             (clientName?' <span style="font-size:0.9rem;color:var(--accent);font-weight:500;">👤 '+escapeHtml(clientName)+'</span>':'')+
@@ -3700,16 +3730,16 @@
     if(!container) return;
     var list = sortPersonalTasks(filterPersonalTasks());
     if(showArchive){
-      list = list.filter(function(t){ return t.done; });
+      list = list.filter(function(t){ return t.archived; });
       if(!list.length){
-        container.innerHTML = '<div class="empty">אין משימות שהושלמו עדיין.</div>';
+        container.innerHTML = '<div class="empty">אין משימות בארכיון.</div>';
         return;
       }
-      container.innerHTML = '<div style="padding:12px;color:var(--ink-muted);font-size:0.9rem;">📁 ארכיון - משימות שהושלמו</div>'+
+      container.innerHTML = '<div style="padding:12px;color:var(--ink-muted);font-size:0.9rem;">📁 ארכיון</div>'+
         list.map(personalTaskCardHtml).join("");
       return;
     }
-    list = list.filter(function(t){ return !t.done; });
+    list = list.filter(function(t){ return !t.archived; });
     if(!list.length){
       container.innerHTML = '<div class="empty">אין משימות תואמות. הוסף משימה חדשה למעלה.</div>';
       return;
