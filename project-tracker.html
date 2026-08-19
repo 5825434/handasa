@@ -2326,12 +2326,6 @@
       return '<button type="button" class="step '+cls+'" data-set-job-stage="'+s.n+'"'+style+'>'+s.n+"."+"<br>"+s.label+'</button>';
     }).join("");
 
-    var qpicker = QORDER.map(function(k){
-      var sel = job.quadrant===k;
-      return '<button type="button" class="qopt'+(sel?" sel":"")+'" style="color:var('+QUADRANTS[k].token+')" data-set-job-quadrant="'+k+'">'+
-        '<span class="dot" style="background:var('+QUADRANTS[k].token+')"></span>'+QUADRANTS[k].label+'</button>';
-    }).join("");
-
     var payBlock = managerMode ?
       '<div class="field"><label>מחיר כולל (₪)</label><input type="number" min="0" step="1" data-jfield="price" value="'+(job.price||0)+'"></div>'+
       '<div class="field"><label>שולם עד כה (₪)</label><input type="number" min="0" step="1" data-jfield="paid" value="'+(job.paid||0)+'"></div>' :
@@ -2340,7 +2334,6 @@
     return '<div class="detail-body" style="padding:0;">'+
       '<div class="field full"><label>שם העבודה</label><input type="text" data-jfield="title" value="'+escapeHtml(job.title||"")+'"></div>'+
       '<div class="field full"><label>שלב</label><div class="steps">'+steps+'</div></div>'+
-      '<div class="field full"><label>דרגת חשיבות ודחיפות</label><div class="qpicker">'+qpicker+'</div></div>'+
       '<div class="field"><label>תאריך יעד</label><input type="date" data-jfield="dueDate" value="'+(job.dueDate||"")+'"></div>'+
       payBlock+
       '<div class="field full"><label>הערות לעבודה</label><textarea data-jfield="notes">'+escapeHtml(job.notes||"")+'</textarea></div>'+
@@ -3459,7 +3452,10 @@
   function attachTaskCategoriesListener(){
     var unsub = ptaskCatsCol().onSnapshot(function(snap){
       taskCategories = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
-      if(currentView==="tasks"){ refreshTasksUI(); renderTaskCatManager(); }
+      if(currentView==="tasks"){
+        refreshTasksUI();
+        if(!isFocusedWithin("ptaskCatManagerList")) renderTaskCatManager();
+      }
     });
     siteUnsubscribers.push(unsub);
   }
