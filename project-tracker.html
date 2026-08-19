@@ -701,10 +701,12 @@
       }
       buildTeamMembersFromSiteData(data);
       attachTaskNotificationsListener();
+      applyAccessMode();
     }).catch(function(err){
       console.warn("Error loading site data:", err.message);
       managerMode = false;
       attachTaskNotificationsListener();
+      applyAccessMode();
     });
     restoreDriveTokenFromStorage().then(function(){ checkAndShowNotifications(); });
     setTimeout(function(){ restoreViewState(); }, 500);
