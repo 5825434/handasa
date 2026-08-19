@@ -565,6 +565,7 @@
   var clientJobTab = "progress";
   var clientFilters = {search:"", sort:"progress"};
   var clientDetailExpanded = false;
+  var quoteArchiveOpen = false;
   var clientsNewScreen = "list";
 
   /* ---------- personal tasks (general task manager) ---------- */
@@ -902,12 +903,9 @@
       var pick = e.target.closest("[data-drive-pick]");
       if(pick){
         var email = pick.getAttribute("data-drive-pick");
-        var acc = driveAccounts.find(function(a){ return a.email===email; });
-        if(!acc) return;
         var cb = drivePendingAction; drivePendingAction=null;
         closeDrivePicker();
-        activateDriveAccount(acc);
-        if(cb) cb(acc);
+        reauthDriveAccount(email, cb);
         return;
       }
       var remove = e.target.closest("[data-drive-remove]");
@@ -1034,6 +1032,11 @@
     clientsNewDetailEl.addEventListener("click", function(e){
       if(e.target.closest("#clientExpandBtn")){
         clientDetailExpanded = !clientDetailExpanded;
+        renderClientsNewDetail();
+        return;
+      }
+      if(e.target.closest("[data-toggle-quote-archive]")){
+        quoteArchiveOpen = !quoteArchiveOpen;
         renderClientsNewDetail();
         return;
       }
@@ -2358,16 +2361,17 @@
   }
   function proposalsArchiveHtml(job){
     var arr = job.proposalsArchive || [];
-    if(!arr.length) return '<div style="margin-top:16px;color:var(--ink-muted,#999);font-size:0.85rem;">אין הצעות מחיר שמורות בארכיון עדיין.</div>';
     var sorted = arr.slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
-    return '<div style="margin-top:16px;">'+
-      '<h4 style="margin:0 0 8px;">📁 ארכיון הצעות מחיר</h4>'+
+    var listHtml = !sorted.length ? '<div style="color:var(--ink-muted,#999);font-size:0.85rem;padding:10px;">אין הצעות מחיר שמורות בארכיון עדיין.</div>' :
       sorted.map(function(p){
         return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f9f9f9;border-radius:6px;margin-bottom:6px;">'+
           '<a href="'+escapeHtml(p.url||"")+'" target="_blank" rel="noopener" style="flex:1;color:var(--accent);text-decoration:none;font-weight:600;">📄 הצעה מתאריך '+escapeHtml(p.date||"")+'</a>'+
           '<span style="font-weight:bold;">'+fmtMoney(p.total||0)+'</span>'+
         '</div>';
-      }).join("")+
+      }).join("");
+    return '<div style="margin-top:16px;">'+
+      '<button type="button" class="ghost-btn" data-toggle-quote-archive>📁 ארכיון הצעות מחיר ('+sorted.length+') '+(quoteArchiveOpen?"▲":"▼")+'</button>'+
+      (quoteArchiveOpen ? '<div style="margin-top:8px;">'+listHtml+'</div>' : '')+
     '</div>';
   }
   function jobQuoteTabHtml(job){
@@ -2668,6 +2672,14 @@
     showDriveStatus("מבקש אישור גישה לדרייב...");
     try{ tc.requestAccessToken({prompt:"select_account consent"}); }
     catch(e){ hideDriveStatus(); alert("שגיאה בפתיחת חלון האישור: "+(e&&e.message||e)); }
+  }
+  function reauthDriveAccount(email, onDone){
+    var tc = initDriveTokenClient();
+    if(!tc){ alert("שירות הדרייב עדיין נטען - נסה שוב בעוד רגע."); return; }
+    drivePendingAction = onDone;
+    showDriveStatus("מתחבר לדרייב...");
+    try{ tc.requestAccessToken({prompt:"", hint:email}); }
+    catch(e){ hideDriveStatus(); alert("שגיאה בחיבור לדרייב: "+(e&&e.message||e)); }
   }
   function restoreDriveTokenFromStorage(){
     loadDriveAccounts();
