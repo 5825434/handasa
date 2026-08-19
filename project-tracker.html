@@ -3848,6 +3848,10 @@
       container.innerHTML = '<div class="empty">אין משימות תואמות. הוסף משימה חדשה למעלה.</div>';
       return;
     }
+    if(taskDisplayPrefs.sort==="priority"){
+      container.innerHTML = list.map(personalTaskCardHtml).join("");
+      return;
+    }
     var groups = taskGroupsFor(list);
     container.innerHTML = groups.map(function(g){
       return '<div class="group-hd"><span class="dot" style="background:'+g.color+'"></span><span class="t">'+escapeHtml(g.label)+'</span><span class="c">'+g.items.length+'</span></div>'+
