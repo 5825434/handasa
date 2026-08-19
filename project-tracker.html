@@ -748,6 +748,7 @@
     var savedClientId = localStorage.getItem("currentClientId");
     var savedJobId = localStorage.getItem("currentJobId");
     var savedTab = localStorage.getItem("clientJobTab") || "progress";
+    if(savedTab==="templates") savedTab = "quote";
     showView(savedView);
     if(savedClientId && savedView === "clientsNew"){
       selectedClientId = savedClientId;
@@ -1049,16 +1050,6 @@
       }
       if(e.target.closest("#jobCreateProposalBtn")){
         showProposalEditor();
-        return;
-      }
-      if(e.target.closest("#jobSaveProposalDriveBtn")){
-        if(!driveAccessToken){ alert("קודם לחץ על הכפתור \"🔗 חבר את הדרייב שלי\" בtab המסמכים."); return; }
-        if(!currentProposal) showProposalEditor();
-        setTimeout(function(){ saveProposalToDrive(); }, 100);
-        return;
-      }
-      if(e.target.closest("#jobUploadTemplateBtn")){
-        uploadProposalTemplate();
         return;
       }
       if(e.target.closest("#jobAddQuoteLineBtn")){
@@ -2267,10 +2258,7 @@
     var tabs = [
       {id:"progress", label:"פרטים"},
       {id:"needs", label:"בדיקה והבנת הצורך"},
-      {id:"quote", label:"הצעת מחיר", submenu:[
-        {id:"quote", label:"עריכת הצעה"},
-        {id:"templates", label:"🎨 תבניות"}
-      ]},
+      {id:"quote", label:"הצעת מחיר"},
       {id:"negotiate", label:"משא ומתן"},
       {id:"documents", label:"מסמכים"},
       {id:"tasks", label:"משימות"},
@@ -2340,9 +2328,8 @@
     return '<div class="quote-lines-wrap">'+quoteRows+
       '<button type="button" class="ghost-btn" id="jobAddQuoteLineBtn">+ שורה</button>'+
       '<div class="quote-summary-cell" data-quote-summary>סה"כ הצעה: '+fmtMoney(quoteLinesTotal(qLines))+'</div>'+
-      '<div style="margin-top:12px;display:flex;gap:8px;">'+
+      '<div style="margin-top:12px;">'+
         '<button type="button" class="pill-btn" id="jobCreateProposalBtn">📄 צור הצעת מחיר</button>'+
-        '<button type="button" class="pill-btn" id="jobSaveProposalDriveBtn"'+(driveAccessToken?'':" style='opacity:0.5;cursor:not-allowed;'")+'">💾 שמור בדרייב</button>'+
       '</div></div>';
   }
   function jobNegotiationTabHtml(job){
@@ -2945,7 +2932,6 @@
     if(clientJobTab==="progress") body = jobProgressTabHtml(job);
     else if(clientJobTab==="needs") body = jobNeedsTabHtml(job);
     else if(clientJobTab==="quote") body = jobQuoteTabHtml(job);
-    else if(clientJobTab==="templates") body = renderTemplatesTab();
     else if(clientJobTab==="negotiate") body = jobNegotiationTabHtml(job);
     else if(clientJobTab==="tasks") body = jobTasksTabHtml(job);
     else if(clientJobTab==="service") body = jobServiceTabHtml(job);
@@ -4214,21 +4200,6 @@
       area.innerHTML = '<p style="color:#999;">עדיין לא הועלתה תבנית</p>';
     }
   }
-  function renderTemplatesTab(){
-    if(!managerMode) return '<div class="locked-note">ניהול תבניות גלוי למנהל בלבד.</div>';
-    return '<div style="padding:20px;background:#f9f9f9;border-radius:10px;">'+
-      '<h3>תבנית הצעת מחיר</h3>'+
-      '<p>העלה תבנית מותאמת לחברה שלך. הטקסט יתווסף אוטומטית על התמונה.</p>'+
-      '<input type="file" id="jobTemplateImageInput" accept="image/*" style="margin-bottom:10px;">'+
-      '<button type="button" class="pill-btn" id="jobUploadTemplateBtn">📸 העלה תבנית</button>'+
-      '<div id="jobTemplateUploadStatus" style="margin-top:10px;"></div>'+
-      '<div id="jobTemplatePreview" style="border:2px solid #ddd;border-radius:10px;padding:20px;background:white;margin-top:20px;">'+
-        '<div id="jobTemplatePreviewArea" style="text-align:center;color:#999;">'+
-          (proposalTemplate ? '<img src="'+proposalTemplate+'" style="max-width:100%;max-height:400px;border-radius:8px;">' : '<p>עדיין לא הועלתה תבנית</p>')+
-        '</div>'+
-      '</div>'+
-    '</div>';
-  }
   function showTemplateStatus(msg){
     var statusEl = document.getElementById("templateUploadStatus");
     if(statusEl){
@@ -4469,16 +4440,30 @@
       '<div class="modal-header">'+
         (getCompanyLogo() ? '<img id="headerLogo" src="'+getCompanyLogo()+'" style="height:50px;margin-right:12px;cursor:pointer;" title="לחץ לשינוי הלוגו">' : '')+
         '<h3>עריכת הצעת מחיר - '+escapeHtml(client.name)+'</h3>'+
-        '<button type="button" class="close-modal">✕</button>'+
+        '<div style="display:flex;gap:8px;align-items:center;">'+
+          '<button type="button" class="ghost-btn" id="propSettingsBtn">⚙ הגדרות</button>'+
+          '<button type="button" class="close-modal">✕</button>'+
+        '</div>'+
       '</div>'+
       '<div class="modal-body">'+
+        '<div id="propSettingsPanel" hidden style="background:#f5f5f5;border-radius:8px;padding:16px;margin-bottom:16px;">'+
+          '<div style="margin-bottom:16px;">'+
+            '<div style="font-weight:bold;margin-bottom:8px;">🏢 לוגו החברה</div>'+
+            (getCompanyLogo() ? '<img id="logoPreview" src="'+getCompanyLogo()+'" style="height:40px;margin-left:8px;cursor:pointer;vertical-align:middle;" title="לחץ לשינוי לוגו חדש">' : '')+
+            '<button type="button" class="ghost-btn" id="changeLogo">'+(getCompanyLogo()?'שנה לוגו':'העלה לוגו')+'</button>'+
+          '</div>'+
+          '<div>'+
+            '<div style="font-weight:bold;margin-bottom:8px;">📸 תבנית להצעת מחיר</div>'+
+            '<button type="button" class="ghost-btn" id="propUploadTemplateBtn">העלה תבנית</button>'+
+            '<div id="templateUploadStatus" style="margin-top:8px;"></div>'+
+            '<div id="templatePreviewArea" style="margin-top:8px;">'+
+              (proposalTemplate ? '<img src="'+proposalTemplate+'" style="max-width:100%;max-height:200px;border-radius:8px;">' : '<p style="color:#999;margin:0;">עדיין לא הועלתה תבנית</p>')+
+            '</div>'+
+          '</div>'+
+        '</div>'+
         '<div class="proposal-editor">'+
           '<div class="proposal-section">'+
             '<h4>פרטי הצעה</h4>'+
-            '<label>'+
-              (getCompanyLogo() ? '<img id="logoPreview" src="'+getCompanyLogo()+'" style="height:40px;margin-left:8px;cursor:pointer;vertical-align:middle;" title="לחץ לשינוי לוגו חדש">' : '')+
-              '<button type="button" class="ghost-btn" id="changeLogo" style="margin-right:8px;">🏢 '+(getCompanyLogo()?'שנה לוגו':'העלה לוגו')+'</button>'+
-            '</label>'+
             '<label>שם הלקוח: <input type="text" id="propClientName" value="'+escapeHtml(currentProposal.clientName)+'"></label>'+
             '<label>שם העבודה: <input type="text" id="propJobTitle" value="'+escapeHtml(currentProposal.jobTitle)+'"></label>'+
             '<label>תאריך: <input type="date" id="propDate" value="'+(currentProposal.date||'')+'"></label>'+
@@ -4527,6 +4512,13 @@
     document.getElementById("propCancelBtn").onclick = function(){ closeProposalEditor(); };
     var closeBtn = overlay.querySelector(".close-modal");
     if(closeBtn) closeBtn.onclick = function(e){ e.preventDefault(); closeProposalEditor(); return false; };
+    var settingsBtn = document.getElementById("propSettingsBtn");
+    if(settingsBtn) settingsBtn.onclick = function(){
+      var panel = document.getElementById("propSettingsPanel");
+      panel.hidden = !panel.hidden;
+    };
+    var uploadTemplateBtn = document.getElementById("propUploadTemplateBtn");
+    if(uploadTemplateBtn) uploadTemplateBtn.onclick = function(){ uploadProposalTemplate(); };
     var changeLogoBtn = document.getElementById("changeLogo");
     if(changeLogoBtn) {
       changeLogoBtn.onclick = function(e){
