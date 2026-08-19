@@ -395,8 +395,7 @@
         </select></div>
         <div class="field"><label>קטגוריה</label><select id="pm-category"></select></div>
         <div class="field"><label>שייך ללקוח (אופציונלי)</label><input type="text" id="pm-client" list="pm-client-list" placeholder="חפש לפי שם לקוח או איש קשר..."><datalist id="pm-client-list"></datalist></div>
-        <div class="field"><label>הקצה לעובד (אופציונלי)</label><select id="pm-assignedTo"><option value="">ללא הקצאה</option></select></div>
-        <div class="field full"><label>תגיות (משמשות לסינכרון)</label><input type="text" id="pm-tags" placeholder="#general #client-אהרון #urgent (הפרד בחלל)"><div id="pm-tagsDisplay" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div></div>
+        <div class="field full"><label>תגיות (לסינון וחיפוש)</label><input type="text" id="pm-tags" placeholder="#general #client-אהרון #urgent (הפרד ברווח)"><div id="pm-tagsDisplay" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div></div>
         <div class="field ptask-when"><label>חזרתיות</label><select id="pm-recurrence">
           <option value="none">ללא חזרה</option><option value="daily">יומי</option>
           <option value="weekly">שבועי</option><option value="monthly">חודשי</option>
@@ -1403,7 +1402,7 @@
         e.stopPropagation();
         var cid = check.getAttribute("data-ptask-done");
         var ct = getPersonalTask(cid);
-        if(ct && isTaskOwner(ct)){ setPersonalTaskField(cid, "done", !ct.done); refreshTasksUI(); }
+        if(ct && canCompleteTask(ct)){ setPersonalTaskField(cid, "done", !ct.done); refreshTasksUI(); }
         return;
       }
       var timerBtn = e.target.closest("[data-ptask-timer]");
@@ -3286,6 +3285,12 @@
   function getTaskCat(id){ return taskCategories.find(function(c){ return c.id===id; }); }
   function getPersonalTask(id){ return personalTasks.find(function(t){ return t.id===id; }); }
   function isTaskOwner(t){ return t && currentUser && t.ownerUid===currentUser.uid; }
+  function canCompleteTask(t){
+    if(isTaskOwner(t)) return true;
+    if(!t || !t.assignedTo) return false;
+    var myEmailL = (currentUser.email||"").toLowerCase();
+    return t.assignedTo==="כל הצוות" || t.assignedTo===currentUser.displayName || t.assignedTo.toLowerCase()===myEmailL;
+  }
 
   function setPersonalTaskField(id, field, value){
     var patch = {}; patch[field] = value;
@@ -3320,7 +3325,8 @@
   function blankTaskData(type){
     return {type:type||"task", title:"", description:"", dueDate:"", dueTime:"",
       quadrant:"n", categoryId:(taskCategories[0]?taskCategories[0].id:""), clientId:"",
-      recurrence:"none", estMin:0, reminder:"none", subtasks:[], shared:false, ownerName:"", assignedTo:"", tags:""};
+      recurrence:"none", estMin:0, reminder:"none", subtasks:[], shared:false, ownerName:"", assignedTo:"", tags:"",
+      taskCategory:"personal", sharedWith:null};
   }
   function openTaskModal(id, type){
     if(id){
@@ -3331,7 +3337,8 @@
           categoryId:t.categoryId||"", clientId:t.clientId||"", recurrence:t.recurrence||"none",
           estMin:t.estMin||0, reminder:t.reminder||"none",
           subtasks:(t.subtasks||[]).map(function(s){return {text:s.text||"",done:!!s.done};}),
-          shared:!!t.shared, ownerName:t.ownerName||"", assignedTo:t.assignedTo||"", tags:t.tags||""}};
+          shared:!!t.shared, ownerName:t.ownerName||"", assignedTo:t.assignedTo||"", tags:t.tags||"",
+          taskCategory:t.taskCategory||"personal", sharedWith:t.sharedWith||null}};
     } else {
       taskModal={open:true, id:null, type:type||"task", owner:true, data:blankTaskData(type)};
     }
@@ -3396,15 +3403,6 @@
       var displayText = escapeHtml(c.name||"(ללא שם)") + (contacts ? " • "+escapeHtml(contacts) : "");
       return '<option value="'+c.id+'">'+displayText+'</option>';
     }).join("");
-    var myEmailLower = (currentUser.email||"").toLowerCase();
-    var assignedToOptions = '<option value="">ללא הקצאה</option>';
-    if(currentUser.displayName) assignedToOptions += '<option value="'+currentUser.displayName+'"'+(d.assignedTo===currentUser.displayName?" selected":"")+'>אני ('+currentUser.displayName+')</option>';
-    assignedToOptions += '<option value="כל הצוות"'+(d.assignedTo==="כל הצוות"?" selected":"")+'>כל הצוות</option>';
-    teamMembers.forEach(function(m){
-      if(m.email===myEmailLower) return;
-      assignedToOptions += '<option value="'+escapeHtml(m.email)+'"'+(d.assignedTo===m.email?" selected":"")+'>'+escapeHtml(m.name)+'</option>';
-    });
-    document.getElementById("pm-assignedTo").innerHTML = assignedToOptions;
     document.getElementById("pm-tags").value = d.tags;
     renderModalQuadrant();
     renderModalSubtasks();
@@ -3429,6 +3427,15 @@
     document.getElementById("ptaskModalOverlay").hidden=true;
     taskModal.open=false; taskModal.id=null; taskModal.data=null;
   }
+  function computeSharingFields(taskCategory){
+    var sharedWith = null;
+    if(taskCategory === "shared"){
+      var sharedInput = document.getElementById("pm-sharedWith");
+      if(sharedInput) sharedWith = sharedInput.value || null;
+    }
+    var assignedTo = sharedWith ? (sharedWith==="all-team" ? "כל הצוות" : sharedWith) : "";
+    return {sharedWith:sharedWith, assignedTo:assignedTo};
+  }
   function saveTaskModal(){
     if(!taskModal.owner) return;
     var d=taskModal.data;
@@ -3445,40 +3452,35 @@
     } else {
       d.clientId = "";
     }
-    d.assignedTo=document.getElementById("pm-assignedTo").value;
     d.tags=document.getElementById("pm-tags").value;
     d.estMin=Number(document.getElementById("pm-estMin").value)||0;
     d.reminder=document.getElementById("pm-reminder").value;
     if(d.reminder!=="none") requestReminderPermission();
     if(taskModal.id){
       d.taskCategory = document.getElementById("pm-taskCategory").value;
-      var sharedWith = null;
-      if(d.taskCategory === "shared"){
-        var sharedInput = document.getElementById("pm-sharedWith");
-        if(sharedInput) sharedWith = sharedInput.value || null;
-      }
+      var sharing = computeSharingFields(d.taskCategory);
+      d.assignedTo = sharing.assignedTo;
+      d.shared = !!sharing.sharedWith || !!d.shared;
       personalTasksCol().doc(taskModal.id).update({
         title:d.title, description:d.description, dueDate:d.dueDate, dueTime:d.dueTime,
         quadrant:d.quadrant, categoryId:d.categoryId, clientId:d.clientId, recurrence:d.recurrence,
         estMin:d.estMin, reminder:d.reminder, subtasks:d.subtasks, assignedTo:d.assignedTo, tags:d.tags,
-        taskCategory:d.taskCategory, sharedWith:sharedWith
+        taskCategory:d.taskCategory, sharedWith:sharing.sharedWith, shared:d.shared
       });
     } else {
       var maxPriority = 0;
       personalTasks.forEach(function(t){ if(!t.done && t.priority) maxPriority = Math.max(maxPriority, t.priority); });
       d.taskCategory = document.getElementById("pm-taskCategory").value;
-      var sharedWith = null;
-      if(d.taskCategory === "shared"){
-        var sharedInput = document.getElementById("pm-sharedWith");
-        if(sharedInput) sharedWith = sharedInput.value || null;
-      }
+      var sharing = computeSharingFields(d.taskCategory);
+      d.assignedTo = sharing.assignedTo;
+      var isShared = sharing.sharedWith ? true : !managerMode;
       personalTasksCol().add({
         ownerUid:currentUser.uid, ownerName:(currentUser.displayName||currentUser.email||""),
         type:taskModal.type, title:d.title, description:d.description,
         dueDate:d.dueDate, dueTime:d.dueTime, quadrant:d.quadrant, categoryId:d.categoryId,
-        clientId:d.clientId, done:false, shared:!managerMode, subtasks:d.subtasks, recurrence:d.recurrence,
+        clientId:d.clientId, done:false, shared:isShared, subtasks:d.subtasks, recurrence:d.recurrence,
         estMin:d.estMin, reminder:d.reminder, assignedTo:d.assignedTo, tags:d.tags, priority:maxPriority+1,
-        taskCategory:d.taskCategory, sharedWith:sharedWith,
+        taskCategory:d.taskCategory, sharedWith:sharing.sharedWith,
         timer:{elapsedSec:0,running:false,runStartedAt:null},
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       }).then(function(ref){
@@ -3661,7 +3663,12 @@
       if(lc) clientName = lc.name||"לקוח";
     }
     if(p.showSubProgress && subs.length) meta.push('<span class="ptask-mi">☑ '+subDone+'/'+subs.length+'</span>');
-    if(t.assignedTo) meta.push('<span class="ptask-mi" title="הוקצה ל">👤 '+escapeHtml(t.assignedTo)+'</span>');
+    if(t.assignedTo){
+      var assignedLabel = t.assignedTo;
+      var assignedMember = teamMembers.find(function(m){ return m.email===t.assignedTo.toLowerCase(); });
+      if(assignedMember) assignedLabel = assignedMember.name;
+      meta.push('<span class="ptask-mi" title="הוקצה ל">👤 '+escapeHtml(assignedLabel)+'</span>');
+    }
     if(t.tags) meta.push('<span class="ptask-mi" title="תגיות">🏷 '+escapeHtml(t.tags.split(/\s+/).slice(0,2).join(', '))+'</span>');
     if(t.shared) meta.push('<span class="ptask-mi" title="משותפת">👥'+(owner?"":" "+escapeHtml(t.ownerName||""))+'</span>');
     var footer = "";
@@ -3677,7 +3684,7 @@
     return '<div class="ptask-item'+(t.done?" done":"")+'" style="border-inline-start-color:'+qcolor+'" data-ptask-open="'+t.id+'" data-priority="'+(t.priority||999)+'">'+
       '<div class="ptask-head">'+
         '<div class="ptask-priority" title="עדיפות" style="font-weight:bold;color:var(--accent);min-width:24px;text-align:center;">'+(t.priority||'-')+'</div>'+
-        '<button type="button" class="ptask-check'+(t.done?" checked":"")+'"'+(owner?"":" disabled")+' data-ptask-done="'+t.id+'" aria-label="סימון בוצע"></button>'+
+        '<button type="button" class="ptask-check'+(t.done?" checked":"")+'"'+(canCompleteTask(t)?"":" disabled")+' data-ptask-done="'+t.id+'" aria-label="סימון בוצע"></button>'+
         '<div class="ptask-main">'+
           '<div class="ptask-title">'+escapeHtml(t.title||"(ללא כותרת)")+(t.type==="idea"?' <span class="ptask-idea-tag">💡 רעיון</span>':'')+
             (clientName?' <span style="font-size:0.9rem;color:var(--accent);font-weight:500;">👤 '+escapeHtml(clientName)+'</span>':'')+
