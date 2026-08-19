@@ -2348,6 +2348,28 @@
       '<div class="field full"><label>מה המהנדס הבין</label><textarea data-needsfield="text" placeholder="תיאור ההבנה המקצועית של הצורך...">'+escapeHtml(na.text||"")+'</textarea></div>'+
     '</div>';
   }
+  function clientTimeSummaryHtml(){
+    var clientTasks = personalTasks.filter(function(t){ return t.clientId === selectedClientId; });
+    if(!clientTasks.length) return "";
+    var totalElapsed = clientTasks.reduce(function(sum,t){ return sum + ptaskLiveElapsed(t.timer); }, 0);
+    return '<div style="margin-top:16px;padding:10px 15px;background:var(--accent-soft,#eef4fb);border-radius:8px;font-weight:bold;">'+
+      '⏱ סה"כ זמן עבודה בפועל על הלקוח: '+fmtTaskTime(totalElapsed)+' (שעות:דקות)'+
+    '</div>';
+  }
+  function proposalsArchiveHtml(job){
+    var arr = job.proposalsArchive || [];
+    if(!arr.length) return '<div style="margin-top:16px;color:var(--ink-muted,#999);font-size:0.85rem;">אין הצעות מחיר שמורות בארכיון עדיין.</div>';
+    var sorted = arr.slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+    return '<div style="margin-top:16px;">'+
+      '<h4 style="margin:0 0 8px;">📁 ארכיון הצעות מחיר</h4>'+
+      sorted.map(function(p){
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f9f9f9;border-radius:6px;margin-bottom:6px;">'+
+          '<a href="'+escapeHtml(p.url||"")+'" target="_blank" rel="noopener" style="flex:1;color:var(--accent);text-decoration:none;font-weight:600;">📄 הצעה מתאריך '+escapeHtml(p.date||"")+'</a>'+
+          '<span style="font-weight:bold;">'+fmtMoney(p.total||0)+'</span>'+
+        '</div>';
+      }).join("")+
+    '</div>';
+  }
   function jobQuoteTabHtml(job){
     if(!managerMode) return '<div class="locked-note">מידע הצעת המחיר גלוי למנהל בלבד.</div>';
     var qLines = job.quoteLines||[];
@@ -2363,7 +2385,10 @@
       '<div class="quote-summary-cell" data-quote-summary>סה"כ הצעה: '+fmtMoney(quoteLinesTotal(qLines))+'</div>'+
       '<div style="margin-top:12px;">'+
         '<button type="button" class="pill-btn" id="jobCreateProposalBtn">📄 צור הצעת מחיר</button>'+
-      '</div></div>';
+      '</div>'+
+      clientTimeSummaryHtml()+
+      proposalsArchiveHtml(job)+
+    '</div>';
   }
   function jobNegotiationTabHtml(job){
     if(!managerMode) return '<div class="locked-note">מידע המשא ומתן גלוי למנהל בלבד.</div>';
@@ -2396,10 +2421,7 @@
     var editMode = editingBoardId===job.id;
     var stages = STAGE_META.map(function(sm){ return stageGroupHtml(job.id, sm, editMode); }).join("");
     var clientTasks = personalTasks.filter(function(t){ return t.clientId === selectedClientId; });
-    var totalElapsed = clientTasks.reduce(function(sum,t){ return sum + ptaskLiveElapsed(t.timer); }, 0);
-    var timeSummaryHtml = clientTasks.length ? '<div style="margin-top:20px;padding:10px 15px;background:var(--accent-soft,#eef4fb);border-radius:8px;font-weight:bold;">'+
-      '⏱ סה"כ זמן עבודה בפועל על הלקוח: '+fmtTaskTime(totalElapsed)+' (שעות:דקות)'+
-    '</div>' : '';
+    var timeSummaryHtml = clientTimeSummaryHtml();
     var tasksHtml = clientTasks.length ? '<div style="margin-top:12px;padding:15px;background:#f9f9f9;border-radius:8px;">'+
       '<h4 style="margin-top:0;">משימות קשורות ללקוח זה:</h4>'+
       clientTasks.map(function(t){
@@ -4764,12 +4786,23 @@
       }).then(function(r){
         if(!r.ok) throw new Error("שמירה בדרייב נכשלה ("+r.status+")");
         return r.json();
-      }).then(function(fileObj){
-        hideDriveStatus();
-        alert("הצעה נשמרה בהצלחה בדרייב כ-PDF, בתוך תיקיית "+client.name+" ← הצעות מחיר!");
-        closeProposalEditor();
-        if(currentView==="clientsNew") renderClientsNewDetail();
       });
+    }).then(function(fileObj){
+      return fetch("https://www.googleapis.com/drive/v3/files/"+fileObj.id+"/permissions", {
+        method:"POST", headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
+        body: JSON.stringify({role:"reader", type:"anyone"})
+      }).then(function(){ return fileObj; }, function(){ return fileObj; });
+    }).then(function(fileObj){
+      var subtotal = currentProposal.items.reduce(function(s,i){ return s+i.qty*i.unitPrice; }, 0);
+      var total = Math.round(subtotal*(1+(currentProposal.vatPercent||0)/100)*100)/100;
+      var job = getSelectedJob();
+      var archiveArr = (job && Array.isArray(job.proposalsArchive)) ? job.proposalsArchive.slice() : [];
+      archiveArr.push({name:fileObj.name, url:fileObj.webViewLink||"", total:total, date:currentProposal.date, createdAt:Date.now()});
+      setJobField(selectedClientId, selectedJobId, "proposalsArchive", archiveArr);
+      hideDriveStatus();
+      alert("הצעה נשמרה בהצלחה בדרייב כ-PDF, בתוך תיקיית "+client.name+" ← הצעות מחיר!");
+      closeProposalEditor();
+      if(currentView==="clientsNew") renderClientsNewDetail();
     }).catch(function(err){
       hideDriveStatus();
       alert("שגיאה בשמירה לדרייב: "+(err.message||String(err)));
