@@ -23,7 +23,9 @@ service cloud.firestore {
         request.resource.data.ownerUid == request.auth.uid;
       allow read: if request.auth != null && (isOwner(siteId) || isSharedDoc(siteId)) &&
         (resource.data.ownerUid == request.auth.uid || resource.data.shared == true);
-      allow update, delete: if request.auth != null && (isOwner(siteId) || isSharedDoc(siteId)) &&
+      allow update: if request.auth != null && (isOwner(siteId) || isSharedDoc(siteId)) &&
+        (resource.data.ownerUid == request.auth.uid || resource.data.shared == true);
+      allow delete: if request.auth != null && (isOwner(siteId) || isSharedDoc(siteId)) &&
         resource.data.ownerUid == request.auth.uid;
     }
     match /sites/{siteId}/workHours/{uid} {
