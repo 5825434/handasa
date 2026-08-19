@@ -2081,11 +2081,12 @@
   }
   function addClientNew(data){
     var ref = clientsCol().doc();
+    var firstJob = newJobObj((data && data.workType) || "עבודה חדשה");
     ref.set(Object.assign({name:"", phone:"", whatsapp:"", email:"", address:"", customerType:"",
       type:"", workType:"", source:"", inquiryDate:"", wantedWork:"", contacts:[],
-      createdAt:new Date().toISOString().slice(0,10), notes:"", jobs:[]}, data));
+      createdAt:new Date().toISOString().slice(0,10), notes:"", jobs:[firstJob]}, data));
     selectedClientId = ref.id;
-    selectedJobId = null;
+    selectedJobId = firstJob.id;
     return ref.id;
   }
   function renderClientContacts(){
