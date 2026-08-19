@@ -518,6 +518,7 @@
 
   var projects = [];
   var managerMode = false;
+  var teamMembers = [];
   var filters = {search:"", quadrant:"all", status:"all", sort:"due", group:false};
 
   var JOB_STAGES = [
@@ -698,12 +699,29 @@
       if(data.proposalTemplate && !proposalTemplate){
         proposalTemplate = data.proposalTemplate;
       }
+      buildTeamMembersFromSiteData(data);
     }).catch(function(err){
       console.warn("Error loading site data:", err.message);
       managerMode = false;
     });
     restoreDriveTokenFromStorage().then(function(){ checkAndShowNotifications(); });
     setTimeout(function(){ restoreViewState(); }, 500);
+  }
+  function buildTeamMembersFromSiteData(data){
+    var namesArr = data.sharedEmailNames || [];
+    var namesMap = {};
+    namesArr.forEach(function(x){ namesMap[x.email] = x.name; });
+    var ownerEmail = (data.ownerEmail||"").toLowerCase();
+    teamMembers = [{email:ownerEmail, name:data.ownerName||data.ownerEmail||"מנהל", isOwner:true}];
+    (data.sharedEmails||[]).forEach(function(em){
+      teamMembers.push({email:em.toLowerCase(), name:namesMap[em]||em, isOwner:false});
+    });
+  }
+  function loadTeamMembers(){
+    if(!currentSiteId) return;
+    db.collection("sites").doc(currentSiteId).get().then(function(doc){
+      buildTeamMembersFromSiteData(doc.data()||{});
+    });
   }
   function restoreViewState(){
     var savedView = localStorage.getItem("currentView") || "clientsNew";
@@ -742,12 +760,23 @@
   }
   function renderShareList(){
     db.collection("sites").doc(currentUser.uid).get().then(function(doc){
-      var emails = (doc.data()||{}).sharedEmails || [];
+      var data = doc.data()||{};
+      var emails = data.sharedEmails || [];
+      var namesArr = data.sharedEmailNames || [];
+      var names = {};
+      namesArr.forEach(function(x){ names[x.email] = x.name; });
       var wrap = document.getElementById("shareList");
       wrap.innerHTML = emails.length ? emails.map(function(em){
-        return '<div class="share-row"><span>'+escapeHtml(em)+'</span><span style="display:flex;gap:6px;">'+
-          '<a class="ghost-btn" target="_blank" rel="noopener" style="text-decoration:none;padding:4px 10px;font-size:0.76rem;" href="'+inviteMailto(em)+'">שלח הזמנה במייל</a>'+
-          '<button type="button" data-remove-share="'+escapeHtml(em)+'">הסרה</button></span></div>';
+        return '<div class="share-row" style="flex-direction:column;align-items:stretch;gap:6px;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">'+
+            '<span style="direction:ltr;">'+escapeHtml(em)+'</span>'+
+            '<span style="display:flex;gap:6px;">'+
+              '<a class="ghost-btn" target="_blank" rel="noopener" style="text-decoration:none;padding:4px 10px;font-size:0.76rem;" href="'+inviteMailto(em)+'">שלח הזמנה במייל</a>'+
+              '<button type="button" data-remove-share="'+escapeHtml(em)+'">הסרה</button>'+
+            '</span>'+
+          '</div>'+
+          '<input type="text" data-share-name="'+escapeHtml(em)+'" value="'+escapeHtml(names[em]||"")+'" placeholder="שם לעובד הזה (לדוגמה: נחמיה)" style="padding:6px 8px;font-size:0.85rem;border:1px solid var(--border);border-radius:6px;">'+
+        '</div>';
       }).join("") : '<div class="empty">עדיין לא שיתפת עם אף אחד.</div>';
     });
   }
@@ -763,6 +792,20 @@
     db.collection("sites").doc(currentUser.uid).update({
       sharedEmails: firebase.firestore.FieldValue.arrayRemove(email)
     }).then(renderShareList);
+  }
+  function updateShareEmailName(email, name){
+    var ref = db.collection("sites").doc(currentUser.uid);
+    ref.get().then(function(doc){
+      var arr = ((doc.data()||{}).sharedEmailNames || []).slice();
+      var idx = arr.findIndex(function(x){ return x.email === email; });
+      if(name){
+        if(idx>=0) arr[idx] = {email:email, name:name};
+        else arr.push({email:email, name:name});
+      } else if(idx>=0){
+        arr.splice(idx,1);
+      }
+      return ref.update({sharedEmailNames: arr});
+    }).then(function(){ if(currentSiteId===currentUser.uid) loadTeamMembers(); });
   }
 
   function applyAccessMode(){
@@ -822,6 +865,10 @@
     document.getElementById("shareList").addEventListener("click", function(e){
       var btn = e.target.closest("[data-remove-share]");
       if(btn) removeShareEmail(btn.getAttribute("data-remove-share"));
+    });
+    document.getElementById("shareList").addEventListener("change", function(e){
+      var inp = e.target.closest("[data-share-name]");
+      if(inp) updateShareEmailName(inp.getAttribute("data-share-name"), inp.value.trim());
     });
 
     /* view switch */
@@ -1421,8 +1468,7 @@
       var sharedField = document.getElementById("pm-sharedWithField");
       if(cat === "shared"){
         sharedField.style.display = "";
-        var select = document.getElementById("pm-sharedWith");
-        select.innerHTML = '<option value="">בחר עובד או צוות</option><option value="all-team">כל הצוות</option>';
+        populateSharedWithOptions(taskModal.data ? taskModal.data.sharedWith : "");
       } else {
         sharedField.style.display = "none";
       }
@@ -3308,6 +3354,18 @@
       '</div>';
     }).join("");
   }
+  function populateSharedWithOptions(selectedValue){
+    var select = document.getElementById("pm-sharedWith");
+    if(!select) return;
+    var myEmailLower = (currentUser.email||"").toLowerCase();
+    var html = '<option value="">בחר עובד או צוות</option>';
+    html += '<option value="all-team"'+(selectedValue==="all-team"?" selected":"")+'>כל הצוות</option>';
+    teamMembers.forEach(function(m){
+      if(m.email===myEmailLower) return;
+      html += '<option value="'+escapeHtml(m.email)+'"'+(selectedValue===m.email?" selected":"")+'>'+escapeHtml(m.name)+'</option>';
+    });
+    select.innerHTML = html;
+  }
   function fillTaskModal(){
     var d=taskModal.data, isIdea=(taskModal.type==="idea"), owner=taskModal.owner;
     document.getElementById("ptaskModalTitle").textContent =
@@ -3324,7 +3382,7 @@
     var sharedField = document.getElementById("pm-sharedWithField");
     if(taskCat === "shared"){
       sharedField.style.display = "";
-      document.getElementById("pm-sharedWith").value = d.sharedWith || "";
+      populateSharedWithOptions(d.sharedWith || "");
     } else {
       sharedField.style.display = "none";
     }
@@ -3338,9 +3396,14 @@
       var displayText = escapeHtml(c.name||"(ללא שם)") + (contacts ? " • "+escapeHtml(contacts) : "");
       return '<option value="'+c.id+'">'+displayText+'</option>';
     }).join("");
+    var myEmailLower = (currentUser.email||"").toLowerCase();
     var assignedToOptions = '<option value="">ללא הקצאה</option>';
     if(currentUser.displayName) assignedToOptions += '<option value="'+currentUser.displayName+'"'+(d.assignedTo===currentUser.displayName?" selected":"")+'>אני ('+currentUser.displayName+')</option>';
     assignedToOptions += '<option value="כל הצוות"'+(d.assignedTo==="כל הצוות"?" selected":"")+'>כל הצוות</option>';
+    teamMembers.forEach(function(m){
+      if(m.email===myEmailLower) return;
+      assignedToOptions += '<option value="'+escapeHtml(m.email)+'"'+(d.assignedTo===m.email?" selected":"")+'>'+escapeHtml(m.name)+'</option>';
+    });
     document.getElementById("pm-assignedTo").innerHTML = assignedToOptions;
     document.getElementById("pm-tags").value = d.tags;
     renderModalQuadrant();
@@ -3519,7 +3582,8 @@
       }
       if(taskDisplayPrefs.hideDone && t.done) return false;
       if(t.assignedTo && !managerMode){
-        if(t.assignedTo!=="כל הצוות" && t.assignedTo!==currentUser.displayName) return false;
+        var myEmailL = (currentUser.email||"").toLowerCase();
+        if(t.assignedTo!=="כל הצוות" && t.assignedTo!==currentUser.displayName && t.assignedTo.toLowerCase()!==myEmailL) return false;
       }
       if(q){
         var hay=((t.title||"")+" "+(t.description||"")).toLowerCase();
@@ -3888,6 +3952,7 @@
     sharedTasks = [];
     taskCategories = [];
     expandedTaskId = null;
+    teamMembers = [];
     document.getElementById("demoBanner").hidden = true;
     document.getElementById("demoModeBtn").textContent = "תצוגת דמו";
   }
