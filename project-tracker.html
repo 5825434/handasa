@@ -298,6 +298,16 @@
   </div>
 </div>
 
+<div class="overlay" id="drivePickerOverlay" hidden>
+  <div class="modal">
+    <h2>בחר דרייב</h2>
+    <p>לאיזה חשבון גוגל דרייב לשמור/להעלות?</p>
+    <div id="drivePickerList" style="display:flex;flex-direction:column;margin-bottom:6px;"></div>
+    <button type="button" class="ghost-btn" id="drivePickerAddBtn" style="width:100%;margin-bottom:10px;">➕ חבר דרייב נוסף</button>
+    <div class="modal-actions"><button type="button" id="drivePickerCloseBtn">סגירה</button></div>
+  </div>
+</div>
+
 <div class="overlay" id="shareOverlay" hidden>
   <div class="modal wide">
     <h2>שיתוף האתר</h2>
@@ -883,6 +893,26 @@
     document.getElementById("shareEmailInput").addEventListener("keydown", function(e){
       if(e.key==="Enter") addShareEmail();
     });
+    document.getElementById("drivePickerCloseBtn").addEventListener("click", function(){ drivePendingAction=null; closeDrivePicker(); });
+    document.getElementById("drivePickerOverlay").addEventListener("click", function(e){
+      if(e.target.id==="drivePickerOverlay"){ drivePendingAction=null; closeDrivePicker(); }
+    });
+    document.getElementById("drivePickerAddBtn").addEventListener("click", connectNewDrive);
+    document.getElementById("drivePickerList").addEventListener("click", function(e){
+      var pick = e.target.closest("[data-drive-pick]");
+      if(pick){
+        var email = pick.getAttribute("data-drive-pick");
+        var acc = driveAccounts.find(function(a){ return a.email===email; });
+        if(!acc) return;
+        var cb = drivePendingAction; drivePendingAction=null;
+        closeDrivePicker();
+        activateDriveAccount(acc);
+        if(cb) cb(acc);
+        return;
+      }
+      var remove = e.target.closest("[data-drive-remove]");
+      if(remove){ disconnectDriveAccount(remove.getAttribute("data-drive-remove")); return; }
+    });
     document.getElementById("shareList").addEventListener("click", function(e){
       var btn = e.target.closest("[data-remove-share]");
       if(btn) removeShareEmail(btn.getAttribute("data-remove-share"));
@@ -1114,9 +1144,12 @@
       var driveUp = e.target.closest("[data-drive-upload]");
       if(driveUp){
         if(!selectedClientId || !selectedJobId) return;
-        if(!driveAccessToken){ alert("קודם לחץ על הכפתור \"🔗 חבר את הדרייב שלי\" למעלה, ואז נסה שוב."); return; }
-        drivePendingCtx = {clientId:selectedClientId, jobId:selectedJobId, catId:driveUp.getAttribute("data-drive-upload")};
-        document.getElementById("driveFileInput").click();
+        var driveUpCatId = driveUp.getAttribute("data-drive-upload");
+        openDrivePicker(function(account){
+          activateDriveAccount(account);
+          drivePendingCtx = {clientId:selectedClientId, jobId:selectedJobId, catId:driveUpCatId};
+          document.getElementById("driveFileInput").click();
+        });
         return;
       }
       var stageToggle = e.target.closest("[data-stage-toggle]");
@@ -2405,8 +2438,8 @@
   function jobDocumentsTabHtml(job){
     var docs = job.documents||{};
     var driveBar = managerMode ? '<div class="drive-bar">'+
-      '<button type="button" class="ghost-btn'+(driveAccessToken?" on":"")+'" id="driveConnectBtn">'+(driveAccessToken?"✓ הדרייב מחובר":"🔗 חבר את הדרייב שלי")+'</button>'+
-      '<span class="drive-hint">'+(driveAccessToken?"המנהל חיבר את הדרייב - עובדים יכולים להעלות קבצים.":"חבר פעם אחת כדי להעלות קבצים ישירות לדרייב שלך.")+'</span>'+
+      '<button type="button" class="ghost-btn'+(driveAccounts.length?" on":"")+'" id="driveConnectBtn">'+(driveAccounts.length?"⚙ נהל דרייב ("+driveAccounts.length+")":"🔗 חבר את הדרייב שלי")+'</button>'+
+      '<span class="drive-hint">'+(driveAccounts.length?"ניתן לחבר כמה חשבונות דרייב ולבחור לאיזה לשמור בכל העלאה.":"חבר פעם אחת כדי להעלות קבצים ישירות לדרייב שלך.")+'</span>'+
     '</div>' : '';
     if(!DOC_CATEGORIES.some(function(c){return c.id===docActiveCat;})) docActiveCat = DOC_CATEGORIES[0].id;
     var tabs = '<div class="lead-tabs doc-subtabs">'+DOC_CATEGORIES.map(function(cat){
@@ -2422,7 +2455,7 @@
       '<div class="doc-links">'+rows+'</div>'+
       '<div class="doc-cat-actions">'+
         '<button type="button" class="ghost-btn" data-add-doclink="'+cat.id+'">+ הוספת קישור</button>'+
-        (driveAccessToken?'<button type="button" class="ghost-btn" data-drive-upload="'+cat.id+'">⬆ העלה קובץ לדרייב</button>':'')+
+        '<button type="button" class="ghost-btn" data-drive-upload="'+cat.id+'">⬆ העלה קובץ לדרייב</button>'+
       '</div>'+
     '</div>';
     return driveBar + tabs + body;
@@ -2477,12 +2510,14 @@
     });
   }
   var DRIVE_CLIENT_ID = "219477330845-gki8ir5c60m0n730f1uvr1sroeanva2c.apps.googleusercontent.com";
-  var DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+  var DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
   var driveTokenClient = null;
   var driveAccessToken = null;
   var driveRefreshToken = null;
   var driveFolderId = null;
   var drivePendingCtx = null;
+  var driveAccounts = [];
+  var drivePendingAction = null;
 
   function driveReady(){ return !!(window.google && google.accounts && google.accounts.oauth2); }
   function initDriveTokenClient(){
@@ -2493,15 +2528,24 @@
       scope: DRIVE_SCOPE,
       callback: function(resp){
         if(resp && resp.access_token){
-          driveAccessToken = resp.access_token;
-          if(resp.refresh_token){
-            driveRefreshToken = resp.refresh_token;
-            saveDriveTokenToFirebase(resp.access_token, resp.refresh_token);
-          } else {
-            saveDriveTokenToFirebase(resp.access_token, driveRefreshToken);
-          }
-          hideDriveStatus();
-          if(currentView==="clientsNew") renderClientsNewDetail();
+          var accessToken = resp.access_token;
+          var refreshToken = resp.refresh_token || null;
+          fetchDriveUserEmail(accessToken).then(function(email){
+            var acc = upsertDriveAccount(email, accessToken, refreshToken);
+            hideDriveStatus();
+            renderDrivePicker();
+            document.getElementById("drivePickerOverlay").hidden = false;
+            if(currentView==="clientsNew") renderClientsNewDetail();
+            if(drivePendingAction){
+              var cb = drivePendingAction; drivePendingAction = null;
+              closeDrivePicker();
+              activateDriveAccount(acc);
+              cb(acc);
+            }
+          }).catch(function(){
+            hideDriveStatus();
+            alert("החיבור לדרייב הצליח אך לא ניתן היה לאתר את כתובת המייל של החשבון. נסה שוב.");
+          });
         } else {
           hideDriveStatus();
           alert("לא התקבלה הרשאה לדרייב. ודא שאישרת גישה בחלון של גוגל ונסה שוב." + (resp&&resp.error?("\n("+resp.error+")"):""));
@@ -2518,51 +2562,101 @@
     });
     return driveTokenClient;
   }
-  function saveDriveTokenToFirebase(accessToken, refreshToken){
-    if(!currentUser || !currentSiteId) return;
+  function fetchDriveUserEmail(accessToken){
+    return fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers:{"Authorization":"Bearer "+accessToken}
+    }).then(function(r){
+      if(!r.ok) throw new Error("userinfo failed");
+      return r.json();
+    }).then(function(info){ return info.email || "חשבון לא מזוהה"; });
+  }
+  function loadDriveAccounts(){
+    if(!currentSiteId){ driveAccounts = []; return; }
     try{
-      var tokenData = {accessToken: accessToken, refreshToken: refreshToken, savedAt: Date.now()};
-      localStorage.setItem("drive_tokens_"+currentSiteId, JSON.stringify(tokenData));
-      console.log("Drive token saved to localStorage only (Firestore writes removed)");
-    }catch(e){
-      console.error("Failed to save drive token:", e);
+      var raw = localStorage.getItem("drive_accounts_"+currentSiteId);
+      driveAccounts = raw ? JSON.parse(raw) : [];
+    }catch(e){ driveAccounts = []; }
+  }
+  function saveDriveAccounts(){
+    if(!currentSiteId) return;
+    try{ localStorage.setItem("drive_accounts_"+currentSiteId, JSON.stringify(driveAccounts)); }catch(e){}
+  }
+  function upsertDriveAccount(email, accessToken, refreshToken){
+    var existing = driveAccounts.find(function(a){ return a.email===email; });
+    if(existing){
+      existing.accessToken = accessToken;
+      if(refreshToken) existing.refreshToken = refreshToken;
+    } else {
+      existing = {email:email, accessToken:accessToken, refreshToken:refreshToken||null, folderId:null};
+      driveAccounts.push(existing);
     }
+    saveDriveAccounts();
+    return existing;
   }
-  function restoreDriveTokenFromStorage(){
-    console.log("restoreDriveTokenFromStorage called. currentUser:", !!currentUser, "currentSiteId:", currentSiteId);
-    if(!currentUser || !currentSiteId) { console.log("No user or site, skipping restore"); return Promise.resolve(null); }
-    try{
-      var key = "drive_tokens_"+currentSiteId;
-      console.log("Looking for localStorage key:", key);
-      var stored = localStorage.getItem(key);
-      console.log("Found in localStorage:", !!stored);
-      if(stored){
-        var data = JSON.parse(stored);
-        console.log("Parsed token data:", {hasAccessToken: !!data.accessToken, hasRefreshToken: !!data.refreshToken});
-        if(data.accessToken){
-          driveAccessToken = data.accessToken;
-          if(data.refreshToken) driveRefreshToken = data.refreshToken;
-          console.log("✓ Restored drive token from localStorage!");
-          if(currentView==="clientsNew") renderClientsNewDetail();
-          return Promise.resolve(driveAccessToken);
-        }
-      } else {
-        console.log("Nothing stored in localStorage for this key");
-      }
-    }catch(e){ console.error("Error restoring from localStorage:", e); }
-    return Promise.resolve(null);
+  function activateDriveAccount(account){
+    driveAccessToken = account.accessToken;
+    driveRefreshToken = account.refreshToken;
+    driveFolderId = account.folderId || null;
+    driveFolderCache = {};
+    driveCategoryCache = {};
   }
-  function exchangeRefreshTokenForAccessToken(refreshToken){
-    driveRefreshToken = refreshToken;
-    saveDriveTokenToFirebase(driveAccessToken, refreshToken);
-    return Promise.resolve(driveAccessToken);
+  function persistActiveDriveFolderId(folderId){
+    var acc = driveAccounts.find(function(a){ return a.accessToken===driveAccessToken; });
+    if(acc){ acc.folderId = folderId; saveDriveAccounts(); }
   }
-  function connectDrive(){
+  function disconnectDriveAccount(email){
+    if(!confirm('לנתק את החשבון '+email+' מהדרייב?')) return;
+    var acc = driveAccounts.find(function(a){ return a.email===email; });
+    driveAccounts = driveAccounts.filter(function(a){ return a.email!==email; });
+    saveDriveAccounts();
+    if(acc && acc.accessToken && window.google && google.accounts && google.accounts.oauth2 && google.accounts.oauth2.revoke){
+      try{ google.accounts.oauth2.revoke(acc.accessToken, function(){}); }catch(e){}
+    }
+    if(acc && driveAccessToken===acc.accessToken){ driveAccessToken=null; driveRefreshToken=null; driveFolderId=null; }
+    renderDrivePicker();
+    if(currentView==="clientsNew") renderClientsNewDetail();
+  }
+  function openDrivePicker(onChoose){
+    loadDriveAccounts();
+    if(!driveAccounts.length){
+      drivePendingAction = onChoose;
+      connectNewDrive();
+      return;
+    }
+    drivePendingAction = onChoose;
+    renderDrivePicker();
+    document.getElementById("drivePickerOverlay").hidden = false;
+  }
+  function closeDrivePicker(){
+    document.getElementById("drivePickerOverlay").hidden = true;
+  }
+  function renderDrivePicker(){
+    var list = document.getElementById("drivePickerList");
+    if(!list) return;
+    list.innerHTML = driveAccounts.length ? driveAccounts.map(function(a){
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+
+        '<button type="button" class="ghost-btn" data-drive-pick="'+escapeHtml(a.email)+'" style="flex:1;text-align:right;">📁 '+escapeHtml(a.email)+'</button>'+
+        '<button type="button" class="ghost-btn" data-drive-remove="'+escapeHtml(a.email)+'" title="נתק חשבון">✕</button>'+
+      '</div>';
+    }).join("") : '<div class="empty">אין דרייב מחובר עדיין.</div>';
+  }
+  function connectNewDrive(){
     var tc = initDriveTokenClient();
     if(!tc){ alert("שירות הדרייב עדיין נטען - נסה שוב בעוד רגע."); return; }
     showDriveStatus("מבקש אישור גישה לדרייב...");
-    try{ tc.requestAccessToken({prompt: driveAccessToken?"":"consent"}); }
+    try{ tc.requestAccessToken({prompt:"select_account consent"}); }
     catch(e){ hideDriveStatus(); alert("שגיאה בפתיחת חלון האישור: "+(e&&e.message||e)); }
+  }
+  function exchangeRefreshTokenForAccessToken(refreshToken){
+    driveRefreshToken = refreshToken;
+    return Promise.resolve(driveAccessToken);
+  }
+  function restoreDriveTokenFromStorage(){
+    loadDriveAccounts();
+    return Promise.resolve(null);
+  }
+  function connectDrive(){
+    openDrivePicker(null);
   }
   var driveArchiveFolderId = null;
   var driveFolderCache = {}; // {clientId: folderId}
@@ -2630,8 +2724,6 @@
   function ensureDriveFolder(){
     if(driveFolderId) return Promise.resolve(driveFolderId);
     if(!driveAccessToken) return Promise.reject(new Error("אין חיבור לדרייב - לחץ על 'חבר לדרייב' קודם"));
-    var savedFolderId = localStorage.getItem("drive_folder_id");
-    if(savedFolderId){ driveFolderId=savedFolderId; return Promise.resolve(savedFolderId); }
     var folderName = "ניהול פרויקטים - מסמכים";
     return fetch("https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent("name='"+folderName.replace(/'/g,"\\'")+"' and mimeType='application/vnd.google-apps.folder' and trashed=false")+"&fields=files(id)&pageSize=1", {
       method:"GET",
@@ -2643,7 +2735,7 @@
       if(result.files && result.files.length > 0){
         var existingId = result.files[0].id;
         driveFolderId = existingId;
-        localStorage.setItem("drive_folder_id", existingId);
+        persistActiveDriveFolderId(existingId);
         console.log("Found existing Drive folder:", existingId);
         return existingId;
       }
@@ -2656,8 +2748,8 @@
         return r.json();
       }).then(function(f){
         driveFolderId = f.id;
-        localStorage.setItem("drive_folder_id", f.id);
-        console.log("Drive folder created and saved to localStorage:", f.id);
+        persistActiveDriveFolderId(f.id);
+        console.log("Drive folder created:", f.id);
         return ensureNotificationsFile(f.id).then(function(){ return f.id; });
       });
     }).catch(function(err){
@@ -2865,7 +2957,7 @@
           if(r.status === 404 && t.indexOf("File not found") !== -1){
             console.log("Folder not found in Drive - resetting and trying again");
             driveFolderId = null;
-            localStorage.removeItem("drive_folder_id");
+            persistActiveDriveFolderId(null);
             throw new Error("התיקייה בדרייב נמחקה. בדקה מחדש - נסה להעלות שוב.");
           }
           throw new Error("העלאה נכשלה ("+r.status+"): "+t.slice(0,200));
@@ -4508,7 +4600,12 @@
     updateLogoDisplay();
     document.getElementById("propPreviewBtn").onclick = showProposalPreview;
     document.getElementById("propDownloadBtn").onclick = downloadProposalAsPDF;
-    document.getElementById("propSaveDriveBtn").onclick = saveProposalToDrive;
+    document.getElementById("propSaveDriveBtn").onclick = function(){
+      openDrivePicker(function(account){
+        activateDriveAccount(account);
+        saveProposalToDrive();
+      });
+    };
     document.getElementById("propCancelBtn").onclick = function(){ closeProposalEditor(); };
     var closeBtn = overlay.querySelector(".close-modal");
     if(closeBtn) closeBtn.onclick = function(e){ e.preventDefault(); closeProposalEditor(); return false; };
@@ -4626,18 +4723,18 @@
       };
     });
   }
-  function ensureProposalsFolder(){
+  function ensureProposalsFolder(clientId, clientName){
     if(!driveAccessToken) return Promise.reject(new Error("אין חיבור לדרייב"));
     return ensureDriveFolder().then(function(mainFolderId){
-      return ensureCategoryFolder(mainFolderId, selectedClientId, "proposals", "הצעות").then(function(folderData){
-        return folderData;
+      return ensureCategoryFolder(mainFolderId, "_global", "proposals_root", "הצעות מחיר").then(function(proposalsRootId){
+        return ensureCategoryFolder(proposalsRootId, clientId, "proposal_client", clientName);
       });
     });
   }
   function saveProposalToDrive(){
     updateProposalFromUI();
     if(!driveAccessToken){
-      alert("חיבור לדרייב אינו פעיל. לחץ על 'חבר את הדרייב שלי' בטאב מסמכים.");
+      alert("לא נבחר חשבון דרייב. נסה שוב.");
       return;
     }
     var client = getClientNew(selectedClientId);
@@ -4645,7 +4742,7 @@
     showDriveStatus("שומר הצעה לדרייב...");
     var proposalData = JSON.stringify(currentProposal, null, 2);
     var fileName = "proposal_"+client.name.replace(/[^a-z0-9]/gi,"_")+"_"+currentProposal.date+".json";
-    ensureProposalsFolder().then(function(folderId){
+    ensureProposalsFolder(selectedClientId, client.name).then(function(folderId){
       var metadata = {name:fileName, parents:[folderId]};
       var form = new FormData();
       form.append("metadata", new Blob([JSON.stringify(metadata)], {type:"application/json"}));
