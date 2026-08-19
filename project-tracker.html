@@ -1623,6 +1623,12 @@
     var m = Math.floor(totalSec/60), s = totalSec%60;
     return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
   }
+  function fmtTaskTime(totalSec){
+    totalSec = Math.max(0, Math.round(totalSec));
+    var h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
+    if(h>0) return h+":"+(m<10?"0":"")+m;
+    return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+  }
 
   function toggleTaskTimer(pid, tid){
     var st = getTaskState(pid, tid);
@@ -2329,20 +2335,26 @@
     var editMode = editingBoardId===job.id;
     var stages = STAGE_META.map(function(sm){ return stageGroupHtml(job.id, sm, editMode); }).join("");
     var clientTasks = personalTasks.filter(function(t){ return t.clientId === selectedClientId; });
-    var tasksHtml = clientTasks.length ? '<div style="margin-top:20px;padding:15px;background:#f9f9f9;border-radius:8px;">'+
+    var totalElapsed = clientTasks.reduce(function(sum,t){ return sum + ptaskLiveElapsed(t.timer); }, 0);
+    var timeSummaryHtml = clientTasks.length ? '<div style="margin-top:20px;padding:10px 15px;background:var(--accent-soft,#eef4fb);border-radius:8px;font-weight:bold;">'+
+      '⏱ סה"כ זמן עבודה בפועל על הלקוח: '+fmtTaskTime(totalElapsed)+' (שעות:דקות)'+
+    '</div>' : '';
+    var tasksHtml = clientTasks.length ? '<div style="margin-top:12px;padding:15px;background:#f9f9f9;border-radius:8px;">'+
       '<h4 style="margin-top:0;">משימות קשורות ללקוח זה:</h4>'+
       clientTasks.map(function(t){
+        var tEl = ptaskLiveElapsed(t.timer);
         return '<div style="padding:10px;margin-bottom:8px;background:white;border-left:3px solid #1f4e79;border-radius:4px;cursor:pointer;" data-open-task="'+t.id+'">'+
           '<div style="display:flex;gap:10px;align-items:center;">'+
             '<input type="checkbox" '+(t.done?"checked":"")+' data-task-done="'+t.id+'" style="width:18px;height:18px;" onclick="event.stopPropagation();">'+
             '<span style="flex:1;'+(t.done?'text-decoration:line-through;color:#999;':'')+'">'+escapeHtml(t.title||"משימה")+'</span>'+
+            (tEl>0?'<small style="color:#1f4e79;font-weight:bold;">⏱ '+fmtTaskTime(tEl)+'</small>':'')+
             '<small style="color:#666;">'+(t.dueDate?('עד '+t.dueDate):'')+'</small>'+
           '</div>'+
         '</div>';
       }).join('')+
     '</div>' : '';
     return '<div class="row-actions"><button type="button" class="task-edit-btn'+(editMode?" on":"")+'" data-task-edit="'+job.id+'">'+(editMode?"סיום עריכה":"עריכה")+'</button>'+
-      '<button type="button" class="ghost-btn" id="addClientTaskBtn" style="margin-right:8px;">➕ הוסף משימה לקוח</button></div>'+stages+tasksHtml;
+      '<button type="button" class="ghost-btn" id="addClientTaskBtn" style="margin-right:8px;">➕ הוסף משימה לקוח</button></div>'+stages+timeSummaryHtml+tasksHtml;
   }
   function jobServiceTabHtml(job){
     return SERVICE_SECTIONS.map(function(s){ return serviceSectionHtml(job.id, s); }).join("");
@@ -3416,7 +3428,7 @@
     document.getElementById("pm-client-list").innerHTML = clients.map(function(c){
       var contacts = (c.contacts||[]).map(function(ct){ return ct.name; }).join(" / ");
       var displayText = escapeHtml(c.name||"(ללא שם)") + (contacts ? " • "+escapeHtml(contacts) : "");
-      return '<option value="'+c.id+'">'+displayText+'</option>';
+      return '<option value="'+escapeHtml(c.name||"")+'">'+displayText+'</option>';
     }).join("");
     document.getElementById("pm-tags").value = d.tags;
     renderModalQuadrant();
@@ -3782,9 +3794,9 @@
     var el=ptaskLiveElapsed(t.timer);
     if(t.estMin){
       var rem=(t.estMin*60)-el;
-      return fmtMMSS(Math.max(0,rem))+" נותר";
+      return fmtTaskTime(Math.max(0,rem))+" נותר";
     }
-    return fmtMMSS(el);
+    return fmtTaskTime(el);
   }
 
   /* ---- summary stats ---- */
