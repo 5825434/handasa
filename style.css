@@ -599,6 +599,9 @@ input,select,textarea{font-family:inherit;color:inherit;}
 }
 
 /* task calendar */
+#ptaskCalOverlay{position:fixed;inset:0;background:rgba(10,14,20,0.35);z-index:2000;}
+#ptaskCalFloating{position:fixed;top:90px;left:24px;z-index:2001;width:380px;max-width:calc(100vw - 48px);max-height:calc(100vh - 120px);overflow-y:auto;background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:4px;animation:slideIn 0.2s ease-out;}
+#ptaskCalToggleBtn.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:600;}
 .ptask-cal-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px;margin-bottom:16px;}
 .ptask-cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .ptask-cal-title{font-weight:700;font-size:1rem;}
@@ -613,10 +616,11 @@ input,select,textarea{font-family:inherit;color:inherit;}
 .ptask-cal-cell.today{background:var(--accent-soft);}
 .ptask-cal-cell.today .cal-num{color:var(--accent);font-weight:700;}
 .ptask-cal-cell.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
-.cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;}
-.cal-dot{width:5px;height:5px;border-radius:50%;}
+.cal-dots{display:flex;align-items:center;justify-content:center;}
+.cal-task-badge{display:flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;border-radius:10px;color:#fff;font-size:0.7rem;font-weight:700;line-height:1;}
 @media (max-width:480px){
   .ptask-cal-cell{min-height:44px;}
+  #ptaskCalFloating{left:12px;right:12px;width:auto;}
 }
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:9999;}
 .modal-dialog{background:var(--surface);border-radius:12px;box-shadow:var(--shadow);max-height:90vh;overflow-y:auto;animation:slideIn 0.3s ease-out;}

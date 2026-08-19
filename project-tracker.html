@@ -109,13 +109,9 @@
         <button type="button" class="pill-btn add-lead-btn" id="ptaskAddBtn"><span>+</span> משימה חדשה</button>
         <button type="button" class="ghost-btn" id="ptaskAddIdeaBtn">💡 רעיון</button>
         <div class="search-box"><input type="text" id="ptaskSearch" placeholder="חיפוש במשימות..."></div>
+        <button type="button" class="ghost-btn" id="ptaskCalToggleBtn">📅 לוח שנה</button>
       </div>
       <div class="toolbar-row">
-        <button type="button" class="ghost-btn" id="ptaskArchiveBtn" title="הצג/הסתר ארכיון משימות שהושלמו">📁 ארכיון</button>
-        <div class="chipset" id="ptaskViewChips">
-          <button type="button" class="chip active" data-ptask-view="list">📋 רשימה</button>
-          <button type="button" class="chip" data-ptask-view="calendar">📅 לוח שנה</button>
-        </div>
         <select id="ptaskSort">
           <option value="urgency">מיון: לפי דחיפות וחשיבות</option>
           <option value="date">מיון: לפי תאריך יעד</option>
@@ -128,6 +124,7 @@
           <option value="easy">🟢 קלות קודם</option>
         </select>
         <div class="spacer"></div>
+        <button type="button" class="ghost-btn" id="ptaskArchiveBtn" title="הצג/הסתר ארכיון משימות שהושלמו">📁 ארכיון</button>
         <button type="button" class="ghost-btn" id="ptaskSettingsBtn">⚙ תצוגה</button>
       </div>
       <div class="toolbar-row" id="ptaskBucketRow">
@@ -136,14 +133,14 @@
           <button type="button" class="chip" data-ptask-bucket="today">להיום</button>
           <button type="button" class="chip" data-ptask-bucket="overdue">באיחור</button>
           <button type="button" class="chip" data-ptask-bucket="upcoming">בקרוב</button>
-          <button type="button" class="chip" data-ptask-bucket="ideas">רעיונות 💡</button>
-          <button type="button" class="chip" data-ptask-bucket="shared">👥 משותפות</button>
         </div>
         <div class="spacer"></div>
         <div class="chipset" id="ptaskCategoryChips">
           <button type="button" class="chip active" data-ptask-category="all">הכל</button>
+          <button type="button" class="chip" data-ptask-bucket="shared">👥 משותף</button>
           <button type="button" class="chip" data-ptask-category="work">עבודה</button>
           <button type="button" class="chip" data-ptask-category="personal">אישי</button>
+          <button type="button" class="chip" data-ptask-bucket="ideas">רעיונות 💡</button>
         </div>
       </div>
       <div class="ptask-settings-panel" id="ptaskSettingsPanel" hidden>
@@ -169,18 +166,21 @@
     </div>
     <div id="tasksList"></div>
     <div id="ptaskCalendarWrap" hidden>
-      <div class="ptask-cal-card">
-        <div class="ptask-cal-hd">
-          <button type="button" class="ghost-btn" id="ptaskCalPrev">‹</button>
-          <span class="ptask-cal-title" id="ptaskCalTitle"></span>
-          <button type="button" class="ghost-btn" id="ptaskCalNext">›</button>
+      <div id="ptaskCalOverlay"></div>
+      <div id="ptaskCalFloating">
+        <div class="ptask-cal-card">
+          <div class="ptask-cal-hd">
+            <button type="button" class="ghost-btn" id="ptaskCalPrev">‹</button>
+            <span class="ptask-cal-title" id="ptaskCalTitle"></span>
+            <button type="button" class="ghost-btn" id="ptaskCalNext">›</button>
+          </div>
+          <div class="ptask-cal-weekdays">
+            <span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span>
+          </div>
+          <div class="ptask-cal-grid" id="ptaskCalGrid"></div>
         </div>
-        <div class="ptask-cal-weekdays">
-          <span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span>
-        </div>
-        <div class="ptask-cal-grid" id="ptaskCalGrid"></div>
+        <div id="ptaskCalDayList"></div>
       </div>
-      <div id="ptaskCalDayList"></div>
     </div>
   </div><!-- /viewTasks -->
 
@@ -569,7 +569,7 @@
   var taskDisplayPrefs = Object.assign({}, TASK_PREF_DEFAULTS);
   var TASK_CAT_ICONS = ["📁","🏠","💼","📞","👨‍👩‍👧","🛒","📐","🔧","☕","💰","⭐","📌","📅","📧","🚗","🏗","✅","🎨","📊","🔧","🌐","⚙️"];
   var TASK_CAT_COLORS = ["#7c5cbf","#2f8f5b","#2f6fb0","#d97f2b","#b3432e","#a8720f","#0d7a3f","#6d7a87"];
-  var taskViewMode = "list";
+  var taskCalendarOpen = false;
   var taskCalMonth = new Date();
   var taskCalSelected = "";
   var firedReminders = {};
@@ -1335,27 +1335,28 @@
       panel.hidden = !panel.hidden;
       if(!panel.hidden){ renderTaskSettingsPanel(); renderTaskCatManager(); }
     });
-    document.getElementById("ptaskBucketChips").addEventListener("click", function(e){
-      var chip = e.target.closest("[data-ptask-bucket]");
-      if(!chip) return;
-      taskFilters.bucket = chip.getAttribute("data-ptask-bucket");
-      syncTaskBucketChips();
-      renderTasksView();
+    document.getElementById("ptaskBucketRow").addEventListener("click", function(e){
+      var bucketChip = e.target.closest("[data-ptask-bucket]");
+      if(bucketChip){
+        taskFilters.bucket = bucketChip.getAttribute("data-ptask-bucket");
+        syncTaskBucketChips();
+        renderTasksView();
+        return;
+      }
+      var catChip = e.target.closest("[data-ptask-category]");
+      if(catChip){
+        taskFilters.category = catChip.getAttribute("data-ptask-category");
+        syncTaskCategoryChips();
+        renderTasksView();
+        return;
+      }
     });
-    document.getElementById("ptaskCategoryChips").addEventListener("click", function(e){
-      var chip = e.target.closest("[data-ptask-category]");
-      if(!chip) return;
-      taskFilters.category = chip.getAttribute("data-ptask-category");
-      document.querySelectorAll("#ptaskCategoryChips .chip").forEach(function(b){
-        b.classList.toggle("active", b.getAttribute("data-ptask-category")===taskFilters.category);
-      });
-      renderTasksView();
+    document.getElementById("ptaskCalToggleBtn").addEventListener("click", function(e){
+      e.stopPropagation();
+      if(taskCalendarOpen) closeTaskCalendar(); else openTaskCalendar();
     });
-    document.getElementById("ptaskViewChips").addEventListener("click", function(e){
-      var chip = e.target.closest("[data-ptask-view]");
-      if(!chip) return;
-      setTaskViewMode(chip.getAttribute("data-ptask-view"));
-    });
+    document.getElementById("ptaskCalOverlay").addEventListener("click", closeTaskCalendar);
+    document.getElementById("ptaskCalFloating").addEventListener("click", function(e){ e.stopPropagation(); });
     document.getElementById("ptaskCalPrev").addEventListener("click", function(){
       taskCalMonth = new Date(taskCalMonth.getFullYear(), taskCalMonth.getMonth()-1, 1);
       renderTaskCalendar();
@@ -3884,8 +3885,13 @@
     }).join("") : '<div style="color:var(--ink-faint);font-size:0.8rem;">אין קטגוריות עדיין.</div>';
   }
   function syncTaskBucketChips(){
-    document.querySelectorAll("#ptaskBucketChips .chip").forEach(function(b){
+    document.querySelectorAll("[data-ptask-bucket]").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-ptask-bucket")===taskFilters.bucket);
+    });
+  }
+  function syncTaskCategoryChips(){
+    document.querySelectorAll("[data-ptask-category]").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-ptask-category")===taskFilters.category);
     });
   }
   function renderTaskSettingsPanel(){
@@ -3935,17 +3941,17 @@
     }).join("");
   }
 
-  /* ---- view mode (list / calendar) ---- */
-  function setTaskViewMode(mode){
-    taskViewMode=mode;
-    document.querySelectorAll("#ptaskViewChips .chip").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-ptask-view")===mode);
-    });
-    var isCal=mode==="calendar";
-    document.getElementById("tasksList").hidden=isCal;
-    document.getElementById("ptaskCalendarWrap").hidden=!isCal;
-    document.getElementById("ptaskBucketRow").hidden=isCal;
-    if(isCal){ renderTaskCalendar(); } else { renderTasksView(); }
+  /* ---- floating calendar popover ---- */
+  function openTaskCalendar(){
+    taskCalendarOpen = true;
+    document.getElementById("ptaskCalendarWrap").hidden = false;
+    document.getElementById("ptaskCalToggleBtn").classList.add("active");
+    renderTaskCalendar();
+  }
+  function closeTaskCalendar(){
+    taskCalendarOpen = false;
+    document.getElementById("ptaskCalendarWrap").hidden = true;
+    document.getElementById("ptaskCalToggleBtn").classList.remove("active");
   }
   function tasksOnDate(dateStr){
     return personalTasks.filter(function(t){ return t.type!=="idea" && t.dueDate===dateStr; });
@@ -3964,13 +3970,15 @@
     for(var d=1;d<=daysInMonth;d++){
       var ds=y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(d<10?"0":"")+d;
       var dayTasks=tasksOnDate(ds);
-      var dots=dayTasks.slice(0,3).map(function(t){
-        return '<span class="cal-dot" style="background:var('+QUADRANTS[t.quadrant||"n"].token+')"></span>';
-      }).join("");
+      var badge="";
+      if(dayTasks.length){
+        var topQ = QORDER.filter(function(k){ return dayTasks.some(function(t){ return (t.quadrant||"n")===k; }); })[0] || "n";
+        badge = '<span class="cal-task-badge" style="background:var('+QUADRANTS[topQ].token+')">'+dayTasks.length+'</span>';
+      }
       var cls="ptask-cal-cell";
       if(ds===today) cls+=" today";
       if(ds===taskCalSelected) cls+=" selected";
-      cells+='<div class="'+cls+'" data-ptask-cal-day="'+ds+'"><span class="cal-num">'+d+'</span><span class="cal-dots">'+dots+'</span></div>';
+      cells+='<div class="'+cls+'" data-ptask-cal-day="'+ds+'"><span class="cal-num">'+d+'</span><span class="cal-dots">'+badge+'</span></div>';
     }
     grid.innerHTML=cells;
     renderTaskCalDayList();
@@ -4048,8 +4056,8 @@
 
   function refreshTasksUI(){
     renderTaskStats();
-    if(taskViewMode==="calendar") renderTaskCalendar();
-    else renderTasksView();
+    renderTasksView();
+    if(taskCalendarOpen) renderTaskCalendar();
   }
   function goToClientFromTask(clientId){
     if(!getClientNew(clientId)) return;
@@ -4065,10 +4073,12 @@
   function renderTasksScreen(){
     loadTaskPrefs();
     syncTaskBucketChips();
+    syncTaskCategoryChips();
     renderTaskSettingsPanel();
     renderTaskCatManager();
     renderTaskStats();
-    setTaskViewMode(taskViewMode);
+    closeTaskCalendar();
+    renderTasksView();
   }
   setInterval(function(){
     checkTaskReminders();
