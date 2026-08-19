@@ -2669,10 +2669,6 @@
     try{ tc.requestAccessToken({prompt:"select_account consent"}); }
     catch(e){ hideDriveStatus(); alert("שגיאה בפתיחת חלון האישור: "+(e&&e.message||e)); }
   }
-  function exchangeRefreshTokenForAccessToken(refreshToken){
-    driveRefreshToken = refreshToken;
-    return Promise.resolve(driveAccessToken);
-  }
   function restoreDriveTokenFromStorage(){
     loadDriveAccounts();
     return Promise.resolve(null);
@@ -2684,6 +2680,14 @@
   var driveFolderCache = {}; // {clientId: folderId}
   var driveCategoryCache = {}; // {clientId_catId: folderId}
 
+  function checkDriveResponse(r, actionLabel){
+    if(r.status===401){
+      var err = new Error('תוקף החיבור לדרייב פג. לחץ שוב על הפעולה, ובחלונית שנפתחת לחץ "➕ חבר דרייב נוסף" והתחבר מחדש עם אותו חשבון גוגל.');
+      err.isDriveAuthError = true;
+      throw err;
+    }
+    if(!r.ok) throw new Error((actionLabel||"פעולת דרייב")+" נכשלה ("+r.status+")");
+  }
   function ensureClientFolder(clientId, clientName){
     if(driveFolderCache[clientId]) return Promise.resolve(driveFolderCache[clientId]);
     if(!driveAccessToken || !driveFolderId) return Promise.reject(new Error("אין חיבור לדרייב"));
@@ -2691,7 +2695,7 @@
       method:"GET",
       headers:{"Authorization":"Bearer "+driveAccessToken}
     }).then(function(r){
-      if(!r.ok) throw new Error("חיפוש תיקייה של לקוח נכשל");
+      checkDriveResponse(r, "חיפוש תיקייה של לקוח");
       return r.json();
     }).then(function(result){
       if(result.files && result.files.length > 0){
@@ -2703,7 +2707,7 @@
         headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
         body: JSON.stringify({name: clientName, mimeType:"application/vnd.google-apps.folder", parents:[driveFolderId]})
       }).then(function(r){
-        if(!r.ok) throw new Error("יצירת תיקייה של לקוח נכשלה");
+        checkDriveResponse(r, "יצירת תיקייה של לקוח");
         return r.json();
       }).then(function(f){
         driveFolderCache[clientId] = f.id;
@@ -2721,7 +2725,7 @@
       method:"GET",
       headers:{"Authorization":"Bearer "+driveAccessToken}
     }).then(function(r){
-      if(!r.ok) throw new Error("חיפוש תיקייה של קטגוריה נכשל");
+      checkDriveResponse(r, "חיפוש תיקייה של קטגוריה");
       return r.json();
     }).then(function(result){
       if(result.files && result.files.length > 0){
@@ -2733,7 +2737,7 @@
         headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
         body: JSON.stringify({name: catLabel, mimeType:"application/vnd.google-apps.folder", parents:[clientFolderId]})
       }).then(function(r){
-        if(!r.ok) throw new Error("יצירת תיקייה של קטגוריה נכשלה");
+        checkDriveResponse(r, "יצירת תיקייה של קטגוריה");
         return r.json();
       }).then(function(f){
         driveCategoryCache[cacheKey] = f.id;
@@ -2751,7 +2755,7 @@
       method:"GET",
       headers:{"Authorization":"Bearer "+driveAccessToken}
     }).then(function(r){
-      if(!r.ok) throw new Error("חיפוש תיקייה נכשל: "+r.status);
+      checkDriveResponse(r, "חיפוש תיקייה ראשית");
       return r.json();
     }).then(function(result){
       if(result.files && result.files.length > 0){
@@ -2766,7 +2770,7 @@
         headers:{"Authorization":"Bearer "+driveAccessToken,"Content-Type":"application/json"},
         body: JSON.stringify({name:folderName, mimeType:"application/vnd.google-apps.folder"})
       }).then(function(r){
-        if(!r.ok) return r.text().then(function(t){ throw new Error("יצירת תיקייה נכשלה ("+r.status+"): "+t.slice(0,200)); });
+        checkDriveResponse(r, "יצירת תיקייה ראשית");
         return r.json();
       }).then(function(f){
         driveFolderId = f.id;
@@ -2973,6 +2977,7 @@
       });
     }).then(function(r){
       console.log("Upload response status:", r.status, "OK:", r.ok);
+      if(r.status===401) checkDriveResponse(r, "העלאה לדרייב");
       if(!r.ok) {
         return r.text().then(function(t){
           console.error("Upload error response:", t);
@@ -3010,21 +3015,15 @@
     }).catch(function(err){
       hideDriveStatus();
       var msg = (err&&err.message)||String(err);
-      console.error("Drive upload error:", err, "Message:", msg, "Status:", err.status);
-      if(msg.indexOf("401")!==-1 && driveRefreshToken && !ctx.retried){
-        showDriveStatus("מחדש את החיבור לדרייב...");
-        ctx.retried = true;
-        exchangeRefreshTokenForAccessToken(driveRefreshToken).then(function(token){
-          if(token) performDriveUpload(ctx);
-          else {
-            hideDriveStatus();
-            alert("החיבור לדרייב פג. לחץ שוב על \"🔗 חבר את הדרייב שלי\" ונסה להעלות שוב.");
-          }
-        });
-      } else if(msg.indexOf("401")!==-1){
+      console.error("Drive upload error:", err, "Message:", msg);
+      if(err.isDriveAuthError){
         driveAccessToken = null;
         if(currentView==="clientsNew") renderClientsNewDetail();
-        alert("החיבור לדרייב פג. לחץ שוב על \"🔗 חבר את הדרייב שלי\" ונסה להעלות שוב.");
+        alert(msg);
+        openDrivePicker(function(account){
+          activateDriveAccount(account);
+          performDriveUpload(ctx);
+        });
       } else if(msg.indexOf("404")!==-1){
         alert("שגיאה 404: הקובץ לא נמצא בדרייב.\n\nבואו ננסה שוב:\n1. לחץ \"🔗 חבר את הדרייב שלי\" מחדש\n2. נסה להעלות את הקובץ שוב");
         console.error("404 error - checking folder:", driveFolderId);
@@ -4777,7 +4776,7 @@
       return fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", {
         method:"POST", headers:{"Authorization":"Bearer "+driveAccessToken}, body:form
       }).then(function(r){
-        if(!r.ok) throw new Error("שמירה בדרייב נכשלה ("+r.status+")");
+        checkDriveResponse(r, "שמירה בדרייב");
         return r.json();
       });
     }).then(function(fileObj){
@@ -4798,7 +4797,14 @@
       if(currentView==="clientsNew") renderClientsNewDetail();
     }).catch(function(err){
       hideDriveStatus();
-      alert("שגיאה בשמירה לדרייב: "+(err.message||String(err)));
+      alert(err.isDriveAuthError ? err.message : "שגיאה בשמירה לדרייב: "+(err.message||String(err)));
+      if(err.isDriveAuthError){
+        driveAccessToken = null;
+        openDrivePicker(function(account){
+          activateDriveAccount(account);
+          saveProposalToDrive();
+        });
+      }
     });
   }
 })();
