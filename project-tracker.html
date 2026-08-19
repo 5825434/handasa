@@ -627,15 +627,26 @@
         }).then(function(){ seedCatalogForNewSite(currentUser.uid); seedTaskCategoriesForNewSite(currentUser.uid); });
       }
     }).then(function(){
-      return db.collection("sites").where("sharedEmails", "array-contains", currentUser.email).get();
-    }).then(function(snap){
+      var emailRaw = (currentUser.email || "").trim();
+      var emailLower = emailRaw.toLowerCase();
+      var queries = [db.collection("sites").where("sharedEmails", "array-contains", emailLower).get()];
+      if(emailRaw !== emailLower){
+        queries.push(db.collection("sites").where("sharedEmails", "array-contains", emailRaw).get());
+      }
+      return Promise.all(queries);
+    }).then(function(snaps){
       mySites = [{id: currentUser.uid, label: "האתר שלי", isOwner: true}];
-      snap.forEach(function(doc){
-        if(doc.id === currentUser.uid) return;
-        var d = doc.data();
-        mySites.push({id: doc.id, label: "אתר של " + (d.ownerName || d.ownerEmail), isOwner: false});
+      var seenSiteIds = {};
+      seenSiteIds[currentUser.uid] = true;
+      snaps.forEach(function(snap){
+        snap.forEach(function(doc){
+          if(seenSiteIds[doc.id]) return;
+          seenSiteIds[doc.id] = true;
+          var d = doc.data();
+          mySites.push({id: doc.id, label: "אתר של " + (d.ownerName || d.ownerEmail), isOwner: false});
+        });
       });
-      document.getElementById("switchSiteBtn").hidden = mySites.length <= 1;
+      document.getElementById("switchSiteBtn").hidden = false;
       if(mySites.length === 1){
         selectSite(mySites[0].id);
       } else {
@@ -652,16 +663,24 @@
   }
 
   function renderSiteList(){
-    document.getElementById("siteList").innerHTML = mySites.map(function(s){
+    var html = mySites.map(function(s){
       return '<button type="button" class="site-row" data-select-site="'+s.id+'"><span class="n">'+escapeHtml(s.label)+'</span><span class="r">'+(s.isOwner?"מנהל":"צוות")+'</span></button>';
     }).join("");
+    if(mySites.length <= 1){
+      html += '<div style="margin-top:12px;padding:12px;background:var(--bg-alt,#f5f5f5);border-radius:8px;font-size:0.85rem;color:var(--ink-muted,#666);line-height:1.6;">'+
+        'יש לך גישה רק לאתר שלך.<br>'+
+        'כדי לקבל גישה לאתר נוסף, בעל האתר צריך ללחוץ אצלו על "שיתוף האתר" ולהוסיף בדיוק את המייל הזה:<br>'+
+        '<strong style="direction:ltr;display:inline-block;">'+escapeHtml((currentUser&&currentUser.email)||"")+'</strong>'+
+      '</div>';
+    }
+    document.getElementById("siteList").innerHTML = html;
   }
 
   function selectSite(siteId){
     detachSiteData();
     currentSiteId = siteId;
     document.getElementById("siteSwitcherOverlay").hidden = true;
-    document.getElementById("switchSiteBtn").hidden = mySites.length <= 1;
+    document.getElementById("switchSiteBtn").hidden = false;
     document.getElementById("appShell").hidden = false;
     attachSiteData();
     applyAccessMode();
