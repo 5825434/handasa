@@ -136,7 +136,6 @@
         </div>
         <div class="spacer"></div>
         <div class="chipset" id="ptaskCategoryChips">
-          <button type="button" class="chip active" data-ptask-category="all">הכל</button>
           <button type="button" class="chip" data-ptask-bucket="shared">👥 משותף</button>
           <button type="button" class="chip" data-ptask-category="work">עבודה</button>
           <button type="button" class="chip" data-ptask-category="personal">אישי</button>
@@ -1327,7 +1326,7 @@
     });
     document.getElementById("ptaskArchiveBtn").addEventListener("click", function(){
       showArchive = !showArchive;
-      document.getElementById("ptaskArchiveBtn").classList.toggle("active", showArchive);
+      updateArchiveBtnLabel();
       renderTasksView();
     });
     document.getElementById("ptaskSettingsBtn").addEventListener("click", function(){
@@ -1339,6 +1338,12 @@
       var bucketChip = e.target.closest("[data-ptask-bucket]");
       if(bucketChip){
         taskFilters.bucket = bucketChip.getAttribute("data-ptask-bucket");
+        if(taskFilters.bucket==="all"){
+          taskFilters.category = "all";
+          showArchive = false;
+          syncTaskCategoryChips();
+          updateArchiveBtnLabel();
+        }
         syncTaskBucketChips();
         renderTasksView();
         return;
@@ -3884,6 +3889,13 @@
       '</div>';
     }).join("") : '<div style="color:var(--ink-faint);font-size:0.8rem;">אין קטגוריות עדיין.</div>';
   }
+  function updateArchiveBtnLabel(){
+    var btn = document.getElementById("ptaskArchiveBtn");
+    if(!btn) return;
+    btn.classList.toggle("active", showArchive);
+    btn.textContent = showArchive ? "↩ חזרה למשימות" : "📁 ארכיון";
+    btn.title = showArchive ? "יציאה מהארכיון וחזרה לרשימת המשימות" : "הצג את המשימות שהועברו לארכיון";
+  }
   function syncTaskBucketChips(){
     document.querySelectorAll("[data-ptask-bucket]").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-ptask-bucket")===taskFilters.bucket);
@@ -4074,6 +4086,7 @@
     loadTaskPrefs();
     syncTaskBucketChips();
     syncTaskCategoryChips();
+    updateArchiveBtnLabel();
     renderTaskSettingsPanel();
     renderTaskCatManager();
     renderTaskStats();
