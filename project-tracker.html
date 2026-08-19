@@ -3708,7 +3708,7 @@
     if(t.archived){
       archiveBtnHtml = '<button type="button" class="ghost-btn" data-ptask-unarchive="'+t.id+'" title="שחזר מהארכיון" style="padding:3px 8px;font-size:0.72rem;white-space:nowrap;">↩ שחזור</button>';
     } else if(t.done){
-      archiveBtnHtml = '<button type="button" class="ghost-btn" data-ptask-archive="'+t.id+'" title="העבר לארכיון" style="padding:3px 8px;font-size:0.72rem;white-space:nowrap;">📦 ארכוב</button>';
+      archiveBtnHtml = '<button type="button" class="ghost-btn" data-ptask-archive="'+t.id+'" title="העבר לארכיון" style="padding:3px 8px;font-size:0.72rem;white-space:nowrap;">📦 העבר לארכיון</button>';
     }
     return '<div class="ptask-item'+(t.done?" done":"")+'" style="border-inline-start-color:'+qcolor+'" data-ptask-open="'+t.id+'" data-priority="'+(t.priority||999)+'">'+
       '<div class="ptask-head">'+
