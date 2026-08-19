@@ -4722,7 +4722,7 @@
   function renderProposalContainer(){
     var container = document.createElement("div");
     container.setAttribute("dir", "rtl");
-    container.style.cssText = "position:fixed;top:0;left:-99999px;width:800px;background:#fff;";
+    container.style.cssText = "position:fixed;top:0;left:0;width:800px;background:#fff;z-index:-9999;pointer-events:none;";
     container.innerHTML = buildProposalHtml();
     document.body.appendChild(container);
     return container;
