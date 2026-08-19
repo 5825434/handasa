@@ -903,9 +903,12 @@
       var pick = e.target.closest("[data-drive-pick]");
       if(pick){
         var email = pick.getAttribute("data-drive-pick");
+        var acc = driveAccounts.find(function(a){ return a.email===email; });
+        if(!acc) return;
         var cb = drivePendingAction; drivePendingAction=null;
         closeDrivePicker();
-        reauthDriveAccount(email, cb);
+        activateDriveAccount(acc);
+        if(cb) cb(acc);
         return;
       }
       var remove = e.target.closest("[data-drive-remove]");
@@ -2544,6 +2547,7 @@
   var drivePendingCtx = null;
   var driveAccounts = [];
   var drivePendingAction = null;
+  var driveActiveAccountEmail = null;
 
   function driveReady(){ return !!(window.google && google.accounts && google.accounts.oauth2); }
   function initDriveTokenClient(){
@@ -2623,6 +2627,7 @@
     driveAccessToken = account.accessToken;
     driveRefreshToken = account.refreshToken;
     driveFolderId = account.folderId || null;
+    driveActiveAccountEmail = account.email || null;
     driveFolderCache = {};
     driveCategoryCache = {};
   }
@@ -2694,7 +2699,7 @@
 
   function checkDriveResponse(r, actionLabel){
     if(r.status===401){
-      var err = new Error('תוקף החיבור לדרייב פג. לחץ שוב על הפעולה, ובחלונית שנפתחת לחץ "➕ חבר דרייב נוסף" והתחבר מחדש עם אותו חשבון גוגל.');
+      var err = new Error("תוקף החיבור לדרייב פג. מתחבר מחדש...");
       err.isDriveAuthError = true;
       throw err;
     }
@@ -3028,14 +3033,18 @@
       hideDriveStatus();
       var msg = (err&&err.message)||String(err);
       console.error("Drive upload error:", err, "Message:", msg);
-      if(err.isDriveAuthError){
+      if(err.isDriveAuthError && !ctx.reauthed){
+        ctx.reauthed = true;
+        var emailToRetry = driveActiveAccountEmail;
         driveAccessToken = null;
-        if(currentView==="clientsNew") renderClientsNewDetail();
-        alert(msg);
-        openDrivePicker(function(account){
+        reauthDriveAccount(emailToRetry, function(account){
           activateDriveAccount(account);
           performDriveUpload(ctx);
         });
+      } else if(err.isDriveAuthError){
+        driveAccessToken = null;
+        if(currentView==="clientsNew") renderClientsNewDetail();
+        alert("החיבור לדרייב פג ולא הצליח להתחדש. לחץ \"⬆ העלה קובץ לדרייב\" שוב ובחר/חבר חשבון דרייב.");
       } else if(msg.indexOf("404")!==-1){
         alert("שגיאה 404: הקובץ לא נמצא בדרייב.\n\nבואו ננסה שוב:\n1. לחץ \"🔗 חבר את הדרייב שלי\" מחדש\n2. נסה להעלות את הקובץ שוב");
         console.error("404 error - checking folder:", driveFolderId);
@@ -4765,7 +4774,7 @@
       });
     });
   }
-  function saveProposalToDrive(){
+  function saveProposalToDrive(isRetry){
     updateProposalFromUI();
     if(!driveAccessToken){
       alert("לא נבחר חשבון דרייב. נסה שוב.");
@@ -4809,13 +4818,18 @@
       if(currentView==="clientsNew") renderClientsNewDetail();
     }).catch(function(err){
       hideDriveStatus();
-      alert(err.isDriveAuthError ? err.message : "שגיאה בשמירה לדרייב: "+(err.message||String(err)));
-      if(err.isDriveAuthError){
+      if(err.isDriveAuthError && !isRetry){
+        var emailToRetry = driveActiveAccountEmail;
         driveAccessToken = null;
-        openDrivePicker(function(account){
+        reauthDriveAccount(emailToRetry, function(account){
           activateDriveAccount(account);
-          saveProposalToDrive();
+          saveProposalToDrive(true);
         });
+      } else if(err.isDriveAuthError){
+        driveAccessToken = null;
+        alert("החיבור לדרייב פג ולא הצליח להתחדש. לחץ \"שמור בדרייב\" שוב ובחר/חבר חשבון דרייב.");
+      } else {
+        alert("שגיאה בשמירה לדרייב: "+(err.message||String(err)));
       }
     });
   }
