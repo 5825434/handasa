@@ -255,6 +255,7 @@
 
     <div class="wh-toolbar">
       <label>חודש: <input type="month" id="whMonth"></label>
+      <label>שולם החודש (₪): <input type="number" id="whPaidInput" min="0" step="1" style="width:100px;"></label>
       <div class="spacer"></div>
       <button type="button" class="ghost-btn" id="whExportCsvBtn">ייצוא ל-CSV (אקסל)</button>
       <button type="button" class="ghost-btn" id="whPrintBtn">הדפסה / PDF</button>
@@ -520,6 +521,7 @@
   }
   var myHourlyRate = 0;
   var myWorkEntries = [];
+  var myPaidByMonth = {};
   var demoMode = false;
   var realProjects = null;
   var realLeads = null;
@@ -970,6 +972,10 @@
       }
     });
     document.getElementById("whMonth").addEventListener("change", renderWorkHoursView);
+    document.getElementById("whPaidInput").addEventListener("change", function(e){
+      var month = document.getElementById("whMonth").value;
+      if(month) setMonthPaid(month, e.target.value);
+    });
     document.getElementById("whExportCsvBtn").addEventListener("click", exportWorkHoursCsv);
     document.getElementById("whPrintBtn").addEventListener("click", function(){ window.print(); });
     document.getElementById("whTbody").addEventListener("click", function(e){
@@ -3281,6 +3287,7 @@
     var unsub1 = workHoursDocRef().onSnapshot(function(doc){
       var data = doc.data();
       myHourlyRate = (data && typeof data.hourlyRate==="number") ? data.hourlyRate : 0;
+      myPaidByMonth = (data && data.paidByMonth) || {};
       if(document.activeElement !== document.getElementById("whRate")){
         var rateEl = document.getElementById("whRate");
         if(rateEl) rateEl.value = myHourlyRate || "";
@@ -3296,6 +3303,11 @@
 
   function setMyHourlyRate(val){
     workHoursDocRef().set({hourlyRate: Number(val)||0}, {merge:true});
+  }
+  function setMonthPaid(month, val){
+    var patch = Object.assign({}, myPaidByMonth);
+    patch[month] = Number(val)||0;
+    workHoursDocRef().set({paidByMonth: patch}, {merge:true});
   }
   function getWorkHourEntry(date){
     return myWorkEntries.find(function(x){ return x.id===date; }) || {};
@@ -3409,9 +3421,15 @@
     var totalMinutes = rows.reduce(function(s,e){ return s+computeDayMinutes(e.sessions); }, 0);
     var totalHours = Math.round((totalMinutes/60)*100)/100;
     var totalPay = totalHours * (myHourlyRate||0);
+    var paidThisMonth = myPaidByMonth[month] || 0;
 
     document.getElementById("whSummary").textContent =
-      "סה\"כ שעות בחודש: "+formatMinutesHM(totalMinutes)+" | מגיע לך: "+fmtMoney(totalPay);
+      "סה\"כ שעות בחודש: "+formatMinutesHM(totalMinutes)+" | מגיע לך: "+fmtMoney(totalPay)+" | שולם: "+fmtMoney(paidThisMonth);
+
+    var paidInput = document.getElementById("whPaidInput");
+    if(paidInput && document.activeElement !== paidInput){
+      paidInput.value = paidThisMonth || "";
+    }
 
     document.getElementById("whTbody").innerHTML = rows.length ? rows.map(function(e){
       return '<tr class="wh-hist-row" data-wh-load="'+e.date+'"><td>'+fmtDate(e.date)+'</td><td>'+sessionsSummary(e.sessions)+'</td><td>'+formatMinutesHM(computeDayMinutes(e.sessions))+'</td><td>'+escapeHtml(e.note||"")+'</td>'+
@@ -4283,6 +4301,7 @@
     siteUnsubscribers = [];
     myHourlyRate = 0;
     myWorkEntries = [];
+    myPaidByMonth = {};
     demoMode = false;
     realProjects = null;
     realLeads = null;
