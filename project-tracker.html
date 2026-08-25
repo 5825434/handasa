@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ניהול פרויקטים הנדסיים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -529,9 +532,9 @@
   };
   var QORDER = ["uq","u","q","n"];
   var DIFFICULTY_META = {
-    hard:{label:"קשה", color:"#c0392b", order:0},
-    medium:{label:"בינוני", color:"#e67e22", order:1},
-    easy:{label:"קל", color:"#27ae60", order:2},
+    hard:{label:"קשה", color:"var(--diff-hard)", order:0},
+    medium:{label:"בינוני", color:"var(--diff-medium)", order:1},
+    easy:{label:"קל", color:"var(--diff-easy)", order:2},
     "":{label:"", color:"", order:3}
   };
   var STATUSES = [
@@ -548,15 +551,15 @@
   var filters = {search:"", quadrant:"all", status:"all", sort:"due", group:false};
 
   var JOB_STAGES = [
-    {n:1,label:"היכרות",color:"#8b97a3"},
-    {n:2,label:"הצעת מחיר",color:"#c9a227"},
-    {n:3,label:"משא ומתן",color:"#b3432e"},
-    {n:4,label:"שרטוט",color:"#2f6fb0"},
-    {n:5,label:"קורות ועמודים",color:"#2f8f5b"},
-    {n:6,label:"ברזל",color:"#7c5cbf"},
-    {n:7,label:"הדפסה",color:"#d97f2b"},
-    {n:8,label:"הושלם",color:"#1f9d55"},
-    {n:9,label:"שולם",color:"#0d7a3f"}
+    {n:1,label:"היכרות",color:"var(--stage-1)",soft:"var(--stage-1-soft)"},
+    {n:2,label:"הצעת מחיר",color:"var(--stage-2)",soft:"var(--stage-2-soft)"},
+    {n:3,label:"משא ומתן",color:"var(--stage-3)",soft:"var(--stage-3-soft)"},
+    {n:4,label:"שרטוט",color:"var(--stage-4)",soft:"var(--stage-4-soft)"},
+    {n:5,label:"קורות ועמודים",color:"var(--stage-5)",soft:"var(--stage-5-soft)"},
+    {n:6,label:"ברזל",color:"var(--stage-6)",soft:"var(--stage-6-soft)"},
+    {n:7,label:"הדפסה",color:"var(--stage-7)",soft:"var(--stage-7-soft)"},
+    {n:8,label:"הושלם",color:"var(--stage-8)",soft:"var(--stage-8-soft)"},
+    {n:9,label:"שולם",color:"var(--stage-9)",soft:"var(--stage-9-soft)"}
   ];
   var clients = [];
   var realClientsNew = null;
@@ -2322,7 +2325,7 @@
     var steps = JOB_STAGES.map(function(s){
       var cls = s.n<job.stage ? "done" : (s.n===job.stage ? "current" : "");
       var style = cls==="current" ? ' style="background:'+s.color+';border-color:'+s.color+';color:#fff;"' :
-                  cls==="done" ? ' style="background:'+s.color+'22;border-color:'+s.color+';color:'+s.color+';"' : '';
+                  cls==="done" ? ' style="background:'+s.soft+';border-color:'+s.color+';color:'+s.color+';"' : '';
       return '<button type="button" class="step '+cls+'" data-set-job-stage="'+s.n+'"'+style+'>'+s.n+"."+"<br>"+s.label+'</button>';
     }).join("");
 
@@ -4068,8 +4071,8 @@
     var completionPct=allTasks.length>0?Math.round((completedC/allTasks.length)*100):0;
     var completedTodayC=personalTasks.filter(function(t){ return t.type!=="idea" && t.done && t.dueDate===today; }).length;
     var cards=[
+      {n:overdueC, l:"באיחור", cls:" bento-big"+(overdueC?" money":"")},
       {n:todayC, l:"להיום", cls:""},
-      {n:overdueC, l:"באיחור", cls:overdueC?" money":""},
       {n:urgentC, l:"דחופות", cls:""},
       {n:completedTodayC, l:"סיימתי היום", cls:""},
       {n:completedC+"/"+allTasks.length, l:"סיימתי ("+completionPct+"%)", cls:""}
@@ -4883,13 +4886,13 @@
   to { transform: translateX(0); opacity: 1; }
 }
 .notifications-list { padding: 12px; }
-.notif-item { display: flex; gap: 12px; padding: 12px; border: 1px solid #e0e0e0; border-radius: 4px; margin-bottom: 8px; background: #fafafa; cursor: pointer; transition: all 0.2s; }
-.notif-item:hover { background: #f0f0f0; border-color: #4CAF50; }
+.notif-item { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--surface); box-shadow: var(--shadow); cursor: pointer; transition: transform .12s ease, border-color .15s ease; }
+.notif-item:hover { transform: translateY(-1px); border-color: var(--accent); }
 .notif-icon { font-size: 20px; min-width: 24px; }
 .notif-body { flex: 1; }
-.notif-msg { font-weight: 500; color: #333; }
-.notif-time { font-size: 12px; color: #999; margin-top: 4px; }
-.notif-empty { text-align: center; color: #999; padding: 20px; }
+.notif-msg { font-weight: 600; color: var(--ink); }
+.notif-time { font-size: 12px; color: var(--ink-faint); margin-top: 4px; }
+.notif-empty { text-align: center; color: var(--ink-faint); padding: 20px; }
 </style>
 
 </body>
