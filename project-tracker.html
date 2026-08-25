@@ -1051,6 +1051,28 @@
         if(confirm("למחוק את הלקוח וכל העבודות שלו? הפעולה אינה הפיכה.")) deleteClientNew(delClient.getAttribute("data-del-client"));
         return;
       }
+      if(e.target.closest("#clientDetailAddContactBtn")){
+        var cid = selectedClientId;
+        addContactToForm(function(contact){
+          var cl = getClientNew(cid);
+          if(!cl) return;
+          var contacts = (cl.contacts||[]).concat([contact]);
+          setClientField(cid, "contacts", contacts);
+          renderClientsNewDetail();
+        });
+        return;
+      }
+      var delContact = e.target.closest("[data-contact-del-existing]");
+      if(delContact){
+        var idx = Number(delContact.getAttribute("data-contact-del-existing"));
+        var cl2 = getClientNew(selectedClientId);
+        if(!cl2) return;
+        var contacts2 = (cl2.contacts||[]).slice();
+        contacts2.splice(idx, 1);
+        setClientField(selectedClientId, "contacts", contacts2);
+        renderClientsNewDetail();
+        return;
+      }
       var selJob = e.target.closest("[data-select-job]");
       if(selJob){
         selectedJobId = selJob.getAttribute("data-select-job");
@@ -2100,12 +2122,12 @@
     }
     list.innerHTML = clientFormContacts.map(function(c, idx){
       return '<div style="background:var(--bg-alt);padding:10px;border-radius:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">'+
-        '<div><div style="font-weight:bold;">'+escapeHtml(c.name)+'</div><div style="font-size:0.85rem;color:var(--ink-muted);">'+escapeHtml(c.role)+' | '+escapeHtml(c.phone)+'</div></div>'+
+        '<div><div style="font-weight:bold;">'+escapeHtml(c.name)+'</div><div style="font-size:0.85rem;color:var(--ink-muted);">'+escapeHtml(c.role)+' | '+escapeHtml(c.phone)+(c.email?' | '+escapeHtml(c.email):'')+'</div></div>'+
         '<button type="button" class="danger-btn" data-contact-del="'+idx+'" style="padding:4px 8px;font-size:0.85rem;">🗑</button>'+
       '</div>';
     }).join("");
   }
-  function addContactToForm(){
+  function addContactToForm(onSave){
     var modal = document.createElement("div");
     modal.innerHTML = '<div class="overlay" style="display:flex;align-items:center;justify-content:center;">'+
       '<div class="modal" style="max-width:400px;">'+
@@ -2113,17 +2135,18 @@
       '<div class="lead-form" style="grid-template-columns:1fr;">'+
       '<div class="field"><label>שם</label><input type="text" id="temp-contact-name" placeholder="שם איש הקשר"></div>'+
       '<div class="field"><label>טלפון</label><input type="tel" id="temp-contact-phone"></div>'+
+      '<div class="field"><label>מייל</label><input type="email" id="temp-contact-email"></div>'+
       '<div class="field"><label>תפקיד</label>'+
-      '<select id="temp-contact-role">'+
-      '<option value="">בחר תפקיד</option>'+
-      '<option value="מפקח">מפקח</option>'+
-      '<option value="אדריכלית">אדריכלית</option>'+
-      '<option value="קבלן">קבלן</option>'+
-      '<option value="מהנדס">מהנדס</option>'+
-      '<option value="אחר">אחר</option>'+
-      '</select>'+
+      '<input type="text" id="temp-contact-role" list="temp-contact-role-list" placeholder="בחר או הזן תפקיד...">'+
+      '<datalist id="temp-contact-role-list">'+
+      '<option value="מפקח"></option>'+
+      '<option value="אדריכלות"></option>'+
+      '<option value="קבלן"></option>'+
+      '<option value="מהנדס"></option>'+
+      '<option value="יזם"></option>'+
+      '<option value="אחר"></option>'+
+      '</datalist>'+
       '</div>'+
-      '<div class="field full"><input type="text" id="temp-contact-role-custom" placeholder="או הזן תפקיד משלך..."></div>'+
       '</div>'+
       '<div class="modal-actions">'+
       '<button type="button" id="temp-cancel">ביטול</button>'+
@@ -2133,14 +2156,19 @@
       '</div>';
     document.body.appendChild(modal);
     var overlay = modal.querySelector(".overlay");
+    var roleInput = document.getElementById("temp-contact-role");
+    roleInput.addEventListener("focus", function(){
+      if(roleInput.value==="אחר") roleInput.select();
+    });
     document.getElementById("temp-cancel").addEventListener("click", function(){ modal.remove(); });
     document.getElementById("temp-save").addEventListener("click", function(){
       var name = document.getElementById("temp-contact-name").value.trim();
       var phone = document.getElementById("temp-contact-phone").value.trim();
-      var role = document.getElementById("temp-contact-role").value || document.getElementById("temp-contact-role-custom").value || "";
+      var email = document.getElementById("temp-contact-email").value.trim();
+      var role = roleInput.value.trim();
       if(!name || !phone){ alert("שם וטלפון נדרשים"); return; }
-      clientFormContacts.push({name:name, phone:phone, role:role});
-      renderClientContacts();
+      var contact = {name:name, phone:phone, role:role, email:email};
+      if(onSave){ onSave(contact); } else { clientFormContacts.push(contact); renderClientContacts(); }
       modal.remove();
     });
     overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
@@ -2150,6 +2178,9 @@
     ["name","phone","whatsapp","email","address","customerType","type","workType","source","wantedWork"].forEach(function(f){
       document.getElementById("ca-"+f).value = "";
     });
+    document.getElementById("ca-customerType").value = "חדש";
+    document.getElementById("ca-type").value = "פרטי";
+    document.getElementById("ca-workType").value = "תוספת";
     document.getElementById("ca-inquiryDate").value = todayStr();
     renderClientContacts();
     document.getElementById("clientAddOverlay").hidden = false;
@@ -3118,12 +3149,14 @@
           '<div class="field"><label>מייל</label><input type="email" data-cfield="email" value="'+escapeHtml(c.email||"")+'"></div>'+
           '<div class="field full"><label>כתובת</label><input type="text" data-cfield="address" value="'+escapeHtml(c.address||"")+'"></div>'+
           '<div class="field full" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;"><label style="font-weight:bold;">אנשי קשר</label>'+
-            (c.contacts && c.contacts.length ? c.contacts.map(function(ct){
-              return '<div style="background:var(--bg-alt);padding:10px;border-radius:6px;margin:8px 0;">'+
-                '<div style="font-weight:bold;">'+escapeHtml(ct.name)+'</div>'+
-                '<div style="font-size:0.85rem;color:var(--ink-muted);">'+escapeHtml(ct.role)+' | '+escapeHtml(ct.phone)+'</div>'+
+            (c.contacts && c.contacts.length ? c.contacts.map(function(ct, idx){
+              return '<div style="background:var(--bg-alt);padding:10px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">'+
+                '<div><div style="font-weight:bold;">'+escapeHtml(ct.name)+'</div>'+
+                '<div style="font-size:0.85rem;color:var(--ink-muted);">'+escapeHtml(ct.role)+' | '+escapeHtml(ct.phone)+(ct.email?' | '+escapeHtml(ct.email):'')+'</div></div>'+
+                '<button type="button" class="danger-btn" data-contact-del-existing="'+idx+'" style="padding:4px 8px;font-size:0.85rem;">🗑</button>'+
                 '</div>';
             }).join("") : '<div style="color:var(--ink-muted);font-size:0.9rem;">אין אנשי קשר</div>')+
+            '<button type="button" class="ghost-btn" id="clientDetailAddContactBtn" style="margin-top:8px;">+ הוסף איש קשר</button>'+
           '</div>'+
           '<div class="field"><label>סוג לקוח</label><select data-cfield="customerType">'+selectOptionsHtml(["","חדש","קיים"], c.customerType)+'</select></div>'+
           '<div class="field"><label>סוג</label><select data-cfield="type">'+selectOptionsHtml(["","פרטי","עסקי"], c.type)+'</select></div>'+
