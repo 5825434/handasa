@@ -234,21 +234,13 @@ h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;text-wrap:balance;ma
 .pill-dot{width:8px;height:8px;border-radius:50%;background:var(--ink-faint);flex:none;}
 .pill-btn.on .pill-dot{background:var(--accent-ink);}
 
-/* stats - bento layout: first flagged card gets a bigger tile, rest fill around it */
-.stats{display:grid;grid-template-columns:1.4fr 1fr 1fr;grid-auto-rows:1fr;gap:10px;margin-bottom:20px;}
-.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);display:flex;flex-direction:column;justify-content:center;transition:transform .12s ease, box-shadow .12s ease;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);transition:transform .12s ease, box-shadow .12s ease;}
 .stat:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(28,39,51,0.1), var(--shadow);}
 .stat .n{font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.02em;font-family:var(--font-display);}
 .stat .l{font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;}
 .stat.money .n{color:var(--pay-unpaid);}
 .stat.money.ok .n{color:var(--pay-paid);}
-.stat.bento-big{grid-row:span 2;justify-content:space-between;padding:18px 20px;}
-.stat.bento-big .n{font-size:2.5rem;}
-.stat.bento-big .l{font-size:0.78rem;}
-@media (max-width:640px){
-  .stats{grid-template-columns:1fr 1fr;}
-  .stat.bento-big{grid-column:span 2;grid-row:span 1;}
-}
 
 /* toolbar */
 .toolbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:12px;}
