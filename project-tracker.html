@@ -1587,11 +1587,11 @@
       var revertId = taskModal.data ? taskModal.data.categoryId : "";
       openAddCategoryModal(function(newCat){
         if(!newCat){ renderCategorySelect(revertId); return; }
-        ptaskCatsCol().add(newCat).then(function(ref){
-          taskCategories.push(Object.assign({id:ref.id}, newCat));
-          if(taskModal.data) taskModal.data.categoryId = ref.id;
-          renderCategorySelect(ref.id);
-        });
+        var ref = ptaskCatsCol().doc();
+        ref.set(newCat);
+        taskCategories.push(Object.assign({id:ref.id}, newCat));
+        if(taskModal.data) taskModal.data.categoryId = ref.id;
+        renderCategorySelect(ref.id);
       });
     });
     document.getElementById("taskNotifSection").addEventListener("click", function(e){
