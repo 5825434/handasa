@@ -950,22 +950,24 @@
       if(emptyMsg) wrap.innerHTML = "";
       wrap.insertAdjacentHTML("beforeend", sessionRowHtml("",""));
     });
-    document.getElementById("whSessionsList").addEventListener("keydown", function(e){
-      if(e.key!=="Enter") return;
-      var t = e.target;
-      if(t.classList.contains("wh-s-in-h") || t.classList.contains("wh-s-in-m")){
-        e.preventDefault();
-        var row = t.closest(".wh-session-row");
-        row.querySelector(".wh-s-out-h").focus();
-      } else if(t.classList.contains("wh-s-out-h") || t.classList.contains("wh-s-out-m")){
-        e.preventDefault();
-        saveCardManual();
-      }
-    });
     document.getElementById("whSessionsList").addEventListener("click", function(e){
+      var timeBtn = e.target.closest("[data-time-field]");
+      if(timeBtn){
+        var row = timeBtn.closest(".wh-session-row");
+        var field = timeBtn.getAttribute("data-time-field");
+        var current = row.getAttribute(field==="in" ? "data-ci" : "data-co") || "";
+        openTimeDialPicker(current, function(newVal){
+          row.setAttribute(field==="in" ? "data-ci" : "data-co", newVal);
+          timeBtn.textContent = newVal;
+          timeBtn.classList.remove("empty");
+          saveCardManual();
+        });
+        return;
+      }
       var btn = e.target.closest("[data-session-del]");
       if(!btn) return;
       btn.closest(".wh-session-row").remove();
+      saveCardManual();
       var wrap = document.getElementById("whSessionsList");
       if(!wrap.querySelector(".wh-session-row")){
         wrap.innerHTML = '<div class="mr-empty">אין קטעים ליום זה. לחצו "כניסה עכשיו" או הוסיפו קטע ידני.</div>';
@@ -3266,7 +3268,9 @@
     if(!checkIn || !checkOut) return 0;
     var a = checkIn.split(":"), b = checkOut.split(":");
     var mins = (Number(b[0])*60+Number(b[1])) - (Number(a[0])*60+Number(a[1]));
-    return (isNaN(mins) || mins<=0) ? 0 : mins;
+    if(isNaN(mins)) return 0;
+    if(mins<0) mins += 24*60; // checkout past midnight
+    return mins;
   }
   function computeDayMinutes(sessions){
     return (sessions||[]).reduce(function(sum,s){ return sum+computeSegmentMinutes(s.checkIn,s.checkOut); },0);
@@ -3318,19 +3322,19 @@
 
   function clockIn(){
     var date = document.getElementById("whCardDate").value || todayStr();
-    var sessions = (getWorkHourEntry(date).sessions || []).slice();
+    var sessions = document.querySelector("#whSessionsList .wh-session-row") ? readSessionsFromDom() : (getWorkHourEntry(date).sessions || []).slice();
     sessions.push({checkIn: nowTimeStr(), checkOut:""});
-    workHoursEntriesCol().doc(date).set({date:date, sessions:sessions}, {merge:true});
+    workHoursEntriesCol().doc(date).set({date:date, sessions:sessions, note: document.getElementById("whNote").value.trim()}, {merge:true});
   }
   function clockOut(){
     var date = document.getElementById("whCardDate").value || todayStr();
-    var sessions = (getWorkHourEntry(date).sessions || []).slice();
+    var sessions = document.querySelector("#whSessionsList .wh-session-row") ? readSessionsFromDom() : (getWorkHourEntry(date).sessions || []).slice();
     if(sessions.length){
       sessions[sessions.length-1] = Object.assign({}, sessions[sessions.length-1], {checkOut: nowTimeStr()});
     } else {
       sessions.push({checkIn:"", checkOut: nowTimeStr()});
     }
-    workHoursEntriesCol().doc(date).set({date:date, sessions:sessions}, {merge:true});
+    workHoursEntriesCol().doc(date).set({date:date, sessions:sessions, note: document.getElementById("whNote").value.trim()}, {merge:true});
   }
 
   function splitTime(t){
@@ -3347,20 +3351,120 @@
     mm = Math.max(0,Math.min(59,Math.round(mm)));
     return padNum(hh)+":"+padNum(mm);
   }
+  function openTimeDialPicker(initial, onConfirm){
+    var start = splitTime(initial);
+    var hh = (start.h===""||isNaN(start.h)) ? Number(nowTimeStr().split(":")[0]) : start.h;
+    var mm = (start.m===""||isNaN(start.m)) ? Number(nowTimeStr().split(":")[1]) : start.m;
+    var mode = "hour";
+    var modal = document.createElement("div");
+    modal.innerHTML = '<div class="overlay" style="display:flex;align-items:center;justify-content:center;">'+
+      '<div class="modal time-dial-modal">'+
+        '<div class="time-dial-head">'+
+          '<input type="text" inputmode="numeric" maxlength="2" class="time-dial-seg" id="td-hh">'+
+          '<span class="time-dial-colon">:</span>'+
+          '<input type="text" inputmode="numeric" maxlength="2" class="time-dial-seg" id="td-mm">'+
+          '<div class="time-dial-ampm"><button type="button" id="td-am">00-11</button><button type="button" id="td-pm">12-23</button></div>'+
+        '</div>'+
+        '<div class="time-dial-face" id="td-face"></div>'+
+        '<div class="modal-actions"><button type="button" id="td-cancel">ביטול</button><button type="button" class="primary" id="td-ok">אישור</button></div>'+
+      '</div>'+
+    '</div>';
+    document.body.appendChild(modal);
+    var overlay = modal.querySelector(".overlay");
+    var face = document.getElementById("td-face");
+    var hhInput = document.getElementById("td-hh");
+    var mmInput = document.getElementById("td-mm");
+
+    function renderFace(){
+      var isHour = mode==="hour";
+      var labels = isHour ? [12,1,2,3,4,5,6,7,8,9,10,11] : [0,5,10,15,20,25,30,35,40,45,50,55];
+      var selIdx = isHour ? (hh%12) : (mm/5);
+      var html = "";
+      var R = 90, CX = 110, CY = 110;
+      for(var i=0;i<12;i++){
+        var ang = (i*30-90)*Math.PI/180;
+        var x = CX+R*Math.cos(ang), y = CY+R*Math.sin(ang);
+        var isSel = isHour ? (i===selIdx) : (Number.isInteger(selIdx) && i===selIdx);
+        html += '<div class="time-dial-num'+(isSel?' sel':'')+'" style="left:'+x+'px;top:'+y+'px;">'+labels[i]+'</div>';
+      }
+      var handDeg = isHour ? ((hh%12)*30-90) : (mm/60*360-90);
+      var handLen = isHour ? 70 : 85;
+      var hx = CX+handLen*Math.cos(handDeg*Math.PI/180), hy = CY+handLen*Math.sin(handDeg*Math.PI/180);
+      html += '<svg style="position:absolute;left:0;top:0;pointer-events:none;" width="220" height="220">'+
+        '<line x1="'+CX+'" y1="'+CY+'" x2="'+hx+'" y2="'+hy+'" style="stroke:var(--accent);stroke-width:2"/>'+
+        '<circle cx="'+CX+'" cy="'+CY+'" r="4" style="fill:var(--accent)"/>'+
+        '<circle cx="'+hx+'" cy="'+hy+'" r="16" style="fill:var(--accent);opacity:0.25"/>'+
+      '</svg>';
+      face.innerHTML = html;
+      if(document.activeElement!==hhInput) hhInput.value = padNum(hh);
+      if(document.activeElement!==mmInput) mmInput.value = padNum(mm);
+      hhInput.classList.toggle("active", isHour);
+      mmInput.classList.toggle("active", !isHour);
+      document.getElementById("td-am").classList.toggle("active", hh<12);
+      document.getElementById("td-pm").classList.toggle("active", hh>=12);
+    }
+    function angleFromEvent(clientX, clientY){
+      var rect = face.getBoundingClientRect();
+      var cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
+      var dx = clientX-cx, dy = clientY-cy;
+      var deg = Math.atan2(dy,dx)*180/Math.PI + 90;
+      if(deg<0) deg += 360;
+      return deg;
+    }
+    function applyAngle(deg){
+      if(mode==="hour"){
+        var hour12 = Math.round(deg/30)%12;
+        hh = hour12 + (hh>=12 ? 12 : 0);
+      } else {
+        mm = Math.round(deg/6)%60;
+      }
+      renderFace();
+    }
+    var dragging = false;
+    function onPointerUp(){
+      if(!dragging) return;
+      dragging = false;
+      if(mode==="hour"){ mode = "minute"; renderFace(); }
+    }
+    face.addEventListener("pointerdown", function(e){ dragging = true; applyAngle(angleFromEvent(e.clientX, e.clientY)); });
+    face.addEventListener("pointermove", function(e){ if(dragging) applyAngle(angleFromEvent(e.clientX, e.clientY)); });
+    window.addEventListener("pointerup", onPointerUp);
+    function closeModal(){
+      window.removeEventListener("pointerup", onPointerUp);
+      modal.remove();
+    }
+    hhInput.addEventListener("focus", function(){ mode="hour"; renderFace(); hhInput.select(); });
+    mmInput.addEventListener("focus", function(){ mode="minute"; renderFace(); mmInput.select(); });
+    hhInput.addEventListener("input", function(e){
+      var v = e.target.value.replace(/\D/g,"").slice(0,2);
+      e.target.value = v;
+      if(v==="") return;
+      hh = Math.max(0,Math.min(23,Number(v)));
+      renderFace();
+      if(v.length>=2) mmInput.focus();
+    });
+    mmInput.addEventListener("input", function(e){
+      var v = e.target.value.replace(/\D/g,"").slice(0,2);
+      e.target.value = v;
+      if(v==="") return;
+      mm = Math.max(0,Math.min(59,Number(v)));
+      renderFace();
+    });
+    document.getElementById("td-am").addEventListener("click", function(){ if(hh>=12) hh-=12; renderFace(); });
+    document.getElementById("td-pm").addEventListener("click", function(){ if(hh<12) hh+=12; renderFace(); });
+    document.getElementById("td-cancel").addEventListener("click", closeModal);
+    document.getElementById("td-ok").addEventListener("click", function(){
+      onConfirm(padNum(hh)+":"+padNum(mm));
+      closeModal();
+    });
+    overlay.addEventListener("click", function(e){ if(e.target===overlay) closeModal(); });
+    renderFace();
+  }
   function sessionRowHtml(checkIn, checkOut){
-    var ci = splitTime(checkIn), co = splitTime(checkOut);
-    return '<div class="wh-session-row">'+
-      '<span class="wh-time-group">'+
-        '<input type="number" class="wh-s-in-h" min="0" max="23" placeholder="שע\'" value="'+ci.h+'">'+
-        '<span class="wh-time-sep">:</span>'+
-        '<input type="number" class="wh-s-in-m" min="0" max="59" placeholder="דק\'" value="'+ci.m+'">'+
-      '</span>'+
+    return '<div class="wh-session-row" data-ci="'+(checkIn||"")+'" data-co="'+(checkOut||"")+'">'+
+      '<button type="button" class="wh-time-btn'+(checkIn?"":" empty")+'" data-time-field="in">'+(checkIn||"--:--")+'</button>'+
       '<span class="wh-time-sep">-</span>'+
-      '<span class="wh-time-group">'+
-        '<input type="number" class="wh-s-out-h" min="0" max="23" placeholder="שע\'" value="'+co.h+'">'+
-        '<span class="wh-time-sep">:</span>'+
-        '<input type="number" class="wh-s-out-m" min="0" max="59" placeholder="דק\'" value="'+co.m+'">'+
-      '</span>'+
+      '<button type="button" class="wh-time-btn'+(checkOut?"":" empty")+'" data-time-field="out">'+(checkOut||"--:--")+'</button>'+
       '<button type="button" class="danger-btn" data-session-del="1">מחיקה</button>'+
     '</div>';
   }
@@ -3368,8 +3472,8 @@
     var rows = document.querySelectorAll("#whSessionsList .wh-session-row");
     var out = [];
     rows.forEach(function(row){
-      var ci = combineTime(row.querySelector(".wh-s-in-h").value, row.querySelector(".wh-s-in-m").value);
-      var co = combineTime(row.querySelector(".wh-s-out-h").value, row.querySelector(".wh-s-out-m").value);
+      var ci = row.getAttribute("data-ci")||"";
+      var co = row.getAttribute("data-co")||"";
       if(ci || co) out.push({checkIn:ci, checkOut:co});
     });
     return out;
@@ -3422,9 +3526,11 @@
     var totalHours = Math.round((totalMinutes/60)*100)/100;
     var totalPay = totalHours * (myHourlyRate||0);
     var paidThisMonth = myPaidByMonth[month] || 0;
+    var remaining = totalPay - paidThisMonth;
 
     document.getElementById("whSummary").textContent =
-      "סה\"כ שעות בחודש: "+formatMinutesHM(totalMinutes)+" | מגיע לך: "+fmtMoney(totalPay)+" | שולם: "+fmtMoney(paidThisMonth);
+      "סה\"כ שעות בחודש: "+formatMinutesHM(totalMinutes)+" | מגיע לך: "+fmtMoney(totalPay)+" | שולם: "+fmtMoney(paidThisMonth)+
+      (remaining>0 ? " | יתרה לתשלום: "+fmtMoney(remaining) : (paidThisMonth>0 ? " | שולם במלואו ✓" : ""));
 
     var paidInput = document.getElementById("whPaidInput");
     if(paidInput && document.activeElement !== paidInput){

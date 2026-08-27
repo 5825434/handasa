@@ -345,9 +345,24 @@ h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;text-wrap:balance;ma
 .wh-card-hint2{color:var(--ink-faint);font-size:0.78rem;margin-bottom:12px;}
 .wh-sessions{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
 .wh-session-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.wh-time-group{display:flex;align-items:center;gap:2px;}
-.wh-time-group input[type="number"]{width:46px;padding:7px 4px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);text-align:center;}
 .wh-time-sep{color:var(--ink-faint);}
+.wh-time-btn{padding:7px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);text-align:center;font-variant-numeric:tabular-nums;font-size:0.92rem;min-width:56px;transition:border-color .12s ease, background .12s ease;}
+.wh-time-btn:hover{border-color:var(--accent);background:var(--accent-soft);}
+.wh-time-btn.empty{color:var(--ink-faint);}
+
+/* clock-dial time picker */
+.time-dial-modal{max-width:300px;text-align:center;}
+.time-dial-head{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px;}
+.time-dial-seg{font-size:2.1rem;font-weight:700;font-family:var(--font-display);width:1.5em;padding:2px 0;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--ink-faint);text-align:center;font-variant-numeric:tabular-nums;}
+.time-dial-seg.active{color:var(--accent);border-bottom-color:var(--accent);}
+.time-dial-colon{font-size:2.1rem;font-weight:700;color:var(--ink-faint);}
+.time-dial-ampm{display:flex;flex-direction:column;gap:3px;margin-inline-start:8px;}
+.time-dial-ampm button{padding:4px 8px;font-size:0.7rem;border:1px solid var(--border);border-radius:6px;background:var(--surface-2);color:var(--ink-soft);}
+.time-dial-ampm button.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;}
+.time-dial-face{position:relative;width:220px;height:220px;margin:10px auto 14px;user-select:none;-webkit-user-select:none;touch-action:none;}
+.time-dial-num{position:absolute;width:34px;height:34px;line-height:34px;text-align:center;border-radius:50%;font-size:0.85rem;color:var(--ink-soft);transform:translate(-50%,-50%);pointer-events:none;font-variant-numeric:tabular-nums;}
+.time-dial-num.sel{background:var(--accent);color:var(--accent-ink);font-weight:700;}
+.time-dial-modal .modal-actions{margin-top:4px;}
 .wh-card-manual{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:0.85rem;border-top:1px dashed var(--border);padding-top:12px;}
 .wh-card-manual input[type="text"]{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--ink);}
 .wh-note-lbl{flex:1;min-width:160px;}
