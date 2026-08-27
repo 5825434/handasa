@@ -623,6 +623,14 @@
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
   }
+  function autoResizeTextarea(el){
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }
+  function autoResizeTextareasIn(container){
+    if(!container) return;
+    container.querySelectorAll("textarea").forEach(autoResizeTextarea);
+  }
 
   /* ---------- toolbar ---------- */
 
@@ -764,6 +772,7 @@
     var savedJobId = localStorage.getItem("currentJobId");
     var savedTab = localStorage.getItem("clientJobTab") || "progress";
     if(savedTab==="templates") savedTab = "quote";
+    if(savedTab==="needs") savedTab = "progress";
     showView(savedView);
     if(savedClientId && savedView === "clientsNew"){
       selectedClientId = savedClientId;
@@ -1313,6 +1322,7 @@
       handleClientFieldChange(e);
     });
     clientsNewDetailEl.addEventListener("input", function(e){
+      if(e.target.tagName==="TEXTAREA") autoResizeTextarea(e.target);
       var notesArea = e.target.closest("[data-t-note-field]");
       if(notesArea){
         setTaskState(notesArea.getAttribute("data-proj"), notesArea.getAttribute("data-task"), {notes:notesArea.value});
@@ -2454,7 +2464,6 @@
   function jobSubTabsHtml(){
     var tabs = [
       {id:"progress", label:"פרטים"},
-      {id:"needs", label:"בדיקה והבנת הצורך"},
       {id:"quote", label:"הצעת מחיר"},
       {id:"negotiate", label:"משא ומתן"},
       {id:"documents", label:"מסמכים"},
@@ -2494,22 +2503,18 @@
       '<div class="field"><label>שולם עד כה (₪)</label><input type="number" min="0" step="1" data-jfield="paid" value="'+(job.paid||0)+'"></div>' :
       '<div class="locked-note">מידע התשלום גלוי למנהל בלבד.</div>';
 
+    var na = job.needsAssessment||{};
     return '<div class="detail-body" style="padding:0;">'+
       '<div class="field full"><label>שם העבודה</label><input type="text" data-jfield="title" value="'+escapeHtml(job.title||"")+'"></div>'+
       '<div class="field full"><label>שלב</label><div class="steps">'+steps+'</div></div>'+
       '<div class="field full"><label>דרגת חשיבות ודחיפות</label><div class="qpicker">'+qpicker+'</div></div>'+
       '<div class="field"><label>תאריך יעד</label><input type="date" data-jfield="dueDate" value="'+(job.dueDate||"")+'"></div>'+
+      '<div class="field"><label>תאריך ושעת בדיקה</label><input type="datetime-local" data-needsfield="assessedAt" value="'+(na.assessedAt||"")+'"></div>'+
       payBlock+
-      '<div class="field full"><label>מה המהנדס הבין</label><textarea data-needsfield="text" placeholder="תיאור ההבנה המקצועית של הצורך...">'+escapeHtml((job.needsAssessment||{}).text||"")+'</textarea></div>'+
+      '<div class="field"><label>הלקוח הבין</label><select data-needsfield="clientUnderstood">'+selectOptionsHtml(["","כן","לא"], na.clientUnderstood)+'</select></div>'+
+      '<div class="field full"><label>מה המהנדס הבין</label><textarea data-needsfield="text" placeholder="תיאור ההבנה המקצועית של הצורך...">'+escapeHtml(na.text||"")+'</textarea></div>'+
       '<div class="field full"><label>הערות לעבודה</label><textarea data-jfield="notes">'+escapeHtml(job.notes||"")+'</textarea></div>'+
       (managerMode ? '<div class="row-actions"><button type="button" class="danger-btn" data-del-job="'+job.id+'">מחיקת עבודה</button></div>' : '')+
-    '</div>';
-  }
-  function jobNeedsTabHtml(job){
-    var na = job.needsAssessment||{};
-    return '<div class="detail-body" style="padding:0;">'+
-      '<div class="field"><label>תאריך ושעת בדיקה</label><input type="datetime-local" data-needsfield="assessedAt" value="'+(na.assessedAt||"")+'"></div>'+
-      '<div class="field"><label>הלקוח הבין</label><select data-needsfield="clientUnderstood">'+selectOptionsHtml(["","כן","לא"], na.clientUnderstood)+'</select></div>'+
     '</div>';
   }
   function clientTimeSummaryHtml(){
@@ -3222,7 +3227,6 @@
   function renderJobArea(job){
     var body = "";
     if(clientJobTab==="progress") body = jobProgressTabHtml(job);
-    else if(clientJobTab==="needs") body = jobNeedsTabHtml(job);
     else if(clientJobTab==="quote") body = jobQuoteTabHtml(job);
     else if(clientJobTab==="negotiate") body = jobNegotiationTabHtml(job);
     else if(clientJobTab==="tasks") body = jobTasksTabHtml(job);
@@ -3306,6 +3310,7 @@
         '<div class="lead-tabs">'+jobPicker+'<button type="button" class="ltab" id="clientsNewAddJobBtn">+ עבודה חדשה</button></div>'+
         '<div id="clientsNewJobArea">'+jobArea+'</div>'+
       '</div>';
+    autoResizeTextareasIn(panel);
   }
 
   /* ---------- one-time migration: leads + projects -> clients/jobs ---------- */
