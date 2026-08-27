@@ -406,6 +406,9 @@ h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;text-wrap:balance;ma
   border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:var(--surface-2);font-size:0.87rem;color:var(--ink);width:100%;
 }
 .field textarea{resize:vertical;min-height:64px;}
+.dl-wrap{position:relative;}
+.field .dl-wrap input{padding-left:26px;}
+.dl-wrap .dl-caret{position:absolute;top:50%;left:9px;transform:translateY(-50%);pointer-events:none;color:var(--ink-faint);font-size:0.68rem;}
 
 .qpicker{display:flex;flex-wrap:wrap;gap:7px;}
 

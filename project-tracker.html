@@ -341,17 +341,17 @@
       <div class="field"><label>כתובת הנכס</label><input type="text" id="ca-address"></div>
       <div class="field">
         <label>סוג לקוח</label>
-        <input type="text" id="ca-customerType" list="ca-customerType-list" placeholder="בחר או הזן...">
+        <div class="dl-wrap"><span class="dl-caret">▾</span><input type="text" id="ca-customerType" list="ca-customerType-list" placeholder="בחר או הזן..."></div>
         <datalist id="ca-customerType-list"><option value="חדש"></option><option value="קיים"></option><option value="אחר"></option></datalist>
       </div>
       <div class="field">
         <label>סוג</label>
-        <input type="text" id="ca-type" list="ca-type-list" placeholder="בחר או הזן...">
+        <div class="dl-wrap"><span class="dl-caret">▾</span><input type="text" id="ca-type" list="ca-type-list" placeholder="בחר או הזן..."></div>
         <datalist id="ca-type-list"><option value="פרטי"></option><option value="עסקי"></option><option value="אחר"></option></datalist>
       </div>
       <div class="field">
         <label>סוג עבודה</label>
-        <input type="text" id="ca-workType" list="ca-workType-list" placeholder="בחר או הזן...">
+        <div class="dl-wrap"><span class="dl-caret">▾</span><input type="text" id="ca-workType" list="ca-workType-list" placeholder="בחר או הזן..."></div>
         <datalist id="ca-workType-list">
           <option value="בניה חדשה"></option>
           <option value="שיפוץ"></option>
@@ -2227,7 +2227,7 @@
       '<div class="field"><label>טלפון</label><input type="tel" id="temp-contact-phone" value="'+escapeHtml(existing?existing.phone:"")+'"></div>'+
       '<div class="field"><label>מייל</label><input type="email" id="temp-contact-email" value="'+escapeHtml(existing?existing.email:"")+'"></div>'+
       '<div class="field"><label>תפקיד</label>'+
-      '<input type="text" id="temp-contact-role" list="temp-contact-role-list" placeholder="בחר או הזן תפקיד..." value="'+escapeHtml(existing?existing.role:"")+'">'+
+      '<div class="dl-wrap"><span class="dl-caret">▾</span><input type="text" id="temp-contact-role" list="temp-contact-role-list" placeholder="בחר או הזן תפקיד..." value="'+escapeHtml(existing?existing.role:"")+'"></div>'+
       '<datalist id="temp-contact-role-list">'+
       '<option value="מפקח"></option>'+
       '<option value="אדריכלות"></option>'+
@@ -2271,7 +2271,7 @@
       '<h3>מקור הגעה</h3>'+
       '<div class="lead-form" style="grid-template-columns:1fr;">'+
       '<div class="field"><label>מקור הגעה</label>'+
-      '<input type="text" id="temp-src-source" list="temp-src-source-list" placeholder="בחר או הזן..." value="'+escapeHtml(initial.source||"")+'">'+
+      '<div class="dl-wrap"><span class="dl-caret">▾</span><input type="text" id="temp-src-source" list="temp-src-source-list" placeholder="בחר או הזן..." value="'+escapeHtml(initial.source||"")+'"></div>'+
       '<datalist id="temp-src-source-list">'+
       '<option value="אדריכל/ית"></option><option value="מפקח"></option><option value="המלצה"></option>'+
       '<option value="גוגל"></option><option value="פייסבוק"></option><option value="אחר"></option>'+
@@ -3290,9 +3290,9 @@
           '<div class="field"><label>מייל</label><input type="email" data-cfield="email" value="'+escapeHtml(c.email||"")+'"></div>'+
           '<div class="field"><label>תעודת זהות</label><input type="text" data-cfield="idNumber" value="'+escapeHtml(c.idNumber||"")+'"></div>'+
           '<div class="field"><label>כתובת</label><input type="text" data-cfield="address" value="'+escapeHtml(c.address||"")+'"></div>'+
-          '<div class="field"><label>סוג לקוח</label><input type="text" data-cfield="customerType" list="detail-customerType-list" value="'+escapeHtml(c.customerType||"")+'"><datalist id="detail-customerType-list"><option value="חדש"></option><option value="קיים"></option><option value="אחר"></option></datalist></div>'+
-          '<div class="field"><label>סוג</label><input type="text" data-cfield="type" list="detail-type-list" value="'+escapeHtml(c.type||"")+'"><datalist id="detail-type-list"><option value="פרטי"></option><option value="עסקי"></option><option value="אחר"></option></datalist></div>'+
-          '<div class="field"><label>סוג עבודה</label><input type="text" data-cfield="workType" list="detail-workType-list" value="'+escapeHtml(c.workType||"")+'"><datalist id="detail-workType-list"><option value="בניה חדשה"></option><option value="שיפוץ"></option><option value="תוספת בניה"></option><option value="הריסות"></option><option value="אחר"></option></datalist></div>'+
+          '<div class="field"><label>סוג לקוח</label><div class="dl-wrap"><span class="dl-caret">▾</span><input type="text" data-cfield="customerType" list="detail-customerType-list" value="'+escapeHtml(c.customerType||"")+'"></div><datalist id="detail-customerType-list"><option value="חדש"></option><option value="קיים"></option><option value="אחר"></option></datalist></div>'+
+          '<div class="field"><label>סוג</label><div class="dl-wrap"><span class="dl-caret">▾</span><input type="text" data-cfield="type" list="detail-type-list" value="'+escapeHtml(c.type||"")+'"></div><datalist id="detail-type-list"><option value="פרטי"></option><option value="עסקי"></option><option value="אחר"></option></datalist></div>'+
+          '<div class="field"><label>סוג עבודה</label><div class="dl-wrap"><span class="dl-caret">▾</span><input type="text" data-cfield="workType" list="detail-workType-list" value="'+escapeHtml(c.workType||"")+'"></div><datalist id="detail-workType-list"><option value="בניה חדשה"></option><option value="שיפוץ"></option><option value="תוספת בניה"></option><option value="הריסות"></option><option value="אחר"></option></datalist></div>'+
           '<div class="field"><label>תאריך פנייה</label><input type="date" data-cfield="inquiryDate" value="'+(c.inquiryDate||"")+'"></div>'+
           '<div class="field field-panel">'+
             '<label>מקור הגעה</label>'+
