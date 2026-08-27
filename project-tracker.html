@@ -2500,7 +2500,6 @@
       '<div class="field full"><label>דרגת חשיבות ודחיפות</label><div class="qpicker">'+qpicker+'</div></div>'+
       '<div class="field"><label>תאריך יעד</label><input type="date" data-jfield="dueDate" value="'+(job.dueDate||"")+'"></div>'+
       payBlock+
-      '<div class="field full"><label>הערות לעבודה</label><textarea data-jfield="notes">'+escapeHtml(job.notes||"")+'</textarea></div>'+
       (managerMode ? '<div class="row-actions"><button type="button" class="danger-btn" data-del-job="'+job.id+'">מחיקת עבודה</button></div>' : '')+
     '</div>';
   }
@@ -2510,6 +2509,7 @@
       '<div class="field"><label>תאריך ושעת בדיקה</label><input type="datetime-local" data-needsfield="assessedAt" value="'+(na.assessedAt||"")+'"></div>'+
       '<div class="field"><label>הלקוח הבין</label><select data-needsfield="clientUnderstood">'+selectOptionsHtml(["","כן","לא"], na.clientUnderstood)+'</select></div>'+
       '<div class="field full"><label>מה המהנדס הבין</label><textarea data-needsfield="text" placeholder="תיאור ההבנה המקצועית של הצורך...">'+escapeHtml(na.text||"")+'</textarea></div>'+
+      '<div class="field full"><label>הערות לעבודה</label><textarea data-jfield="notes">'+escapeHtml(job.notes||"")+'</textarea></div>'+
     '</div>';
   }
   function clientTimeSummaryHtml(){
