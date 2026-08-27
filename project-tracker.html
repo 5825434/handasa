@@ -337,6 +337,7 @@
       <div class="field"><label>טלפון</label><input type="tel" id="ca-phone"></div>
       <div class="field"><label>ווטסאפ</label><input type="tel" id="ca-whatsapp"></div>
       <div class="field"><label>מייל</label><input type="email" id="ca-email"></div>
+      <div class="field"><label>תעודת זהות</label><input type="text" id="ca-idNumber" inputmode="numeric"></div>
       <div class="field full"><label>כתובת הנכס</label><input type="text" id="ca-address"></div>
       <div class="field">
         <label>סוג לקוח</label>
@@ -350,24 +351,26 @@
         <label>סוג עבודה</label>
         <select id="ca-workType"><option value="">-</option><option value="בניה">בניה</option><option value="שיפוץ">שיפוץ</option><option value="תוספת">תוספת</option><option value="אחר">אחר</option></select>
       </div>
-      <div class="field">
-        <label>מקור הגעה</label>
-        <input type="text" id="ca-source" list="ca-source-list" placeholder="בחר או הזן..."><datalist id="ca-source-list">
-          <option value="אדריכל/ית"></option>
-          <option value="מפקח"></option>
-          <option value="המלצה"></option>
-          <option value="גוגל"></option>
-          <option value="פייסבוק"></option>
-          <option value="אחר"></option>
-        </datalist>
-      </div>
       <div class="field"><label>תאריך פניה</label><input type="date" id="ca-inquiryDate"></div>
-      <div class="field full" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
-        <label style="font-weight:bold;">אנשי קשר</label>
+      <div class="field full source-contacts-box" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+        <div class="source-subgrid">
+          <div class="field"><label>מקור הגעה</label>
+            <input type="text" id="ca-source" list="ca-source-list" placeholder="בחר או הזן..."><datalist id="ca-source-list">
+              <option value="אדריכל/ית"></option>
+              <option value="מפקח"></option>
+              <option value="המלצה"></option>
+              <option value="גוגל"></option>
+              <option value="פייסבוק"></option>
+              <option value="אחר"></option>
+            </datalist>
+          </div>
+          <div class="field"><label>טלפון של המפנה</label><input type="tel" id="ca-sourcePhone"></div>
+          <div class="field full"><label>מייל של המפנה</label><input type="email" id="ca-sourceEmail"></div>
+        </div>
+        <label style="font-weight:bold;display:block;margin-top:14px;">אנשי קשר</label>
         <div id="ca-contacts-list" style="margin:12px 0;"></div>
         <button type="button" class="ghost-btn" id="ca-addContact">+ הוסף איש קשר</button>
       </div>
-      <div class="field full"><label>מה הלקוח רוצה</label><textarea id="ca-wantedWork" placeholder="תיאור חופשי של מה שהלקוח מעוניין לבצע..."></textarea></div>
     </div>
     <div class="modal-actions lead-actions">
       <div class="spacer"></div>
@@ -2127,8 +2130,8 @@
   function addClientNew(data){
     var ref = clientsCol().doc();
     var firstJob = newJobObj((data && data.workType) || "עבודה חדשה");
-    ref.set(Object.assign({name:"", phone:"", whatsapp:"", email:"", address:"", customerType:"",
-      type:"", workType:"", source:"", inquiryDate:"", wantedWork:"", contacts:[],
+    ref.set(Object.assign({name:"", phone:"", whatsapp:"", email:"", idNumber:"", address:"", customerType:"",
+      type:"", workType:"", source:"", sourcePhone:"", sourceEmail:"", inquiryDate:"", contacts:[],
       createdAt:new Date().toISOString().slice(0,10), notes:"", jobs:[firstJob]}, data));
     selectedClientId = ref.id;
     selectedJobId = firstJob.id;
@@ -2195,7 +2198,7 @@
   }
   function openClientAddModal(){
     clientFormContacts = [];
-    ["name","phone","whatsapp","email","address","customerType","type","workType","source","wantedWork"].forEach(function(f){
+    ["name","phone","whatsapp","email","idNumber","address","customerType","type","workType","source","sourcePhone","sourceEmail"].forEach(function(f){
       document.getElementById("ca-"+f).value = "";
     });
     document.getElementById("ca-customerType").value = "חדש";
@@ -2216,14 +2219,16 @@
       phone:document.getElementById("ca-phone").value,
       whatsapp:document.getElementById("ca-whatsapp").value,
       email:document.getElementById("ca-email").value,
+      idNumber:document.getElementById("ca-idNumber").value,
       address:document.getElementById("ca-address").value,
       customerType:document.getElementById("ca-customerType").value,
       type:document.getElementById("ca-type").value,
       workType:document.getElementById("ca-workType").value,
       source:document.getElementById("ca-source").value,
+      sourcePhone:document.getElementById("ca-sourcePhone").value,
+      sourceEmail:document.getElementById("ca-sourceEmail").value,
       inquiryDate:document.getElementById("ca-inquiryDate").value,
-      contacts:clientFormContacts,
-      wantedWork:document.getElementById("ca-wantedWork").value
+      contacts:clientFormContacts
     });
     closeClientAddModal();
     renderClientsNewList();
@@ -3167,10 +3172,21 @@
           '<div class="field"><label>טלפון</label><input type="tel" data-cfield="phone" value="'+escapeHtml(c.phone||"")+'"></div>'+
           '<div class="field"><label>וואטסאפ</label><input type="text" data-cfield="whatsapp" value="'+escapeHtml(c.whatsapp||"")+'"></div>'+
           '<div class="field"><label>מייל</label><input type="email" data-cfield="email" value="'+escapeHtml(c.email||"")+'"></div>'+
+          '<div class="field"><label>תעודת זהות</label><input type="text" data-cfield="idNumber" value="'+escapeHtml(c.idNumber||"")+'"></div>'+
           '<div class="field full"><label>כתובת</label><input type="text" data-cfield="address" value="'+escapeHtml(c.address||"")+'"></div>'+
-          '<div class="field full" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;"><label style="font-weight:bold;">אנשי קשר</label>'+
+          '<div class="field"><label>סוג לקוח</label><select data-cfield="customerType">'+selectOptionsHtml(["","חדש","קיים"], c.customerType)+'</select></div>'+
+          '<div class="field"><label>סוג</label><select data-cfield="type">'+selectOptionsHtml(["","פרטי","עסקי"], c.type)+'</select></div>'+
+          '<div class="field"><label>סוג עבודה</label><select data-cfield="workType">'+selectOptionsHtml(["","בניה","שיפוץ","תוספת","אחר"], c.workType)+'</select></div>'+
+          '<div class="field"><label>תאריך פנייה</label><input type="date" data-cfield="inquiryDate" value="'+(c.inquiryDate||"")+'"></div>'+
+          '<div class="field full source-contacts-box" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">'+
+            '<div class="source-subgrid">'+
+              '<div class="field"><label>מקור הגעה</label><select data-cfield="source">'+selectOptionsHtml(["","אדריכל/ית","מפקח","המלצה","גוגל","פייסבוק","אחר"], c.source)+'</select></div>'+
+              '<div class="field"><label>טלפון של המפנה</label><input type="tel" data-cfield="sourcePhone" value="'+escapeHtml(c.sourcePhone||"")+'"></div>'+
+              '<div class="field full"><label>מייל של המפנה</label><input type="email" data-cfield="sourceEmail" value="'+escapeHtml(c.sourceEmail||"")+'"></div>'+
+            '</div>'+
+            '<label style="font-weight:bold;display:block;margin-top:14px;">אנשי קשר</label>'+
             (c.contacts && c.contacts.length ? c.contacts.map(function(ct, idx){
-              return '<div style="background:var(--bg-alt);padding:10px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">'+
+              return '<div style="background:var(--surface);padding:10px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">'+
                 '<div><div style="font-weight:bold;">'+escapeHtml(ct.name)+'</div>'+
                 '<div style="font-size:0.85rem;color:var(--ink-muted);">'+escapeHtml(ct.role)+' | '+escapeHtml(ct.phone)+(ct.email?' | '+escapeHtml(ct.email):'')+'</div></div>'+
                 '<button type="button" class="danger-btn" data-contact-del-existing="'+idx+'" style="padding:4px 8px;font-size:0.85rem;">🗑</button>'+
@@ -3178,12 +3194,6 @@
             }).join("") : '<div style="color:var(--ink-muted);font-size:0.9rem;">אין אנשי קשר</div>')+
             '<button type="button" class="ghost-btn" id="clientDetailAddContactBtn" style="margin-top:8px;">+ הוסף איש קשר</button>'+
           '</div>'+
-          '<div class="field"><label>סוג לקוח</label><select data-cfield="customerType">'+selectOptionsHtml(["","חדש","קיים"], c.customerType)+'</select></div>'+
-          '<div class="field"><label>סוג</label><select data-cfield="type">'+selectOptionsHtml(["","פרטי","עסקי"], c.type)+'</select></div>'+
-          '<div class="field"><label>סוג עבודה</label><select data-cfield="workType">'+selectOptionsHtml(["","בניה","שיפוץ","תוספת","אחר"], c.workType)+'</select></div>'+
-          '<div class="field"><label>מקור הגעה</label><select data-cfield="source">'+selectOptionsHtml(["","אדריכל/ית","מפקח","המלצה","גוגל","פייסבוק","אחר"], c.source)+'</select></div>'+
-          '<div class="field"><label>תאריך פנייה</label><input type="date" data-cfield="inquiryDate" value="'+(c.inquiryDate||"")+'"></div>'+
-          '<div class="field full"><label>מה הלקוח רוצה</label><textarea data-cfield="wantedWork">'+escapeHtml(c.wantedWork||"")+'</textarea></div>'+
           '<div class="field full"><label>הערות כלליות</label><textarea data-cfield="notes">'+escapeHtml(c.notes||"")+'</textarea></div>'+
           (managerMode ? '<div class="row-actions"><button type="button" class="danger-btn" data-del-client="'+c.id+'">מחיקת לקוח</button></div>' : '')+
         '</div>' : '')+
