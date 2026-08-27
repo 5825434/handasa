@@ -632,6 +632,45 @@
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
   }
+  function toggleDlDropdown(input){
+    var existing = document.querySelector(".dl-dropdown");
+    if(existing){
+      var wasForThis = existing.__forInput===input;
+      existing.remove();
+      if(wasForThis) return;
+    }
+    var datalist = document.getElementById(input.getAttribute("list"));
+    if(!datalist) return;
+    var opts = Array.prototype.map.call(datalist.options, function(o){ return o.value; });
+    var rect = input.getBoundingClientRect();
+    var drop = document.createElement("div");
+    drop.className = "dl-dropdown";
+    drop.style.top = (rect.bottom+4)+"px";
+    drop.style.left = rect.left+"px";
+    drop.style.width = rect.width+"px";
+    drop.innerHTML = opts.map(function(o){ return '<div class="dl-dropdown-item">'+escapeHtml(o)+'</div>'; }).join("");
+    drop.__forInput = input;
+    drop.addEventListener("click", function(e){
+      var item = e.target.closest(".dl-dropdown-item");
+      if(!item) return;
+      input.value = item.textContent;
+      input.dispatchEvent(new Event("input", {bubbles:true}));
+      input.dispatchEvent(new Event("change", {bubbles:true}));
+      drop.remove();
+      input.focus();
+    });
+    document.body.appendChild(drop);
+  }
+  document.addEventListener("click", function(e){
+    var caret = e.target.closest(".dl-caret");
+    if(caret){
+      var wrapInput = caret.parentElement.querySelector("input[list]");
+      if(wrapInput) toggleDlDropdown(wrapInput);
+      return;
+    }
+    var openDrop = document.querySelector(".dl-dropdown");
+    if(openDrop && !openDrop.contains(e.target)) openDrop.remove();
+  });
   function autoResizeTextarea(el){
     el.style.overflowY = "hidden";
     el.style.height = "auto";
