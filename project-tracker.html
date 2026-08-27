@@ -352,26 +352,17 @@
         <select id="ca-workType"><option value="">-</option><option value="בניה">בניה</option><option value="שיפוץ">שיפוץ</option><option value="תוספת">תוספת</option><option value="אחר">אחר</option></select>
       </div>
       <div class="field"><label>תאריך פניה</label><input type="date" id="ca-inquiryDate"></div>
-      <div class="field full" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
-        <div class="field">
-          <label>מקור הגעה</label>
-          <div style="display:flex;gap:6px;">
-            <input type="text" id="ca-source" list="ca-source-list" placeholder="בחר או הזן..." style="flex:1;">
-            <button type="button" class="ghost-btn" id="ca-sourceContactBtn" title="הוסף פרטי קשר של המפנה">📇</button>
-          </div>
-          <datalist id="ca-source-list">
-            <option value="אדריכל/ית"></option>
-            <option value="מפקח"></option>
-            <option value="המלצה"></option>
-            <option value="גוגל"></option>
-            <option value="פייסבוק"></option>
-            <option value="אחר"></option>
-          </datalist>
-          <input type="hidden" id="ca-sourcePhone">
-          <input type="hidden" id="ca-sourceEmail">
-        </div>
-        <label style="font-weight:bold;display:block;margin-top:14px;">אנשי קשר</label>
-        <div id="ca-contacts-list" style="margin:12px 0;"></div>
+      <div class="field" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+        <label>מקור הגעה</label>
+        <div id="ca-source-summary" style="color:var(--ink-faint);font-size:0.9rem;margin-bottom:8px;">אין מקור הגעה עדיין</div>
+        <button type="button" class="ghost-btn" id="ca-sourceBtn">+ הוסף מקור הגעה</button>
+        <input type="hidden" id="ca-source">
+        <input type="hidden" id="ca-sourcePhone">
+        <input type="hidden" id="ca-sourceEmail">
+      </div>
+      <div class="field" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+        <label>אנשי קשר</label>
+        <div id="ca-contacts-list" style="margin:8px 0;"></div>
         <button type="button" class="ghost-btn" id="ca-addContact">+ הוסף איש קשר</button>
       </div>
     </div>
@@ -1022,10 +1013,16 @@
       }
     });
     document.getElementById("ca-addContact").addEventListener("click", addContactToForm);
-    document.getElementById("ca-sourceContactBtn").addEventListener("click", function(){
-      var phoneEl = document.getElementById("ca-sourcePhone"), emailEl = document.getElementById("ca-sourceEmail");
-      openSourceContactModal(phoneEl.value, emailEl.value, function(phone, email){
-        phoneEl.value = phone; emailEl.value = email;
+    document.getElementById("ca-sourceBtn").addEventListener("click", function(){
+      openSourceModal({
+        source:document.getElementById("ca-source").value,
+        phone:document.getElementById("ca-sourcePhone").value,
+        email:document.getElementById("ca-sourceEmail").value
+      }, function(result){
+        document.getElementById("ca-source").value = result.source;
+        document.getElementById("ca-sourcePhone").value = result.phone;
+        document.getElementById("ca-sourceEmail").value = result.email;
+        renderCaSourceSummary();
       });
     });
     function handleClientCardClick(e){
@@ -1071,13 +1068,14 @@
         if(confirm("למחוק את הלקוח וכל העבודות שלו? הפעולה אינה הפיכה.")) deleteClientNew(delClient.getAttribute("data-del-client"));
         return;
       }
-      if(e.target.closest("#clientDetailSourceContactBtn")){
+      if(e.target.closest("#clientDetailSourceBtn")){
         var scid = selectedClientId;
         var scl = getClientNew(scid);
         if(!scl) return;
-        openSourceContactModal(scl.sourcePhone, scl.sourceEmail, function(phone, email){
-          setClientField(scid, "sourcePhone", phone);
-          setClientField(scid, "sourceEmail", email);
+        openSourceModal({source:scl.source, phone:scl.sourcePhone, email:scl.sourceEmail}, function(result){
+          setClientField(scid, "source", result.source);
+          setClientField(scid, "sourcePhone", result.phone);
+          setClientField(scid, "sourceEmail", result.email);
         });
         return;
       }
@@ -2215,14 +2213,22 @@
     });
     overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
   }
-  function openSourceContactModal(initialPhone, initialEmail, onSave){
+  function openSourceModal(initial, onSave){
+    initial = initial || {};
     var modal = document.createElement("div");
     modal.innerHTML = '<div class="overlay" style="display:flex;align-items:center;justify-content:center;">'+
       '<div class="modal" style="max-width:360px;">'+
-      '<h3>פרטי קשר של המפנה</h3>'+
+      '<h3>מקור הגעה</h3>'+
       '<div class="lead-form" style="grid-template-columns:1fr;">'+
-      '<div class="field"><label>טלפון</label><input type="tel" id="temp-src-phone" value="'+escapeHtml(initialPhone||"")+'"></div>'+
-      '<div class="field"><label>מייל</label><input type="email" id="temp-src-email" value="'+escapeHtml(initialEmail||"")+'"></div>'+
+      '<div class="field"><label>מקור הגעה</label>'+
+      '<input type="text" id="temp-src-source" list="temp-src-source-list" placeholder="בחר או הזן..." value="'+escapeHtml(initial.source||"")+'">'+
+      '<datalist id="temp-src-source-list">'+
+      '<option value="אדריכל/ית"></option><option value="מפקח"></option><option value="המלצה"></option>'+
+      '<option value="גוגל"></option><option value="פייסבוק"></option><option value="אחר"></option>'+
+      '</datalist>'+
+      '</div>'+
+      '<div class="field"><label>טלפון</label><input type="tel" id="temp-src-phone" value="'+escapeHtml(initial.phone||"")+'"></div>'+
+      '<div class="field"><label>מייל</label><input type="email" id="temp-src-email" value="'+escapeHtml(initial.email||"")+'"></div>'+
       '</div>'+
       '<div class="modal-actions">'+
       '<button type="button" id="temp-src-cancel">ביטול</button>'+
@@ -2234,10 +2240,11 @@
     var overlay = modal.querySelector(".overlay");
     document.getElementById("temp-src-cancel").addEventListener("click", function(){ modal.remove(); });
     document.getElementById("temp-src-save").addEventListener("click", function(){
+      var source = document.getElementById("temp-src-source").value.trim();
       var phone = document.getElementById("temp-src-phone").value.trim();
       var email = document.getElementById("temp-src-email").value.trim();
       modal.remove();
-      onSave(phone, email);
+      onSave({source:source, phone:phone, email:email});
     });
     overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
   }
@@ -2251,7 +2258,22 @@
     document.getElementById("ca-workType").value = "תוספת";
     document.getElementById("ca-inquiryDate").value = todayStr();
     renderClientContacts();
+    renderCaSourceSummary();
     document.getElementById("clientAddOverlay").hidden = false;
+  }
+  function renderCaSourceSummary(){
+    var source = document.getElementById("ca-source").value;
+    var phone = document.getElementById("ca-sourcePhone").value;
+    var email = document.getElementById("ca-sourceEmail").value;
+    var summaryEl = document.getElementById("ca-source-summary");
+    var btn = document.getElementById("ca-sourceBtn");
+    if(!source && !phone && !email){
+      summaryEl.textContent = "אין מקור הגעה עדיין";
+      btn.textContent = "+ הוסף מקור הגעה";
+    } else {
+      summaryEl.textContent = [source, phone, email].filter(Boolean).join(" · ");
+      btn.textContent = "✎ עריכת מקור הגעה";
+    }
   }
   function closeClientAddModal(){
     document.getElementById("clientAddOverlay").hidden = true;
@@ -3223,23 +3245,23 @@
           '<div class="field"><label>סוג</label><select data-cfield="type">'+selectOptionsHtml(["","פרטי","עסקי"], c.type)+'</select></div>'+
           '<div class="field"><label>סוג עבודה</label><select data-cfield="workType">'+selectOptionsHtml(["","בניה","שיפוץ","תוספת","אחר"], c.workType)+'</select></div>'+
           '<div class="field"><label>תאריך פנייה</label><input type="date" data-cfield="inquiryDate" value="'+(c.inquiryDate||"")+'"></div>'+
-          '<div class="field full" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">'+
-            '<div class="field">'+
-              '<label>מקור הגעה</label>'+
-              '<div style="display:flex;gap:6px;">'+
-                '<select data-cfield="source" style="flex:1;">'+selectOptionsHtml(["","אדריכל/ית","מפקח","המלצה","גוגל","פייסבוק","אחר"], c.source)+'</select>'+
-                '<button type="button" class="ghost-btn" id="clientDetailSourceContactBtn" title="הוסף פרטי קשר של המפנה">📇</button>'+
-              '</div>'+
+          '<div class="field" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">'+
+            '<label>מקור הגעה</label>'+
+            '<div style="color:var(--ink-faint);font-size:0.9rem;margin-bottom:8px;">'+
+              ([c.source, c.sourcePhone, c.sourceEmail].filter(Boolean).join(" · ") || "אין מקור הגעה עדיין")+
             '</div>'+
-            '<label style="font-weight:bold;display:block;margin-top:14px;">אנשי קשר</label>'+
+            '<button type="button" class="ghost-btn" id="clientDetailSourceBtn">'+((c.source||c.sourcePhone||c.sourceEmail)?"✎ עריכת מקור הגעה":"+ הוסף מקור הגעה")+'</button>'+
+          '</div>'+
+          '<div class="field" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">'+
+            '<label>אנשי קשר</label>'+
             (c.contacts && c.contacts.length ? c.contacts.map(function(ct, idx){
               return '<div style="background:var(--bg-alt);padding:10px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">'+
                 '<div><div style="font-weight:bold;">'+escapeHtml(ct.name)+'</div>'+
                 '<div style="font-size:0.85rem;color:var(--ink-muted);">'+escapeHtml(ct.role)+' | '+escapeHtml(ct.phone)+(ct.email?' | '+escapeHtml(ct.email):'')+'</div></div>'+
                 '<button type="button" class="danger-btn" data-contact-del-existing="'+idx+'" style="padding:4px 8px;font-size:0.85rem;">🗑</button>'+
                 '</div>';
-            }).join("") : '<div style="color:var(--ink-muted);font-size:0.9rem;">אין אנשי קשר</div>')+
-            '<button type="button" class="ghost-btn" id="clientDetailAddContactBtn" style="margin-top:8px;">+ הוסף איש קשר</button>'+
+            }).join("") : '<div style="color:var(--ink-muted);font-size:0.9rem;margin-bottom:8px;">אין אנשי קשר עדיין</div>')+
+            '<button type="button" class="ghost-btn" id="clientDetailAddContactBtn">+ הוסף איש קשר</button>'+
           '</div>'+
           '<div class="field full"><label>הערות כלליות</label><textarea data-cfield="notes">'+escapeHtml(c.notes||"")+'</textarea></div>'+
           (managerMode ? '<div class="row-actions"><button type="button" class="danger-btn" data-del-client="'+c.id+'">מחיקת לקוח</button></div>' : '')+
