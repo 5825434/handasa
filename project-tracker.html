@@ -624,6 +624,7 @@
     });
   }
   function autoResizeTextarea(el){
+    el.style.overflowY = "hidden";
     el.style.height = "auto";
     el.style.height = el.scrollHeight + "px";
   }
@@ -2547,7 +2548,8 @@
     var statusValues = ["draft", "sent", "accepted", "rejected"];
     var curStatus = neg.status||"draft";
     var qLines = job.quoteLines||[];
-    var quoteRows = qLines.map(function(l,i){
+    var displayLines = qLines.length ? qLines : [{}];
+    var quoteRows = displayLines.map(function(l,i){
       return '<div class="quote-line"><input type="text" data-qfield="name" data-qidx="'+i+'" list="priceCatalogDatalist" value="'+escapeHtml(l.name||"")+'" placeholder="שם פריט (או בחירה מהמחירון)">'+
         '<input type="number" data-qfield="qty" data-qidx="'+i+'" value="'+(l.qty||1)+'" min="0">'+
         '<input type="number" data-qfield="unitPrice" data-qidx="'+i+'" value="'+(l.unitPrice||0)+'" min="0">'+
