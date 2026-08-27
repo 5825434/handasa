@@ -352,15 +352,17 @@
         <select id="ca-workType"><option value="">-</option><option value="בניה">בניה</option><option value="שיפוץ">שיפוץ</option><option value="תוספת">תוספת</option><option value="אחר">אחר</option></select>
       </div>
       <div class="field"><label>תאריך פניה</label><input type="date" id="ca-inquiryDate"></div>
-      <div class="field" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+      <div class="field field-panel">
         <label>מקור הגעה</label>
-        <div id="ca-source-summary" style="color:var(--ink-faint);font-size:0.9rem;margin-bottom:8px;">אין מקור הגעה עדיין</div>
-        <button type="button" class="ghost-btn" id="ca-sourceBtn">+ הוסף מקור הגעה</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div id="ca-source-summary" style="color:var(--ink-faint);font-size:0.9rem;">אין מקור הגעה עדיין</div>
+          <button type="button" class="ghost-btn icon-btn" id="ca-sourceBtn">+</button>
+        </div>
         <input type="hidden" id="ca-source">
         <input type="hidden" id="ca-sourcePhone">
         <input type="hidden" id="ca-sourceEmail">
       </div>
-      <div class="field" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+      <div class="field field-panel">
         <label>אנשי קשר</label>
         <div id="ca-contacts-list" style="margin:8px 0;"></div>
         <button type="button" class="ghost-btn" id="ca-addContact">+ הוסף איש קשר</button>
@@ -1011,6 +1013,14 @@
         clientFormContacts.splice(idx, 1);
         renderClientContacts();
       }
+      var editBtn = e.target.closest("[data-contact-edit]");
+      if(editBtn){
+        var eidx = Number(editBtn.getAttribute("data-contact-edit"));
+        addContactToForm(function(contact){
+          clientFormContacts[eidx] = contact;
+          renderClientContacts();
+        }, clientFormContacts[eidx]);
+      }
     });
     document.getElementById("ca-addContact").addEventListener("click", function(){ addContactToForm(); });
     document.getElementById("ca-sourceBtn").addEventListener("click", function(){
@@ -1088,6 +1098,22 @@
           setClientField(cid, "contacts", contacts);
           renderClientsNewDetail();
         });
+        return;
+      }
+      var editContactBtn = e.target.closest("[data-contact-edit-existing]");
+      if(editContactBtn){
+        var eidx2 = Number(editContactBtn.getAttribute("data-contact-edit-existing"));
+        var ecid = selectedClientId;
+        var ecl = getClientNew(ecid);
+        if(!ecl) return;
+        addContactToForm(function(contact){
+          var cl3 = getClientNew(ecid);
+          if(!cl3) return;
+          var contacts3 = (cl3.contacts||[]).slice();
+          contacts3[eidx2] = contact;
+          setClientField(ecid, "contacts", contacts3);
+          renderClientsNewDetail();
+        }, ecl.contacts[eidx2]);
         return;
       }
       var delContact = e.target.closest("[data-contact-del-existing]");
@@ -2163,21 +2189,24 @@
     list.innerHTML = clientFormContacts.map(function(c, idx){
       return '<div style="background:var(--bg-alt);padding:10px;border-radius:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">'+
         '<div><div style="font-weight:bold;">'+escapeHtml(c.name)+'</div><div style="font-size:0.85rem;color:var(--ink-muted);">'+escapeHtml(c.role)+' | '+escapeHtml(c.phone)+(c.email?' | '+escapeHtml(c.email):'')+'</div></div>'+
-        '<button type="button" class="danger-btn" data-contact-del="'+idx+'" style="padding:4px 8px;font-size:0.85rem;">🗑</button>'+
+        '<div style="display:flex;gap:4px;flex:none;">'+
+          '<button type="button" class="ghost-btn icon-btn" data-contact-edit="'+idx+'">✎</button>'+
+          '<button type="button" class="danger-btn icon-btn" data-contact-del="'+idx+'">🗑</button>'+
+        '</div>'+
       '</div>';
     }).join("");
   }
-  function addContactToForm(onSave){
+  function addContactToForm(onSave, existing){
     var modal = document.createElement("div");
     modal.innerHTML = '<div class="overlay" style="display:flex;align-items:center;justify-content:center;">'+
       '<div class="modal" style="max-width:400px;">'+
-      '<h3>הוסף איש קשר</h3>'+
+      '<h3>'+(existing?"עריכת איש קשר":"הוסף איש קשר")+'</h3>'+
       '<div class="lead-form" style="grid-template-columns:1fr;">'+
-      '<div class="field"><label>שם</label><input type="text" id="temp-contact-name" placeholder="שם איש הקשר"></div>'+
-      '<div class="field"><label>טלפון</label><input type="tel" id="temp-contact-phone"></div>'+
-      '<div class="field"><label>מייל</label><input type="email" id="temp-contact-email"></div>'+
+      '<div class="field"><label>שם</label><input type="text" id="temp-contact-name" placeholder="שם איש הקשר" value="'+escapeHtml(existing?existing.name:"")+'"></div>'+
+      '<div class="field"><label>טלפון</label><input type="tel" id="temp-contact-phone" value="'+escapeHtml(existing?existing.phone:"")+'"></div>'+
+      '<div class="field"><label>מייל</label><input type="email" id="temp-contact-email" value="'+escapeHtml(existing?existing.email:"")+'"></div>'+
       '<div class="field"><label>תפקיד</label>'+
-      '<input type="text" id="temp-contact-role" list="temp-contact-role-list" placeholder="בחר או הזן תפקיד...">'+
+      '<input type="text" id="temp-contact-role" list="temp-contact-role-list" placeholder="בחר או הזן תפקיד..." value="'+escapeHtml(existing?existing.role:"")+'">'+
       '<datalist id="temp-contact-role-list">'+
       '<option value="מפקח"></option>'+
       '<option value="אדריכלות"></option>'+
@@ -2190,7 +2219,7 @@
       '</div>'+
       '<div class="modal-actions">'+
       '<button type="button" id="temp-cancel">ביטול</button>'+
-      '<button type="button" class="primary" id="temp-save">הוסף</button>'+
+      '<button type="button" class="primary" id="temp-save">'+(existing?"שמירה":"הוסף")+'</button>'+
       '</div>'+
       '</div>'+
       '</div>';
@@ -2269,10 +2298,12 @@
     var btn = document.getElementById("ca-sourceBtn");
     if(!source && !phone && !email){
       summaryEl.textContent = "אין מקור הגעה עדיין";
-      btn.textContent = "+ הוסף מקור הגעה";
+      btn.textContent = "+";
+      btn.title = "הוסף מקור הגעה";
     } else {
       summaryEl.textContent = [source, phone, email].filter(Boolean).join(" · ");
-      btn.textContent = "✎ עריכת מקור הגעה";
+      btn.textContent = "✎";
+      btn.title = "עריכת מקור הגעה";
     }
   }
   function closeClientAddModal(){
@@ -3245,20 +3276,25 @@
           '<div class="field"><label>סוג</label><select data-cfield="type">'+selectOptionsHtml(["","פרטי","עסקי"], c.type)+'</select></div>'+
           '<div class="field"><label>סוג עבודה</label><select data-cfield="workType">'+selectOptionsHtml(["","בניה","שיפוץ","תוספת","אחר"], c.workType)+'</select></div>'+
           '<div class="field"><label>תאריך פנייה</label><input type="date" data-cfield="inquiryDate" value="'+(c.inquiryDate||"")+'"></div>'+
-          '<div class="field" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">'+
+          '<div class="field field-panel">'+
             '<label>מקור הגעה</label>'+
-            '<div style="color:var(--ink-faint);font-size:0.9rem;margin-bottom:8px;">'+
-              ([c.source, c.sourcePhone, c.sourceEmail].filter(Boolean).join(" · ") || "אין מקור הגעה עדיין")+
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'+
+              '<div style="color:var(--ink-faint);font-size:0.9rem;">'+
+                ([c.source, c.sourcePhone, c.sourceEmail].filter(Boolean).join(" · ") || "אין מקור הגעה עדיין")+
+              '</div>'+
+              '<button type="button" class="ghost-btn icon-btn" id="clientDetailSourceBtn" title="'+((c.source||c.sourcePhone||c.sourceEmail)?"עריכת מקור הגעה":"הוסף מקור הגעה")+'">'+((c.source||c.sourcePhone||c.sourceEmail)?"✎":"+")+'</button>'+
             '</div>'+
-            '<button type="button" class="ghost-btn" id="clientDetailSourceBtn">'+((c.source||c.sourcePhone||c.sourceEmail)?"✎ עריכת מקור הגעה":"+ הוסף מקור הגעה")+'</button>'+
           '</div>'+
-          '<div class="field" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">'+
+          '<div class="field field-panel">'+
             '<label>אנשי קשר</label>'+
             (c.contacts && c.contacts.length ? c.contacts.map(function(ct, idx){
               return '<div style="background:var(--bg-alt);padding:10px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">'+
                 '<div><div style="font-weight:bold;">'+escapeHtml(ct.name)+'</div>'+
                 '<div style="font-size:0.85rem;color:var(--ink-muted);">'+escapeHtml(ct.role)+' | '+escapeHtml(ct.phone)+(ct.email?' | '+escapeHtml(ct.email):'')+'</div></div>'+
-                '<button type="button" class="danger-btn" data-contact-del-existing="'+idx+'" style="padding:4px 8px;font-size:0.85rem;">🗑</button>'+
+                '<div style="display:flex;gap:4px;flex:none;">'+
+                  '<button type="button" class="ghost-btn icon-btn" data-contact-edit-existing="'+idx+'">✎</button>'+
+                  '<button type="button" class="danger-btn icon-btn" data-contact-del-existing="'+idx+'">🗑</button>'+
+                '</div>'+
                 '</div>';
             }).join("") : '<div style="color:var(--ink-muted);font-size:0.9rem;margin-bottom:8px;">אין אנשי קשר עדיין</div>')+
             '<button type="button" class="ghost-btn" id="clientDetailAddContactBtn">+ הוסף איש קשר</button>'+
