@@ -3713,10 +3713,11 @@
   /* ---- task modal (compact add/edit) ---- */
   var taskModal = {open:false, id:null, type:"task", owner:true, data:null};
   function blankTaskData(type){
+    var defaultCat = taskCategories.find(function(c){ return c.name==="עבודה"; }) || taskCategories[0];
     return {type:type||"task", title:"", description:"", dueDate:"", dueTime:"",
-      quadrant:"n", difficulty:"", categoryId:(taskCategories[0]?taskCategories[0].id:""), clientId:"",
+      quadrant:"n", difficulty:"easy", categoryId:(defaultCat?defaultCat.id:""), clientId:"",
       recurrence:"none", estMin:0, reminder:"none", subtasks:[], shared:false, ownerName:"", assignedTo:"", tags:"",
-      taskCategory:"personal", sharedWith:null};
+      taskCategory:"work", sharedWith:null};
   }
   function openTaskModal(id, type){
     if(id){
@@ -3737,7 +3738,7 @@
     if(taskModal.owner){ var ti=document.getElementById("pm-title"); if(ti) setTimeout(function(){ti.focus();},0); }
   }
   function renderModalQuadrant(){
-    document.getElementById("pm-quadrant").innerHTML = QORDER.map(function(k){
+    document.getElementById("pm-quadrant").innerHTML = ["uq","u"].map(function(k){
       var sel=taskModal.data.quadrant===k;
       return '<button type="button" class="qopt'+(sel?" sel":"")+'" style="color:var('+QUADRANTS[k].token+')" data-pm-quadrant="'+k+'"><span class="dot" style="background:var('+QUADRANTS[k].token+')"></span>'+QUADRANTS[k].label+'</button>';
     }).join("");
