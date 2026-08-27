@@ -341,15 +341,24 @@
       <div class="field"><label>כתובת הנכס</label><input type="text" id="ca-address"></div>
       <div class="field">
         <label>סוג לקוח</label>
-        <select id="ca-customerType"><option value="">-</option><option value="חדש">חדש</option><option value="קיים">קיים</option></select>
+        <input type="text" id="ca-customerType" list="ca-customerType-list" placeholder="בחר או הזן...">
+        <datalist id="ca-customerType-list"><option value="חדש"></option><option value="קיים"></option><option value="אחר"></option></datalist>
       </div>
       <div class="field">
         <label>סוג</label>
-        <select id="ca-type"><option value="">-</option><option value="פרטי">פרטי</option><option value="עסקי">עסקי</option></select>
+        <input type="text" id="ca-type" list="ca-type-list" placeholder="בחר או הזן...">
+        <datalist id="ca-type-list"><option value="פרטי"></option><option value="עסקי"></option><option value="אחר"></option></datalist>
       </div>
       <div class="field">
         <label>סוג עבודה</label>
-        <select id="ca-workType"><option value="">-</option><option value="בניה">בניה</option><option value="שיפוץ">שיפוץ</option><option value="תוספת">תוספת</option><option value="אחר">אחר</option></select>
+        <input type="text" id="ca-workType" list="ca-workType-list" placeholder="בחר או הזן...">
+        <datalist id="ca-workType-list">
+          <option value="בניה חדשה"></option>
+          <option value="שיפוץ"></option>
+          <option value="תוספת בניה"></option>
+          <option value="הריסות"></option>
+          <option value="אחר"></option>
+        </datalist>
       </div>
       <div class="field"><label>תאריך פניה</label><input type="date" id="ca-inquiryDate"></div>
       <div class="field field-panel">
@@ -2296,7 +2305,7 @@
     });
     document.getElementById("ca-customerType").value = "חדש";
     document.getElementById("ca-type").value = "פרטי";
-    document.getElementById("ca-workType").value = "תוספת";
+    document.getElementById("ca-workType").value = "תוספת בניה";
     document.getElementById("ca-inquiryDate").value = todayStr();
     renderClientContacts();
     renderCaSourceSummary();
@@ -3281,9 +3290,9 @@
           '<div class="field"><label>מייל</label><input type="email" data-cfield="email" value="'+escapeHtml(c.email||"")+'"></div>'+
           '<div class="field"><label>תעודת זהות</label><input type="text" data-cfield="idNumber" value="'+escapeHtml(c.idNumber||"")+'"></div>'+
           '<div class="field"><label>כתובת</label><input type="text" data-cfield="address" value="'+escapeHtml(c.address||"")+'"></div>'+
-          '<div class="field"><label>סוג לקוח</label><select data-cfield="customerType">'+selectOptionsHtml(["","חדש","קיים"], c.customerType)+'</select></div>'+
-          '<div class="field"><label>סוג</label><select data-cfield="type">'+selectOptionsHtml(["","פרטי","עסקי"], c.type)+'</select></div>'+
-          '<div class="field"><label>סוג עבודה</label><select data-cfield="workType">'+selectOptionsHtml(["","בניה","שיפוץ","תוספת","אחר"], c.workType)+'</select></div>'+
+          '<div class="field"><label>סוג לקוח</label><input type="text" data-cfield="customerType" list="detail-customerType-list" value="'+escapeHtml(c.customerType||"")+'"><datalist id="detail-customerType-list"><option value="חדש"></option><option value="קיים"></option><option value="אחר"></option></datalist></div>'+
+          '<div class="field"><label>סוג</label><input type="text" data-cfield="type" list="detail-type-list" value="'+escapeHtml(c.type||"")+'"><datalist id="detail-type-list"><option value="פרטי"></option><option value="עסקי"></option><option value="אחר"></option></datalist></div>'+
+          '<div class="field"><label>סוג עבודה</label><input type="text" data-cfield="workType" list="detail-workType-list" value="'+escapeHtml(c.workType||"")+'"><datalist id="detail-workType-list"><option value="בניה חדשה"></option><option value="שיפוץ"></option><option value="תוספת בניה"></option><option value="הריסות"></option><option value="אחר"></option></datalist></div>'+
           '<div class="field"><label>תאריך פנייה</label><input type="date" data-cfield="inquiryDate" value="'+(c.inquiryDate||"")+'"></div>'+
           '<div class="field field-panel">'+
             '<label>מקור הגעה</label>'+
