@@ -1584,14 +1584,14 @@
     });
     document.getElementById("pm-category").addEventListener("change", function(e){
       if(e.target.value!=="__add__") return;
-      var name = (prompt("שם הקטגוריה החדשה:")||"").trim();
-      if(!name){ renderCategorySelect(taskModal.data?taskModal.data.categoryId:""); return; }
-      var idx = taskCategories.length;
-      var newCat = {name:name, color:TASK_CAT_COLORS[idx % TASK_CAT_COLORS.length], icon:TASK_CAT_ICONS[idx % TASK_CAT_ICONS.length]};
-      ptaskCatsCol().add(newCat).then(function(ref){
-        taskCategories.push(Object.assign({id:ref.id}, newCat));
-        if(taskModal.data) taskModal.data.categoryId = ref.id;
-        renderCategorySelect(ref.id);
+      var revertId = taskModal.data ? taskModal.data.categoryId : "";
+      openAddCategoryModal(function(newCat){
+        if(!newCat){ renderCategorySelect(revertId); return; }
+        ptaskCatsCol().add(newCat).then(function(ref){
+          taskCategories.push(Object.assign({id:ref.id}, newCat));
+          if(taskModal.data) taskModal.data.categoryId = ref.id;
+          renderCategorySelect(ref.id);
+        });
       });
     });
     document.getElementById("taskNotifSection").addEventListener("click", function(e){
@@ -3926,6 +3926,39 @@
   function resetPtaskTimer(id){
     setPersonalTaskField(id,"timer",{elapsedSec:0,running:false,runStartedAt:null});
   }
+  function openAddCategoryModal(onDone){
+    var idx = taskCategories.length;
+    var defaultColor = TASK_CAT_COLORS[idx % TASK_CAT_COLORS.length];
+    var modal = document.createElement("div");
+    modal.innerHTML = '<div class="overlay" style="display:flex;align-items:center;justify-content:center;">'+
+      '<div class="modal" style="max-width:340px;">'+
+      '<h3>קטגוריה חדשה</h3>'+
+      '<div class="lead-form" style="grid-template-columns:1fr;">'+
+      '<div class="field"><label>שם</label><input type="text" id="temp-cat-name" placeholder="שם הקטגוריה"></div>'+
+      '<div class="field"><label>אייקון</label><select id="temp-cat-icon">'+
+      TASK_CAT_ICONS.map(function(ic){ return '<option>'+ic+'</option>'; }).join("")+
+      '</select></div>'+
+      '<div class="field"><label>צבע</label><input type="color" id="temp-cat-color" value="'+defaultColor+'"></div>'+
+      '</div>'+
+      '<div class="modal-actions">'+
+      '<button type="button" id="temp-cat-cancel">ביטול</button>'+
+      '<button type="button" class="primary" id="temp-cat-save">הוספה</button>'+
+      '</div>'+
+      '</div>'+
+      '</div>';
+    document.body.appendChild(modal);
+    var overlay = modal.querySelector(".overlay");
+    var nameInput = document.getElementById("temp-cat-name");
+    setTimeout(function(){ nameInput.focus(); }, 0);
+    document.getElementById("temp-cat-cancel").addEventListener("click", function(){ modal.remove(); onDone(null); });
+    document.getElementById("temp-cat-save").addEventListener("click", function(){
+      var name = nameInput.value.trim();
+      if(!name){ nameInput.focus(); return; }
+      modal.remove();
+      onDone({name:name, icon:document.getElementById("temp-cat-icon").value, color:document.getElementById("temp-cat-color").value});
+    });
+    overlay.addEventListener("click", function(e){ if(e.target===overlay){ modal.remove(); onDone(null); } });
+  }
   function renderCategorySelect(selectedId){
     document.getElementById("pm-category").innerHTML =
       '<option value="">ללא קטגוריה</option>'+taskCategories.map(function(c){
@@ -3933,11 +3966,9 @@
       }).join("")+'<option value="__add__">+ הוסף קטגוריה</option>';
   }
   function addTaskCategory(){
-    var idx = taskCategories.length;
-    ptaskCatsCol().add({
-      name:"קטגוריה חדשה",
-      color: TASK_CAT_COLORS[idx % TASK_CAT_COLORS.length],
-      icon: TASK_CAT_ICONS[idx % TASK_CAT_ICONS.length]
+    openAddCategoryModal(function(newCat){
+      if(!newCat) return;
+      ptaskCatsCol().add(newCat);
     });
   }
   function setTaskCategoryField(id, field, value){
