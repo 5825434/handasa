@@ -1012,7 +1012,7 @@
         renderClientContacts();
       }
     });
-    document.getElementById("ca-addContact").addEventListener("click", addContactToForm);
+    document.getElementById("ca-addContact").addEventListener("click", function(){ addContactToForm(); });
     document.getElementById("ca-sourceBtn").addEventListener("click", function(){
       openSourceModal({
         source:document.getElementById("ca-source").value,
@@ -2208,7 +2208,7 @@
       var role = roleInput.value.trim();
       if(!name || !phone){ alert("שם וטלפון נדרשים"); return; }
       var contact = {name:name, phone:phone, role:role, email:email};
-      if(onSave){ onSave(contact); } else { clientFormContacts.push(contact); renderClientContacts(); }
+      if(typeof onSave==="function"){ onSave(contact); } else { clientFormContacts.push(contact); renderClientContacts(); }
       modal.remove();
     });
     overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
