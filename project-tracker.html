@@ -773,6 +773,7 @@
     var savedTab = localStorage.getItem("clientJobTab") || "progress";
     if(savedTab==="templates") savedTab = "quote";
     if(savedTab==="needs") savedTab = "progress";
+    if(savedTab==="negotiate") savedTab = "quote";
     showView(savedView);
     if(savedClientId && savedView === "clientsNew"){
       selectedClientId = savedClientId;
@@ -2465,7 +2466,6 @@
     var tabs = [
       {id:"progress", label:"פרטים"},
       {id:"quote", label:"הצעת מחיר"},
-      {id:"negotiate", label:"משא ומתן"},
       {id:"documents", label:"מסמכים"},
       {id:"tasks", label:"משימות"},
       {id:"service", label:"שירות ואספקה"}
@@ -2541,7 +2541,10 @@
     '</div>';
   }
   function jobQuoteTabHtml(job){
-    if(!managerMode) return '<div class="locked-note">מידע הצעת המחיר גלוי למנהל בלבד.</div>';
+    if(!managerMode) return '<div class="locked-note">מידע ההצעה גלוי למנהל בלבד.</div>';
+    var neg = job.negotiation||{};
+    var statusOptions = ["", "טיוטה", "נשלחה", "מקובלת", "נדחתה"];
+    var statusValues = ["", "draft", "sent", "accepted", "rejected"];
     var qLines = job.quoteLines||[];
     var quoteRows = qLines.map(function(l,i){
       return '<div class="quote-line"><input type="text" data-qfield="name" data-qidx="'+i+'" list="priceCatalogDatalist" value="'+escapeHtml(l.name||"")+'" placeholder="שם פריט (או בחירה מהמחירון)">'+
@@ -2550,41 +2553,37 @@
         '<div class="line-total">'+fmtMoney(quoteLineTotal(l))+'</div>'+
         '<button type="button" class="del-line" data-del-qline="'+i+'">✕</button></div>';
     }).join("");
-    return '<div class="quote-lines-wrap">'+quoteRows+
+    return '<div class="quote-lines-wrap">'+
+      '<div class="negotiation-fields">'+
+        '<div class="neg-section">'+
+          '<label>סטטוס <select data-negfield="status">'+
+            statusOptions.map(function(opt,i){ return '<option value="'+statusValues[i]+'"'+(neg.status===statusValues[i]?" selected":"")+'>'+opt+'</option>'; }).join("")+
+          '</select></label>'+
+          '<label>אושר בתאריך <input type="date" data-negfield="approvedAt" value="'+(neg.approvedAt||"")+'"></label>'+
+        '</div>'+
+      '</div>'+
+      quoteRows+
       '<button type="button" class="ghost-btn" id="jobAddQuoteLineBtn">+ שורה</button>'+
       '<div class="quote-summary-cell" data-quote-summary>סה"כ הצעה: '+fmtMoney(quoteLinesTotal(qLines))+'</div>'+
       '<div style="margin-top:12px;">'+
         '<button type="button" class="pill-btn" id="jobCreateProposalBtn">📄 צור הצעת מחיר</button>'+
       '</div>'+
+      '<div class="negotiation-fields">'+
+        '<div class="neg-section">'+
+          '<h4>תנאי תשלום</h4>'+
+          '<label>אחוז מקדמה (%) <input type="number" data-negfield="advancePercent" value="'+(neg.advancePercent||0)+'" min="0" max="100"></label>'+
+          '<label>אמצעי תשלום <input type="text" data-negfield="paymentMethod" value="'+escapeHtml(neg.paymentMethod||"")+'"></label>'+
+          '<label>תאריך יעד לתשלום מקדמה <input type="date" data-negfield="paymentReminderDate" value="'+(neg.paymentReminderDate||"")+'"></label>'+
+          '<label>מקדמה שולמה בתאריך <input type="date" data-negfield="advancePaidDate" value="'+(neg.advancePaidDate||"")+'"></label>'+
+          '<label><input type="checkbox" data-negfield="advancePaid"'+(neg.advancePaid?" checked":"")+'> מקדמה שולמה</label>'+
+        '</div>'+
+        '<div class="neg-section">'+
+          '<h4>הערות משא ומתן</h4>'+
+          '<textarea data-negfield="notes" placeholder="רשמו כאן הערות על משא ומתן, שיחות, תנאים שונים, וכו..." style="width:100%;height:120px;">'+escapeHtml(neg.notes||"")+'</textarea>'+
+        '</div>'+
+      '</div>'+
       clientTimeSummaryHtml()+
       proposalsArchiveHtml(job)+
-    '</div>';
-  }
-  function jobNegotiationTabHtml(job){
-    if(!managerMode) return '<div class="locked-note">מידע המשא ומתן גלוי למנהל בלבד.</div>';
-    var neg = job.negotiation||{};
-    var statusOptions = ["", "טיוטה", "נשלחה", "מקובלת", "נדחתה"];
-    var statusValues = ["", "draft", "sent", "accepted", "rejected"];
-    return '<div class="negotiation-fields">'+
-      '<div class="neg-section">'+
-        '<h4>סטטוס הצעה</h4>'+
-        '<label>סטטוס <select data-negfield="status">'+
-          statusOptions.map(function(opt,i){ return '<option value="'+statusValues[i]+'"'+(neg.status===statusValues[i]?" selected":"")+'>'+opt+'</option>'; }).join("")+
-        '</select></label>'+
-        '<label>אושר בתאריך <input type="date" data-negfield="approvedAt" value="'+(neg.approvedAt||"")+'"></label>'+
-      '</div>'+
-      '<div class="neg-section">'+
-        '<h4>תנאי תשלום</h4>'+
-        '<label>אחוז מקדמה (%) <input type="number" data-negfield="advancePercent" value="'+(neg.advancePercent||0)+'" min="0" max="100"></label>'+
-        '<label>אמצעי תשלום <input type="text" data-negfield="paymentMethod" value="'+escapeHtml(neg.paymentMethod||"")+'"></label>'+
-        '<label>תאריך יעד לתשלום מקדמה <input type="date" data-negfield="paymentReminderDate" value="'+(neg.paymentReminderDate||"")+'"></label>'+
-        '<label>מקדמה שולמה בתאריך <input type="date" data-negfield="advancePaidDate" value="'+(neg.advancePaidDate||"")+'"></label>'+
-        '<label><input type="checkbox" data-negfield="advancePaid"'+(neg.advancePaid?" checked":"")+'> מקדמה שולמה</label>'+
-      '</div>'+
-      '<div class="neg-section">'+
-        '<h4>הערות משא ומתן</h4>'+
-        '<textarea data-negfield="notes" placeholder="רשמו כאן הערות על משא ומתן, שיחות, תנאים שונים, וכו..." style="width:100%;height:120px;">'+escapeHtml(neg.notes||"")+'</textarea>'+
-      '</div>'+
     '</div>';
   }
   function jobTasksTabHtml(job){
@@ -3228,7 +3227,6 @@
     var body = "";
     if(clientJobTab==="progress") body = jobProgressTabHtml(job);
     else if(clientJobTab==="quote") body = jobQuoteTabHtml(job);
-    else if(clientJobTab==="negotiate") body = jobNegotiationTabHtml(job);
     else if(clientJobTab==="tasks") body = jobTasksTabHtml(job);
     else if(clientJobTab==="service") body = jobServiceTabHtml(job);
     else if(clientJobTab==="documents") body = jobDocumentsTabHtml(job);
