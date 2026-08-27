@@ -756,3 +756,10 @@ button.primary:active{transform:scale(0.97);}
 .neg-section input:focus,
 .neg-section select:focus,
 .neg-section textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+.neg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;}
+.neg-grid label{display:flex;flex-direction:column;align-items:stretch;gap:4px;margin-bottom:0;}
+.neg-grid label.full{grid-column:1/-1;}
+.neg-grid input,.neg-grid select{width:100%;}
+@media (max-width:520px){
+  .neg-grid{grid-template-columns:1fr;}
+}
