@@ -338,7 +338,7 @@
       <div class="field"><label>ווטסאפ</label><input type="tel" id="ca-whatsapp"></div>
       <div class="field"><label>מייל</label><input type="email" id="ca-email"></div>
       <div class="field"><label>תעודת זהות</label><input type="text" id="ca-idNumber" inputmode="numeric"></div>
-      <div class="field full"><label>כתובת הנכס</label><input type="text" id="ca-address"></div>
+      <div class="field"><label>כתובת הנכס</label><input type="text" id="ca-address"></div>
       <div class="field">
         <label>סוג לקוח</label>
         <select id="ca-customerType"><option value="">-</option><option value="חדש">חדש</option><option value="קיים">קיים</option></select>
@@ -352,20 +352,23 @@
         <select id="ca-workType"><option value="">-</option><option value="בניה">בניה</option><option value="שיפוץ">שיפוץ</option><option value="תוספת">תוספת</option><option value="אחר">אחר</option></select>
       </div>
       <div class="field"><label>תאריך פניה</label><input type="date" id="ca-inquiryDate"></div>
-      <div class="field full source-contacts-box" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
-        <div class="source-subgrid">
-          <div class="field"><label>מקור הגעה</label>
-            <input type="text" id="ca-source" list="ca-source-list" placeholder="בחר או הזן..."><datalist id="ca-source-list">
-              <option value="אדריכל/ית"></option>
-              <option value="מפקח"></option>
-              <option value="המלצה"></option>
-              <option value="גוגל"></option>
-              <option value="פייסבוק"></option>
-              <option value="אחר"></option>
-            </datalist>
+      <div class="field full" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+        <div class="field">
+          <label>מקור הגעה</label>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="ca-source" list="ca-source-list" placeholder="בחר או הזן..." style="flex:1;">
+            <button type="button" class="ghost-btn" id="ca-sourceContactBtn" title="הוסף פרטי קשר של המפנה">📇</button>
           </div>
-          <div class="field"><label>טלפון של המפנה</label><input type="tel" id="ca-sourcePhone"></div>
-          <div class="field full"><label>מייל של המפנה</label><input type="email" id="ca-sourceEmail"></div>
+          <datalist id="ca-source-list">
+            <option value="אדריכל/ית"></option>
+            <option value="מפקח"></option>
+            <option value="המלצה"></option>
+            <option value="גוגל"></option>
+            <option value="פייסבוק"></option>
+            <option value="אחר"></option>
+          </datalist>
+          <input type="hidden" id="ca-sourcePhone">
+          <input type="hidden" id="ca-sourceEmail">
         </div>
         <label style="font-weight:bold;display:block;margin-top:14px;">אנשי קשר</label>
         <div id="ca-contacts-list" style="margin:12px 0;"></div>
@@ -1019,6 +1022,12 @@
       }
     });
     document.getElementById("ca-addContact").addEventListener("click", addContactToForm);
+    document.getElementById("ca-sourceContactBtn").addEventListener("click", function(){
+      var phoneEl = document.getElementById("ca-sourcePhone"), emailEl = document.getElementById("ca-sourceEmail");
+      openSourceContactModal(phoneEl.value, emailEl.value, function(phone, email){
+        phoneEl.value = phone; emailEl.value = email;
+      });
+    });
     function handleClientCardClick(e){
       var row = e.target.closest("[data-select-client]");
       if(!row) return;
@@ -1060,6 +1069,16 @@
       var delClient = e.target.closest("[data-del-client]");
       if(delClient){
         if(confirm("למחוק את הלקוח וכל העבודות שלו? הפעולה אינה הפיכה.")) deleteClientNew(delClient.getAttribute("data-del-client"));
+        return;
+      }
+      if(e.target.closest("#clientDetailSourceContactBtn")){
+        var scid = selectedClientId;
+        var scl = getClientNew(scid);
+        if(!scl) return;
+        openSourceContactModal(scl.sourcePhone, scl.sourceEmail, function(phone, email){
+          setClientField(scid, "sourcePhone", phone);
+          setClientField(scid, "sourceEmail", email);
+        });
         return;
       }
       if(e.target.closest("#clientDetailAddContactBtn")){
@@ -2196,6 +2215,32 @@
     });
     overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
   }
+  function openSourceContactModal(initialPhone, initialEmail, onSave){
+    var modal = document.createElement("div");
+    modal.innerHTML = '<div class="overlay" style="display:flex;align-items:center;justify-content:center;">'+
+      '<div class="modal" style="max-width:360px;">'+
+      '<h3>פרטי קשר של המפנה</h3>'+
+      '<div class="lead-form" style="grid-template-columns:1fr;">'+
+      '<div class="field"><label>טלפון</label><input type="tel" id="temp-src-phone" value="'+escapeHtml(initialPhone||"")+'"></div>'+
+      '<div class="field"><label>מייל</label><input type="email" id="temp-src-email" value="'+escapeHtml(initialEmail||"")+'"></div>'+
+      '</div>'+
+      '<div class="modal-actions">'+
+      '<button type="button" id="temp-src-cancel">ביטול</button>'+
+      '<button type="button" class="primary" id="temp-src-save">שמירה</button>'+
+      '</div>'+
+      '</div>'+
+      '</div>';
+    document.body.appendChild(modal);
+    var overlay = modal.querySelector(".overlay");
+    document.getElementById("temp-src-cancel").addEventListener("click", function(){ modal.remove(); });
+    document.getElementById("temp-src-save").addEventListener("click", function(){
+      var phone = document.getElementById("temp-src-phone").value.trim();
+      var email = document.getElementById("temp-src-email").value.trim();
+      modal.remove();
+      onSave(phone, email);
+    });
+    overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
+  }
   function openClientAddModal(){
     clientFormContacts = [];
     ["name","phone","whatsapp","email","idNumber","address","customerType","type","workType","source","sourcePhone","sourceEmail"].forEach(function(f){
@@ -3173,20 +3218,22 @@
           '<div class="field"><label>וואטסאפ</label><input type="text" data-cfield="whatsapp" value="'+escapeHtml(c.whatsapp||"")+'"></div>'+
           '<div class="field"><label>מייל</label><input type="email" data-cfield="email" value="'+escapeHtml(c.email||"")+'"></div>'+
           '<div class="field"><label>תעודת זהות</label><input type="text" data-cfield="idNumber" value="'+escapeHtml(c.idNumber||"")+'"></div>'+
-          '<div class="field full"><label>כתובת</label><input type="text" data-cfield="address" value="'+escapeHtml(c.address||"")+'"></div>'+
+          '<div class="field"><label>כתובת</label><input type="text" data-cfield="address" value="'+escapeHtml(c.address||"")+'"></div>'+
           '<div class="field"><label>סוג לקוח</label><select data-cfield="customerType">'+selectOptionsHtml(["","חדש","קיים"], c.customerType)+'</select></div>'+
           '<div class="field"><label>סוג</label><select data-cfield="type">'+selectOptionsHtml(["","פרטי","עסקי"], c.type)+'</select></div>'+
           '<div class="field"><label>סוג עבודה</label><select data-cfield="workType">'+selectOptionsHtml(["","בניה","שיפוץ","תוספת","אחר"], c.workType)+'</select></div>'+
           '<div class="field"><label>תאריך פנייה</label><input type="date" data-cfield="inquiryDate" value="'+(c.inquiryDate||"")+'"></div>'+
-          '<div class="field full source-contacts-box" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">'+
-            '<div class="source-subgrid">'+
-              '<div class="field"><label>מקור הגעה</label><select data-cfield="source">'+selectOptionsHtml(["","אדריכל/ית","מפקח","המלצה","גוגל","פייסבוק","אחר"], c.source)+'</select></div>'+
-              '<div class="field"><label>טלפון של המפנה</label><input type="tel" data-cfield="sourcePhone" value="'+escapeHtml(c.sourcePhone||"")+'"></div>'+
-              '<div class="field full"><label>מייל של המפנה</label><input type="email" data-cfield="sourceEmail" value="'+escapeHtml(c.sourceEmail||"")+'"></div>'+
+          '<div class="field full" style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">'+
+            '<div class="field">'+
+              '<label>מקור הגעה</label>'+
+              '<div style="display:flex;gap:6px;">'+
+                '<select data-cfield="source" style="flex:1;">'+selectOptionsHtml(["","אדריכל/ית","מפקח","המלצה","גוגל","פייסבוק","אחר"], c.source)+'</select>'+
+                '<button type="button" class="ghost-btn" id="clientDetailSourceContactBtn" title="הוסף פרטי קשר של המפנה">📇</button>'+
+              '</div>'+
             '</div>'+
             '<label style="font-weight:bold;display:block;margin-top:14px;">אנשי קשר</label>'+
             (c.contacts && c.contacts.length ? c.contacts.map(function(ct, idx){
-              return '<div style="background:var(--surface);padding:10px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">'+
+              return '<div style="background:var(--bg-alt);padding:10px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;">'+
                 '<div><div style="font-weight:bold;">'+escapeHtml(ct.name)+'</div>'+
                 '<div style="font-size:0.85rem;color:var(--ink-muted);">'+escapeHtml(ct.role)+' | '+escapeHtml(ct.phone)+(ct.email?' | '+escapeHtml(ct.email):'')+'</div></div>'+
                 '<button type="button" class="danger-btn" data-contact-del-existing="'+idx+'" style="padding:4px 8px;font-size:0.85rem;">🗑</button>'+

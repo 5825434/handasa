@@ -519,9 +519,6 @@ button.primary:active{transform:scale(0.97);}
 .modal.wide{max-width:620px;text-align:right;}
 .lead-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:16px;}
 .lead-form .field.full{grid-column:1/-1;}
-.source-contacts-box{background:var(--bg-alt);border-radius:var(--radius);padding:14px;}
-.source-subgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
-.source-subgrid .field.full{grid-column:1/-1;}
 .lead-form label{font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;display:block;margin-bottom:5px;}
 .lead-form input,.lead-form select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-size:0.87rem;color:var(--ink);}
 .switch-label.full{grid-column:1/-1;}
