@@ -3954,8 +3954,10 @@
     document.getElementById("temp-cat-save").addEventListener("click", function(){
       var name = nameInput.value.trim();
       if(!name){ nameInput.focus(); return; }
+      var icon = document.getElementById("temp-cat-icon").value;
+      var color = document.getElementById("temp-cat-color").value;
       modal.remove();
-      onDone({name:name, icon:document.getElementById("temp-cat-icon").value, color:document.getElementById("temp-cat-color").value});
+      onDone({name:name, icon:icon, color:color});
     });
     overlay.addEventListener("click", function(e){ if(e.target===overlay){ modal.remove(); onDone(null); } });
   }
