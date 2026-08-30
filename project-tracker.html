@@ -651,7 +651,10 @@
       "auth/invalid-email": "כתובת מייל לא תקינה.",
       "auth/too-many-requests": "יותר מדי ניסיונות. נסה/י שוב בעוד כמה דקות.",
       "auth/invalid-credential": "מייל או סיסמה שגויים.",
-      "auth/missing-password": "יש להזין סיסמה."
+      "auth/missing-password": "יש להזין סיסמה.",
+      "auth/operation-not-allowed": "התחברות עם מייל וסיסמה עדיין לא הופעלה בהגדרות המערכת - יש להפעיל את זה במסוף Firebase, תחת Authentication -> Sign-in method.",
+      "auth/expired-action-code": "הקישור לאיפוס סיסמה כבר פג תוקף או נוצל. יש לבקש קישור חדש.",
+      "auth/invalid-action-code": "הקישור לאיפוס סיסמה לא תקין או כבר נוצל. יש לבקש קישור חדש."
     };
     return map[err.code] || ("שגיאת התחברות: " + err.message);
   }
