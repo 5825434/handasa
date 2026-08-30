@@ -1693,10 +1693,6 @@
       if(e.key==="Enter"){ e.preventDefault(); submitPsAdd(); }
     });
     document.getElementById("projectStagesList").addEventListener("click", function(e){
-      var upBtn = e.target.closest("[data-ps-up]");
-      if(upBtn){ moveProjectStage(upBtn.getAttribute("data-ps-up"), -1); return; }
-      var downBtn = e.target.closest("[data-ps-down]");
-      if(downBtn){ moveProjectStage(downBtn.getAttribute("data-ps-down"), 1); return; }
       var delBtn = e.target.closest("[data-ps-del]");
       if(delBtn){
         if(confirm("למחוק את השלב הזה?")) deleteProjectStage(delBtn.getAttribute("data-ps-del"));
@@ -1722,6 +1718,51 @@
       var cb = e.target.closest("[data-ps-done]");
       if(cb) toggleProjectStageDone(cb.getAttribute("data-ps-done"), cb.checked);
     });
+    (function(){
+      var psList = document.getElementById("projectStagesList");
+      var draggedId = null;
+      psList.addEventListener("dragstart", function(e){
+        var handle = e.target.closest(".ps-drag-handle");
+        if(!handle){ e.preventDefault(); return; }
+        var row = handle.closest("[data-ps-row]");
+        draggedId = row.getAttribute("data-ps-row");
+        row.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", draggedId);
+      });
+      psList.addEventListener("dragover", function(e){
+        if(!draggedId) return;
+        var row = e.target.closest("[data-ps-row]");
+        psList.querySelectorAll(".drag-over-before,.drag-over-after").forEach(function(r){ r.classList.remove("drag-over-before","drag-over-after"); });
+        if(!row || row.getAttribute("data-ps-row")===draggedId) return;
+        e.preventDefault();
+        var rect = row.getBoundingClientRect();
+        var before = (e.clientY - rect.top) < rect.height/2;
+        row.classList.add(before ? "drag-over-before" : "drag-over-after");
+      });
+      psList.addEventListener("drop", function(e){
+        if(!draggedId) return;
+        e.preventDefault();
+        var row = e.target.closest("[data-ps-row]");
+        psList.querySelectorAll(".drag-over-before,.drag-over-after").forEach(function(r){ r.classList.remove("drag-over-before","drag-over-after"); });
+        if(row && row.getAttribute("data-ps-row")!==draggedId){
+          var targetId = row.getAttribute("data-ps-row");
+          var rect = row.getBoundingClientRect();
+          var before = (e.clientY - rect.top) < rect.height/2;
+          var arr = projectStages.filter(function(s){ return s.id!==draggedId; });
+          var draggedItem = projectStages.find(function(s){ return s.id===draggedId; });
+          var targetIdx = arr.findIndex(function(s){ return s.id===targetId; });
+          arr.splice(before ? targetIdx : targetIdx+1, 0, draggedItem);
+          saveProjectStages(arr);
+        }
+        draggedId = null;
+      });
+      psList.addEventListener("dragend", function(){
+        draggedId = null;
+        psList.querySelectorAll(".dragging").forEach(function(r){ r.classList.remove("dragging"); });
+        psList.querySelectorAll(".drag-over-before,.drag-over-after").forEach(function(r){ r.classList.remove("drag-over-before","drag-over-after"); });
+      });
+    })();
 
     /* drive upload */
     document.getElementById("driveFileInput").addEventListener("change", function(e){
@@ -2394,14 +2435,6 @@
   function toggleProjectStageDone(id, done){
     saveProjectStages(projectStages.map(function(s){ return s.id===id ? Object.assign({}, s, {done:done}) : s; }));
   }
-  function moveProjectStage(id, dir){
-    var idx = projectStages.findIndex(function(s){ return s.id===id; });
-    var swapIdx = idx+dir;
-    if(idx<0 || swapIdx<0 || swapIdx>=projectStages.length) return;
-    var arr = projectStages.slice();
-    var tmp = arr[idx]; arr[idx] = arr[swapIdx]; arr[swapIdx] = tmp;
-    saveProjectStages(arr);
-  }
   function renderProjectStagesView(){
     var wrap = document.getElementById("projectStagesList");
     if(!wrap) return;
@@ -2409,13 +2442,12 @@
       wrap.innerHTML = '<div class="empty">אין עדיין שלבים ברשימה. הוסף למטה.</div>';
     } else {
       wrap.innerHTML = projectStages.map(function(s, i){
-        return '<div class="ps-row'+(s.done?" done":"")+'">'+
+        return '<div class="ps-row'+(s.done?" done":"")+'" data-ps-row="'+s.id+'">'+
+          '<span class="ps-drag-handle" data-manager-only draggable="true" title="גרירה לשינוי סדר">⠿</span>'+
           '<span class="ps-num">'+(i+1)+'.</span>'+
           '<input type="checkbox" data-ps-done="'+s.id+'"'+(s.done?" checked":"")+'>'+
           '<span class="ps-text" data-ps-edit="'+s.id+'" tabindex="0">'+escapeHtml(s.text)+'</span>'+
           '<span class="ps-controls" data-manager-only>'+
-            '<button type="button" class="ps-btn" data-ps-up="'+s.id+'"'+(i===0?" disabled":"")+'>▲</button>'+
-            '<button type="button" class="ps-btn" data-ps-down="'+s.id+'"'+(i===projectStages.length-1?" disabled":"")+'>▼</button>'+
             '<button type="button" class="ps-btn ps-del" data-ps-del="'+s.id+'">🗑</button>'+
           '</span>'+
         '</div>';
