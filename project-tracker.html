@@ -44,13 +44,20 @@
       </div>
     </div>
     <div class="mgr-toggle">
-      <span id="userBadge" class="user-badge"></span>
-      <div id="sessionSwitcher" style="display:inline-flex;"></div>
-      <button class="ghost-btn" id="demoModeBtn" type="button">תצוגת דמו</button>
-      <button class="ghost-btn" id="shareBtn" type="button" hidden>שיתוף האתר</button>
-      <button class="ghost-btn" id="switchSiteBtn" type="button" hidden>החלפת אתר</button>
-      <button class="ghost-btn" id="setPasswordBtn" type="button">🔑 הגדרת סיסמה</button>
-      <button class="ghost-btn" id="signOutBtn" type="button">התנתקות</button>
+      <div class="user-menu" id="userMenu">
+        <button type="button" class="user-menu-trigger" id="userMenuTrigger">
+          <span id="userBadge" class="user-badge"></span>
+          <span class="user-menu-caret">▾</span>
+        </button>
+        <div class="user-menu-dropdown" id="userMenuDropdown">
+          <div id="sessionSwitcher"></div>
+          <button class="ghost-btn" id="demoModeBtn" type="button">תצוגת דמו</button>
+          <button class="ghost-btn" id="shareBtn" type="button" hidden>שיתוף האתר</button>
+          <button class="ghost-btn" id="switchSiteBtn" type="button" hidden>החלפת אתר</button>
+          <button class="ghost-btn" id="setPasswordBtn" type="button">🔑 הגדרת סיסמה</button>
+          <button class="ghost-btn" id="signOutBtn" type="button">התנתקות</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1047,6 +1054,17 @@
     });
     document.getElementById("signOutBtn").addEventListener("click", function(){ auth.signOut(); });
     document.getElementById("setPasswordBtn").addEventListener("click", openSetPasswordModal);
+    document.getElementById("userMenuTrigger").addEventListener("click", function(e){
+      e.stopPropagation();
+      document.getElementById("userMenu").classList.toggle("open");
+    });
+    document.addEventListener("click", function(e){
+      var menu = document.getElementById("userMenu");
+      if(menu.classList.contains("open") && !menu.contains(e.target)) menu.classList.remove("open");
+    });
+    document.getElementById("userMenuDropdown").addEventListener("click", function(e){
+      if(e.target.closest("button")) document.getElementById("userMenu").classList.remove("open");
+    });
     document.getElementById("sessionSwitcher").addEventListener("click", function(e){
       var btn = e.target.closest("[data-session-uid]");
       if(btn){
