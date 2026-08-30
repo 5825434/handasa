@@ -23,7 +23,10 @@ service cloud.firestore {
         (isOwner(siteId) || isSharedDoc(siteId));
     }
     match /sites/{siteId}/clients/{clientId} {
-      allow create: if request.auth != null && (isOwner(siteId) || isManagerDoc(siteId));
+      allow create: if request.auth != null && (
+        isOwner(siteId) || isManagerDoc(siteId) ||
+        (isSharedDoc(siteId) && request.auth.token.email in request.resource.data.sharedWith)
+      );
       allow delete: if request.auth != null && (isOwner(siteId) || isManagerDoc(siteId));
       allow read, update: if request.auth != null && (
         isOwner(siteId) || isManagerDoc(siteId) ||

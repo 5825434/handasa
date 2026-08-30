@@ -76,7 +76,7 @@
     </div>
     <div class="toolbar">
       <div class="toolbar-row">
-        <button type="button" class="pill-btn add-lead-btn" id="clientsNewAddBtn" data-manager-only><span>+</span> לקוח חדש</button>
+        <button type="button" class="pill-btn add-lead-btn" id="clientsNewAddBtn"><span>+</span> לקוח חדש</button>
         <div class="search-box"><input type="text" id="clientsNewSearch" placeholder="חיפוש לפי שם, טלפון או כתובת..."></div>
         <select id="clientsNewSort">
           <option value="progress">מיון: לפי התקדמות</option>
@@ -803,8 +803,12 @@
         });
       });
       document.getElementById("switchSiteBtn").hidden = false;
+      var savedSiteId = localStorage.getItem("lastSiteId_" + currentUser.uid);
+      var savedStillValid = savedSiteId && mySites.some(function(s){ return s.id===savedSiteId; });
       if(mySites.length === 1){
         selectSite(mySites[0].id);
+      } else if(savedStillValid){
+        selectSite(savedSiteId);
       } else {
         renderSiteList();
         document.getElementById("siteSwitcherOverlay").hidden = false;
@@ -835,6 +839,7 @@
   function selectSite(siteId){
     detachSiteData();
     currentSiteId = siteId;
+    if(currentUser) localStorage.setItem("lastSiteId_" + currentUser.uid, siteId);
     document.getElementById("siteSwitcherOverlay").hidden = true;
     document.getElementById("switchSiteBtn").hidden = false;
     document.getElementById("appShell").hidden = false;
@@ -2657,6 +2662,11 @@
   function saveClientAddForm(){
     var name = document.getElementById("ca-name").value.trim();
     if(!name){ document.getElementById("ca-name").focus(); return; }
+    var sharedWith = clientFormSharedWith.slice();
+    if(currentUser && currentUser.email){
+      var myEmail = currentUser.email.trim().toLowerCase();
+      if(sharedWith.indexOf(myEmail)===-1) sharedWith.push(myEmail);
+    }
     addClientNew({
       name:name,
       phone:document.getElementById("ca-phone").value,
@@ -2672,7 +2682,7 @@
       sourceEmail:document.getElementById("ca-sourceEmail").value,
       inquiryDate:document.getElementById("ca-inquiryDate").value,
       contacts:clientFormContacts,
-      sharedWith:clientFormSharedWith
+      sharedWith:sharedWith
     });
     closeClientAddModal();
     renderClientsNewList();
