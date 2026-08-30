@@ -49,6 +49,7 @@
       <button class="ghost-btn" id="demoModeBtn" type="button">תצוגת דמו</button>
       <button class="ghost-btn" id="shareBtn" type="button" hidden>שיתוף האתר</button>
       <button class="ghost-btn" id="switchSiteBtn" type="button" hidden>החלפת אתר</button>
+      <button class="ghost-btn" id="setPasswordBtn" type="button">🔑 הגדרת סיסמה</button>
       <button class="ghost-btn" id="signOutBtn" type="button">התנתקות</button>
     </div>
   </div>
@@ -1007,6 +1008,7 @@
       });
     });
     document.getElementById("signOutBtn").addEventListener("click", function(){ auth.signOut(); });
+    document.getElementById("setPasswordBtn").addEventListener("click", openSetPasswordModal);
     document.getElementById("sessionSwitcher").addEventListener("click", function(e){
       var btn = e.target.closest("[data-session-uid]");
       if(btn){
@@ -2392,6 +2394,51 @@
       modal.remove();
     });
     overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
+  }
+  function openSetPasswordModal(){
+    var hasPassword = currentUser.providerData.some(function(p){ return p.providerId==="password"; });
+    var modal = document.createElement("div");
+    modal.innerHTML = '<div class="overlay" style="display:flex;align-items:center;justify-content:center;">'+
+      '<div class="modal" style="max-width:380px;">'+
+      '<h3>הגדרת סיסמה לחשבון</h3>'+
+      '<p style="font-size:0.82rem;color:var(--ink-soft);">'+
+        (hasPassword ? 'עדכון הסיסמה שלך.' : 'אחרי הגדרה, תוכל/י להתחבר גם עם המייל '+escapeHtml(currentUser.email||"")+' והסיסמה הזאת - לא רק עם Google. שימושי במחשב שלא שלך.')+
+      '</p>'+
+      '<div class="lead-form" style="grid-template-columns:1fr;">'+
+      '<div class="field"><label>סיסמה חדשה</label><input type="password" id="setpw-1"></div>'+
+      '<div class="field"><label>אימות סיסמה</label><input type="password" id="setpw-2"></div>'+
+      '</div>'+
+      '<div class="err" id="setpwErr" style="color:var(--pay-unpaid);font-size:0.8rem;min-height:1.2em;"></div>'+
+      '<div class="modal-actions">'+
+      '<button type="button" id="setpwCancel">ביטול</button>'+
+      '<button type="button" class="primary" id="setpwSave">שמירה</button>'+
+      '</div>'+
+      '</div>'+
+      '</div>';
+    document.body.appendChild(modal);
+    var overlay = modal.querySelector(".overlay");
+    document.getElementById("setpwCancel").addEventListener("click", function(){ modal.remove(); });
+    overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
+    document.getElementById("setpwSave").addEventListener("click", function(){
+      var p1 = document.getElementById("setpw-1").value;
+      var p2 = document.getElementById("setpw-2").value;
+      var errEl = document.getElementById("setpwErr");
+      errEl.textContent = "";
+      if(p1.length<6){ errEl.textContent = "הסיסמה חייבת להיות באורך 6 תווים לפחות."; return; }
+      if(p1!==p2){ errEl.textContent = "הסיסמאות לא תואמות."; return; }
+      var task = hasPassword ? currentUser.updatePassword(p1) :
+        currentUser.linkWithCredential(firebase.auth.EmailAuthProvider.credential(currentUser.email, p1));
+      task.then(function(){
+        modal.remove();
+        alert("הסיסמה נשמרה. מעכשיו אפשר להתחבר גם עם המייל "+currentUser.email+" והסיסמה הזאת, מכל מחשב.");
+      }).catch(function(err){
+        if(err.code==="auth/requires-recent-login"){
+          errEl.textContent = "מטעמי אבטחה צריך להתחבר מחדש לפני שינוי סיסמה. יש להתנתק, להתחבר שוב עם Google, ולנסות שוב.";
+        } else {
+          errEl.textContent = authErrorHebrew(err);
+        }
+      });
+    });
   }
   function openClientShareModal(client){
     var employees = teamMembers.filter(function(m){ return !m.isOwner && m.role!=="manager"; });
