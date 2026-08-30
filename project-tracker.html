@@ -175,7 +175,16 @@
         </div>
       </div>
     </div>
-    <div id="tasksList"></div>
+    <div class="tasks-split">
+      <div class="tasks-col">
+        <h4 class="tasks-col-hd">משימות עבודה</h4>
+        <div id="tasksList"></div>
+      </div>
+      <div class="tasks-col">
+        <h4 class="tasks-col-hd">משימות לקוח</h4>
+        <div id="clientTasksList"></div>
+      </div>
+    </div>
     <div id="ptaskCalendarWrap" hidden>
       <div id="ptaskCalOverlay"></div>
       <div id="ptaskCalFloating">
@@ -1537,15 +1546,17 @@
         openTaskModal(taskId);
         return;
       }
-      var taskDoneCheckbox = e.target.closest("[data-task-done]");
-      if(taskDoneCheckbox){
-        e.stopPropagation();
-        var taskId = taskDoneCheckbox.getAttribute("data-task-done");
-        updateTaskField(taskId, "done", taskDoneCheckbox.checked);
+      var openClientTask = e.target.closest("[data-open-client-task]");
+      if(openClientTask){
+        openTaskModal(openClientTask.getAttribute("data-open-client-task"));
         return;
       }
-      if(e.target.closest("#addClientTaskBtn")){
-        showTaskModal(null, selectedClientId);
+      var ctAddBtn = e.target.closest("[data-ct-add]");
+      if(ctAddBtn){
+        var ctJobId = ctAddBtn.getAttribute("data-ct-add");
+        var titleInput = document.querySelector('[data-ct-title="'+ctJobId+'"]');
+        var noteInput = document.querySelector('[data-ct-note="'+ctJobId+'"]');
+        addClientTaskQuick(ctJobId, selectedClientId, titleInput?titleInput.value:"", noteInput?noteInput.value:"");
         return;
       }
       var notesToggle = e.target.closest("[data-t-notes-toggle]");
@@ -1570,9 +1581,9 @@
         renderClientsNewDetail();
         return;
       }
-      var svcBox = e.target.closest("[data-svc-item]");
-      if(svcBox){
-        setServiceItem(svcBox.getAttribute("data-proj"), svcBox.getAttribute("data-key"), svcBox.checked);
+      var ctDoneBox = e.target.closest("[data-client-task-done]");
+      if(ctDoneBox){
+        setPersonalTaskField(ctDoneBox.getAttribute("data-client-task-done"), "done", ctDoneBox.checked);
         renderClientsNewDetail();
         return;
       }
@@ -1927,6 +1938,15 @@
     document.getElementById("tasksList").addEventListener("click", handleTaskCardClick);
     document.getElementById("ptaskCalDayList").addEventListener("click", handleTaskCardClick);
 
+    document.getElementById("clientTasksList").addEventListener("click", function(e){
+      var openEl = e.target.closest("[data-open-client-task]");
+      if(openEl){ openTaskModal(openEl.getAttribute("data-open-client-task")); }
+    });
+    document.getElementById("clientTasksList").addEventListener("change", function(e){
+      var doneBox = e.target.closest("[data-client-task-done]");
+      if(doneBox){ setPersonalTaskField(doneBox.getAttribute("data-client-task-done"), "done", doneBox.checked); renderClientTasksPanel(); }
+    });
+
     /* task modal */
     document.getElementById("ptaskModalClose").addEventListener("click", closeTaskModal);
     document.getElementById("ptaskModalCancel").addEventListener("click", closeTaskModal);
@@ -2233,95 +2253,54 @@
 
 
 
-  /* ---------- service & supply ---------- */
-  var SERVICE_SECTIONS = [
-    {id:"site", icon:"📍", title:"בדיקת שטח", masterLabel:"בדיקת שטח בוצעה",
-      items:[
-        {id:"demolitions", label:"הריסות קודמות", desc:"לבדוק אם בוצעו כבר הריסות (למעלה או למטה)"},
-        {id:"loads", label:"עומסים", desc:"לבדוק אם עמוד עומד מעל עמוד וקיר מעל קיר"},
-        {id:"walls", label:"קירות", desc:"לבדוק אם הקירות להריסה/שינוי הם עם ברזל או בלי ברזל"},
-        {group:"תוכניות"},
-        {id:"plan-handwritten", label:"כתב יד"},
-        {id:"plan-architect", label:"אדריכלי"},
-        {id:"construction-type", label:"קונסטרוקציה"}
-      ]},
-    {id:"contractor", icon:"💬", title:"תקשורת עם הקבלן", masterLabel:"תקשורת עם הקבלן בוצעה",
-      items:[
-        {id:"approvals", label:"אישורים", desc:"לוודא שהוא יודע מתי נדרש אישור מהנדס ותיעוד (תמונות)"},
-        {id:"demolitions", label:"הריסות/שבירות", desc:"לוודא שהוא יודע מה צריך לשבור ומתי"},
-        {group:"הבנה ותוכניות"},
-        {id:"understand-plan", label:"הבנת התוכנית", desc:"לבדוק שהקבלן מבין את התוכנית ויש לו גרסה מודפסת עדכנית בשטח"},
-        {id:"equipment", label:"ציוד", desc:"לבדוק אם יש כל הציוד הדרוש בשטח"},
-        {group:"לוגיסטיקה וגישה"},
-        {id:"access", label:"נגישות שטח", desc:"לשאול מה זמין בשטח ומה עדיין לא"},
-        {id:"niche", label:"נישה", desc:"לוודא שיש גישה נורמלית לעבודה (סולם, פינויים)"},
-        {group:"ניהול צוות"},
-        {id:"whatsapp-group", label:"קבוצת תקשורת", desc:"לפתוח קבוצת תקשורת (וואטסאפ) הכוללת את הקבלן, המהנדס, המפקח וההדפסה"}
-      ]},
-    {id:"construction", icon:"🏗️", title:"בתהליך בניה", masterLabel:"תהליך בניה פעיל",
-      items:[
-        {id:"pour-call", label:"קריאה ליציקה בוצעה", desc:"בדיקת תוכנית ליציקה", icon:"📞"},
-        {group:"בדיקת גודל"},
-        {id:"height", label:"גובה", desc:"לבדוק גובה הברזל (עליון ותחתון)"},
-        {id:"depth", label:"סיטוט", desc:"לבדוק את עומק הברזל הראשי בתוך הקיר/קורה"},
-        {id:"beams-walls", label:"קורות וקירות", desc:"לבדוק ברזל קורות וברזל קירות, כולל ברזל צמוד לדפנות"},
-        {group:"קוצים (Dowels)"},
-        {id:"dowels", label:"קוצים", desc:"לבדוק עומק החורים, כמות הקוצים וסוגם"},
-        {group:"השוואה לתוכנית"},
-        {id:"plan-compare", label:"השוואה לתוכנית"},
-        {id:"questions-call", label:"קריאה לשאלות בוצעה", icon:"🟣"},
-        {id:"guidance-call", label:"קריאה להדרכה בוצעה", icon:"🟢"},
-        {id:"legs-stirrups", label:"רגליים/חישוקים", desc:"לוודא כמות ומרחק נכונים בין חישוקים"},
-        {id:"main-extra-rebar", label:"ברזל ראשי ונוסף", desc:"לבדוק שברזל ראשי ומרחקים נכונים, עליון ותחתון"}
-      ]}
-  ];
-
-  var serviceState = {};
-
-  function serviceStateCol(){ return db.collection("sites").doc(currentSiteId).collection("serviceState"); }
-  function attachServiceListener(){
-    var unsub = serviceStateCol().onSnapshot(function(snap){
-      serviceState = {};
-      snap.forEach(function(d){ serviceState[d.id] = d.data(); });
+  /* ---------- client tasks (service & supply log) ---------- */
+  function clientTasksForJob(jobId){
+    return personalTasks.filter(function(t){ return t.taskCategory==="client" && t.jobId===jobId && !t.archived; });
+  }
+  function addClientTaskQuick(jobId, clientId, title, note){
+    title = (title||"").trim();
+    if(!title || !jobId) return;
+    personalTasksCol().add({
+      ownerUid: currentUser.uid, ownerName: (currentUser.displayName||currentUser.email||""),
+      type:"task", title:title, description:(note||"").trim(),
+      dueDate:"", dueTime:"", quadrant:"n", difficulty:"", categoryId:"",
+      clientId: clientId||"", jobId: jobId, done:false, shared:true, subtasks:[], recurrence:"none",
+      estMin:0, reminder:"none", assignedTo:"", tags:"", priority:0,
+      taskCategory:"client", sharedWith:null,
+      timer:{elapsedSec:0, running:false, runStartedAt:null},
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    siteUnsubscribers.push(unsub);
   }
-  function isServiceChecked(pid, key){
-    return !!(serviceState[pid] && serviceState[pid][key]);
+  function clientTaskRowHtml(t){
+    return '<div class="svc-item'+(t.done?" done":"")+'">'+
+      '<input type="checkbox" data-client-task-done="'+t.id+'"'+(t.done?" checked":"")+'>'+
+      '<div style="flex:1;cursor:pointer;" data-open-client-task="'+t.id+'">'+
+        '<div class="lbl">'+escapeHtml(t.title||"משימה")+'</div>'+
+        (t.description?'<div class="desc">'+escapeHtml(t.description)+'</div>':'')+
+      '</div></div>';
   }
-  function setServiceItem(pid, key, val){
-    if(!serviceState[pid]) serviceState[pid] = {};
-    serviceState[pid][key] = val;
-    var update = {};
-    update[key] = val;
-    serviceStateCol().doc(pid).set(update, {merge:true});
-  }
-
-  function serviceSectionHtml(pid, section){
-    var masterKey = section.id+"__master";
-    var masterChecked = isServiceChecked(pid, masterKey);
-    var rows = "";
-    section.items.forEach(function(it){
-      if(it.group){
-        rows += '<div class="svc-group-lbl">'+escapeHtml(it.group)+'</div>';
-        return;
-      }
-      var key = section.id+"__"+it.id;
-      var checked = isServiceChecked(pid, key);
-      rows += '<div class="svc-item'+(checked?" done":"")+'">'+
-        '<input type="checkbox" data-svc-item data-proj="'+pid+'" data-key="'+key+'"'+(checked?" checked":"")+'>'+
-        '<div><div class="lbl">'+(it.icon?it.icon+" ":"")+escapeHtml(it.label)+'</div>'+
-        (it.desc?'<div class="desc">'+escapeHtml(it.desc)+'</div>':'')+
-        '</div></div>';
-    });
-    return '<div class="svc-section">'+
-      '<div class="svc-section-hd">'+section.icon+' '+section.title+'</div>'+
-      '<label class="svc-master">'+
-        '<input type="checkbox" data-svc-item data-proj="'+pid+'" data-key="'+masterKey+'"'+(masterChecked?" checked":"")+'> '+
-        escapeHtml(section.masterLabel)+
-      '</label>'+
-      rows+
+  function clientTaskListHtml(jobId){
+    var list = clientTasksForJob(jobId);
+    var rows = list.length ? list.map(clientTaskRowHtml).join("")
+      : '<div class="empty" style="padding:10px 0;">אין עדיין משימות לקוח בעבודה זו.</div>';
+    var addForm = '<div class="ct-add-row">'+
+      '<input type="text" data-ct-title="'+jobId+'" placeholder="פעולה (למשל: בדיקת שטח)">'+
+      '<input type="text" data-ct-note="'+jobId+'" placeholder="סיבה / הערה (אופציונלי)">'+
+      '<button type="button" class="ghost-btn" data-ct-add="'+jobId+'">+ הוספה</button>'+
     '</div>';
+    return '<div class="svc-section"><div class="svc-section-hd">📋 משימות לקוח</div>'+rows+addForm+'</div>';
+  }
+  function clientTaskLogHtml(jobId){
+    var list = clientTasksForJob(jobId);
+    if(!list.length) return "";
+    var rows = list.map(function(t){
+      return '<div class="svc-item'+(t.done?" done":"")+'">'+
+        '<span style="width:16px;flex:none;">'+(t.done?"✓":"○")+'</span>'+
+        '<div><div class="lbl">'+escapeHtml(t.title||"משימה")+'</div>'+
+        (t.description?'<div class="desc">'+escapeHtml(t.description)+'</div>':'')+
+        '</div></div>';
+    }).join("");
+    return '<div class="neg-section"><h4>יומן שירות ללקוח (לצורך תמחור)</h4>'+rows+'</div>';
   }
 
 
@@ -3099,6 +3078,7 @@
           '<textarea data-negfield="notes" placeholder="רשמו כאן הערות על משא ומתן, שיחות, תנאים שונים, וכו..." style="width:100%;">'+escapeHtml(neg.notes||"")+'</textarea>'+
         '</div>'+
       '</div>'+
+      clientTaskLogHtml(job.id)+
       clientTimeSummaryHtml()+
       proposalsArchiveHtml(job)+
     '</div>';
@@ -3106,27 +3086,20 @@
   function jobTasksTabHtml(job){
     var editMode = editingBoardId===job.id;
     var stages = STAGE_META.map(function(sm){ return stageGroupHtml(job.id, sm, editMode); }).join("");
-    var clientTasks = personalTasks.filter(function(t){ return t.clientId === selectedClientId; });
     var timeSummaryHtml = clientTimeSummaryHtml();
-    var tasksHtml = clientTasks.length ? '<div style="margin-top:12px;padding:15px;background:#f9f9f9;border-radius:8px;">'+
-      '<h4 style="margin-top:0;">משימות קשורות ללקוח זה:</h4>'+
-      clientTasks.map(function(t){
-        var tEl = ptaskLiveElapsed(t.timer);
-        return '<div style="padding:10px;margin-bottom:8px;background:white;border-left:3px solid #1f4e79;border-radius:4px;cursor:pointer;" data-open-task="'+t.id+'">'+
-          '<div style="display:flex;gap:10px;align-items:center;">'+
-            '<input type="checkbox" '+(t.done?"checked":"")+' data-task-done="'+t.id+'" style="width:18px;height:18px;" onclick="event.stopPropagation();">'+
-            '<span style="flex:1;'+(t.done?'text-decoration:line-through;color:#999;':'')+'">'+escapeHtml(t.title||"משימה")+'</span>'+
-            (tEl>0?'<small style="color:#1f4e79;font-weight:bold;">⏱ '+fmtTaskTime(tEl)+'</small>':'')+
-            '<small style="color:#666;">'+(t.dueDate?('עד '+t.dueDate):'')+'</small>'+
-          '</div>'+
-        '</div>';
-      }).join('')+
-    '</div>' : '';
-    return '<div class="row-actions"><button type="button" class="task-edit-btn'+(editMode?" on":"")+'" data-task-edit="'+job.id+'">'+(editMode?"סיום עריכה":"עריכה")+'</button>'+
-      '<button type="button" class="ghost-btn" id="addClientTaskBtn" style="margin-right:8px;">➕ הוסף משימה לקוח</button></div>'+stages+timeSummaryHtml+tasksHtml;
+    var workCol = '<div class="tasks-col">'+
+      '<h4 class="tasks-col-hd">משימות עבודה</h4>'+
+      '<div class="row-actions"><button type="button" class="task-edit-btn'+(editMode?" on":"")+'" data-task-edit="'+job.id+'">'+(editMode?"סיום עריכה":"עריכה")+'</button></div>'+
+      stages+timeSummaryHtml+
+    '</div>';
+    var clientCol = '<div class="tasks-col">'+
+      '<h4 class="tasks-col-hd">משימות לקוח</h4>'+
+      clientTaskListHtml(job.id)+
+    '</div>';
+    return '<div class="tasks-split">'+workCol+clientCol+'</div>';
   }
   function jobServiceTabHtml(job){
-    return SERVICE_SECTIONS.map(function(s){ return serviceSectionHtml(job.id, s); }).join("");
+    return clientTaskListHtml(job.id);
   }
   function jobProjectStagesTabHtml(job){
     if(!projectStages.length){
@@ -4273,16 +4246,20 @@
     sharedTasks.forEach(function(t){ if(!byId[t.id]) byId[t.id]=t; });
     personalTasks = Object.keys(byId).map(function(k){ return byId[k]; });
   }
+  function onPersonalTasksChanged(){
+    if(currentView==="tasks" && !isFocusedWithin("tasksList")) refreshTasksUI();
+    if(currentView==="clientsNew") renderClientsNewDetail();
+  }
   function attachPersonalTasksListener(){
     var unsub1 = personalTasksCol().where("ownerUid","==",currentUser.uid).onSnapshot(function(snap){
       myTasks = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
       mergePersonalTasks();
-      if(currentView==="tasks" && !isFocusedWithin("tasksList")) refreshTasksUI();
+      onPersonalTasksChanged();
     }, function(err){});
     var unsub2 = personalTasksCol().where("shared","==",true).onSnapshot(function(snap){
       sharedTasks = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
       mergePersonalTasks();
-      if(currentView==="tasks" && !isFocusedWithin("tasksList")) refreshTasksUI();
+      onPersonalTasksChanged();
     }, function(err){});
     siteUnsubscribers.push(unsub1, unsub2);
   }
@@ -4675,6 +4652,7 @@
   function filterPersonalTasks(){
     var q=(taskFilters.search||"").trim().toLowerCase();
     return personalTasks.filter(function(t){
+      if(t.taskCategory==="client") return false;
       if(taskFilters.bucket==="shared"){ if(!t.shared && t.ownerUid!==currentUser.uid) return false; }
       else if(taskFilters.bucket==="ideas"){ if(t.type!=="idea") return false; }
       else {
@@ -4925,15 +4903,16 @@
     var wrap=document.getElementById("ptaskStats");
     if(!wrap) return;
     var today=todayStr();
-    var active=personalTasks.filter(function(t){ return t.type!=="idea" && !t.done; });
+    var workTasks=personalTasks.filter(function(t){ return t.taskCategory!=="client"; });
+    var active=workTasks.filter(function(t){ return t.type!=="idea" && !t.done; });
     var todayC=active.filter(function(t){ return t.dueDate===today; }).length;
     var overdueC=active.filter(function(t){ return t.dueDate && t.dueDate<today; }).length;
     var urgentC=active.filter(function(t){ return t.quadrant==="uq" || t.quadrant==="q"; }).length;
-    var ideasC=personalTasks.filter(function(t){ return t.type==="idea"; }).length;
-    var allTasks=personalTasks.filter(function(t){ return t.type!=="idea"; });
+    var ideasC=workTasks.filter(function(t){ return t.type==="idea"; }).length;
+    var allTasks=workTasks.filter(function(t){ return t.type!=="idea"; });
     var completedC=allTasks.filter(function(t){ return t.done; }).length;
     var completionPct=allTasks.length>0?Math.round((completedC/allTasks.length)*100):0;
-    var completedTodayC=personalTasks.filter(function(t){ return t.type!=="idea" && t.done && t.dueDate===today; }).length;
+    var completedTodayC=workTasks.filter(function(t){ return t.type!=="idea" && t.done && t.dueDate===today; }).length;
     var cards=[
       {n:todayC, l:"להיום", cls:""},
       {n:overdueC, l:"באיחור", cls:overdueC?" money":""},
@@ -5062,7 +5041,40 @@
   function refreshTasksUI(){
     renderTaskStats();
     renderTasksView();
+    renderClientTasksPanel();
     if(taskCalendarOpen) renderTaskCalendar();
+  }
+  function renderClientTasksPanel(){
+    var container = document.getElementById("clientTasksList");
+    if(!container) return;
+    var list = personalTasks.filter(function(t){ return t.taskCategory==="client" && !t.archived; });
+    if(!list.length){ container.innerHTML = '<div class="empty">אין עדיין משימות לקוח.</div>'; return; }
+    var byClient = {};
+    list.forEach(function(t){
+      var cid = t.clientId || "none";
+      if(!byClient[cid]) byClient[cid] = [];
+      byClient[cid].push(t);
+    });
+    container.innerHTML = Object.keys(byClient).map(function(cid){
+      var c = getClientNew(cid);
+      var clientName = c ? (c.name||"לקוח") : "ללא לקוח";
+      var tasksForClient = byClient[cid];
+      var byJob = {};
+      tasksForClient.forEach(function(t){
+        var jid = t.jobId || "none";
+        if(!byJob[jid]) byJob[jid] = [];
+        byJob[jid].push(t);
+      });
+      var jobsHtml = Object.keys(byJob).map(function(jid){
+        var job = c && (c.jobs||[]).find(function(j){ return j.id===jid; });
+        var rows = byJob[jid].map(clientTaskRowHtml).join("");
+        return '<div class="svc-section">'+
+          (job?'<div class="svc-section-hd">'+escapeHtml(job.title||"עבודה")+'</div>':'')+
+          rows+
+        '</div>';
+      }).join("");
+      return '<div class="group-hd"><span class="t">'+escapeHtml(clientName)+'</span><span class="c">'+tasksForClient.length+'</span></div>'+jobsHtml;
+    }).join("");
   }
   function goToClientFromTask(clientId){
     if(!getClientNew(clientId)) return;
@@ -5084,6 +5096,7 @@
     renderTaskStats();
     closeTaskCalendar();
     renderTasksView();
+    renderClientTasksPanel();
   }
   setInterval(function(){
     checkTaskReminders();
@@ -5102,7 +5115,6 @@
     attachProjectsListener();
     attachLeadsListener();
     attachTasksListener();
-    attachServiceListener();
     attachCatalogListener();
     attachProjectStagesListener();
     attachProjectStageStateListener();

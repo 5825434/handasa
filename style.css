@@ -650,6 +650,13 @@ button.primary:active{transform:scale(0.97);}
 .svc-item .lbl{font-size:0.86rem;font-weight:600;}
 .svc-item.done .lbl{color:var(--ink-faint);text-decoration:line-through;font-weight:400;}
 .svc-item .desc{font-size:0.78rem;color:var(--ink-soft);margin-top:2px;}
+.ct-add-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);}
+.ct-add-row input{flex:1;min-width:140px;}
+
+/* work tasks / client tasks split */
+.tasks-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+@media (max-width:900px){ .tasks-split{grid-template-columns:1fr;} }
+.tasks-col-hd{font-size:0.95rem;font-weight:700;margin:0 0 10px;color:var(--ink);}
 
 /* clients */
 .client-proj-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:20px;}
