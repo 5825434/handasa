@@ -289,16 +289,26 @@
       <path d="M14 32 H26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
     </svg>
     <h2>ניהול פרויקטים</h2>
-    <p>התחבר עם Google כדי להמשיך. ההתחברות הראשונה יוצרת עבורך אתר משלך.</p>
-    <button type="button" class="primary" id="googleSignInBtn" style="width:100%;padding:11px;margin-top:8px;">התחברות עם Google</button>
-    <div style="display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--ink-faint);font-size:0.8rem;">
-      <div style="flex:1;border-top:1px solid var(--border);"></div>או<div style="flex:1;border-top:1px solid var(--border);"></div>
+    <p>התחבר כדי להמשיך. ההתחברות הראשונה יוצרת עבורך אתר משלך.</p>
+
+    <div id="loginMethodPicker">
+      <button type="button" id="googleSignInBtn" class="login-pill login-pill-outline">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.88 2.69-6.64z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.17l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.58-5.05-3.71H.96v2.34C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.95 10.71c-.18-.54-.29-1.11-.29-1.71s.11-1.17.29-1.71V4.95H.96C.35 6.17 0 7.55 0 9s.35 2.83.96 4.05l2.99-2.34z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.95l2.99 2.34C4.66 5.16 6.65 3.58 9 3.58z"/></svg>
+        <span>המשך עם Google</span>
+      </button>
+      <div class="login-divider"><span>או</span></div>
+      <button type="button" id="showEmailFormBtn" class="login-pill login-pill-dark">המשך עם הדוא"ל</button>
+      <div class="login-signup-hint">משתמש חדש? <button type="button" id="showSignUpBtn">הרשמה</button></div>
     </div>
-    <div class="field" style="text-align:right;margin-bottom:8px;"><label>מייל</label><input type="email" id="emailLoginEmail"></div>
-    <div class="field" style="text-align:right;margin-bottom:4px;"><label>סיסמה</label><input type="password" id="emailLoginPassword"></div>
-    <div style="text-align:left;margin-bottom:10px;"><button type="button" id="forgotPasswordBtn" style="padding:2px 4px;font-size:0.76rem;border:none;background:transparent;color:var(--accent);text-decoration:underline;">שכחת סיסמה?</button></div>
-    <button type="button" class="pill-btn" id="emailSignInBtn" style="width:100%;padding:10px;">התחברות עם מייל וסיסמה</button>
-    <button type="button" class="ghost-btn" id="emailSignUpBtn" style="width:100%;padding:10px;margin-top:8px;">הרשמה עם מייל חדש</button>
+
+    <div id="loginEmailForm" hidden>
+      <div class="field" style="text-align:right;margin-bottom:8px;"><label>מייל</label><input type="email" id="emailLoginEmail"></div>
+      <div class="field" style="text-align:right;margin-bottom:4px;"><label>סיסמה</label><input type="password" id="emailLoginPassword"></div>
+      <div style="text-align:left;margin-bottom:10px;"><button type="button" id="forgotPasswordBtn" style="padding:2px 4px;font-size:0.76rem;border:none;background:transparent;color:var(--accent);text-decoration:underline;">שכחת סיסמה?</button></div>
+      <button type="button" class="login-pill login-pill-dark" id="emailSubmitBtn">התחברות</button>
+      <button type="button" id="backToMethodsBtn" style="width:100%;padding:8px;margin-top:10px;border:none;background:transparent;color:var(--ink-soft);font-size:0.82rem;text-decoration:underline;">חזרה</button>
+    </div>
+
     <div class="err" id="loginErr"></div>
     <div class="err" id="loginMsg" style="color:var(--pay-paid);"></div>
   </div>
@@ -976,23 +986,32 @@
         document.getElementById("loginErr").textContent = "שגיאת התחברות: " + err.message;
       });
     });
-    document.getElementById("emailSignInBtn").addEventListener("click", function(){
+    var emailFormMode = "signin";
+    function showLoginMethodPicker(){
+      document.getElementById("loginMethodPicker").hidden = false;
+      document.getElementById("loginEmailForm").hidden = true;
+      document.getElementById("loginErr").textContent = "";
+      document.getElementById("loginMsg").textContent = "";
+    }
+    function showLoginEmailForm(mode){
+      emailFormMode = mode;
+      document.getElementById("loginMethodPicker").hidden = true;
+      document.getElementById("loginEmailForm").hidden = false;
+      document.getElementById("emailSubmitBtn").textContent = mode==="signup" ? "הרשמה" : "התחברות";
+      document.getElementById("loginErr").textContent = "";
+      document.getElementById("loginMsg").textContent = "";
+    }
+    document.getElementById("showEmailFormBtn").addEventListener("click", function(){ showLoginEmailForm("signin"); });
+    document.getElementById("showSignUpBtn").addEventListener("click", function(){ showLoginEmailForm("signup"); });
+    document.getElementById("backToMethodsBtn").addEventListener("click", showLoginMethodPicker);
+    document.getElementById("emailSubmitBtn").addEventListener("click", function(){
       var email = document.getElementById("emailLoginEmail").value.trim();
       var password = document.getElementById("emailLoginPassword").value;
       document.getElementById("loginErr").textContent = "";
       document.getElementById("loginMsg").textContent = "";
       if(!email || !password){ document.getElementById("loginErr").textContent = "יש להזין מייל וסיסמה."; return; }
-      auth.signInWithEmailAndPassword(email, password).catch(function(err){
-        document.getElementById("loginErr").textContent = authErrorHebrew(err);
-      });
-    });
-    document.getElementById("emailSignUpBtn").addEventListener("click", function(){
-      var email = document.getElementById("emailLoginEmail").value.trim();
-      var password = document.getElementById("emailLoginPassword").value;
-      document.getElementById("loginErr").textContent = "";
-      document.getElementById("loginMsg").textContent = "";
-      if(!email || !password){ document.getElementById("loginErr").textContent = "יש להזין מייל וסיסמה."; return; }
-      auth.createUserWithEmailAndPassword(email, password).catch(function(err){
+      var task = emailFormMode==="signup" ? auth.createUserWithEmailAndPassword(email, password) : auth.signInWithEmailAndPassword(email, password);
+      task.catch(function(err){
         document.getElementById("loginErr").textContent = authErrorHebrew(err);
       });
     });

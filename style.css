@@ -414,6 +414,17 @@ h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;text-wrap:balance;ma
 .dl-dropdown-item{padding:8px 12px;font-size:0.87rem;cursor:pointer;color:var(--ink);}
 .dl-dropdown-item:hover{background:var(--accent-soft);}
 
+.login-pill{width:100%;padding:12px 16px;border-radius:999px;font-size:0.92rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;transition:filter .15s ease, transform .1s ease;}
+.login-pill:active{transform:scale(0.98);}
+.login-pill-outline{background:var(--surface);border:1px solid var(--border);color:var(--ink);}
+.login-pill-outline:hover{background:var(--surface-2);}
+.login-pill-dark{background:var(--ink);color:var(--surface);border:none;}
+.login-pill-dark:hover{filter:brightness(1.15);}
+.login-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--ink-faint);font-size:0.78rem;}
+.login-divider::before,.login-divider::after{content:"";flex:1;border-top:1px solid var(--border);}
+.login-signup-hint{margin-top:16px;font-size:0.84rem;color:var(--ink-soft);}
+.login-signup-hint button{background:transparent;border:none;color:var(--accent);text-decoration:underline;font-size:0.84rem;padding:0;}
+
 .qpicker{display:flex;flex-wrap:wrap;gap:7px;}
 
 .steps{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
