@@ -441,6 +441,25 @@ h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;text-wrap:balance;ma
 .user-menu-dropdown .ghost-btn:hover{background:var(--surface-2);}
 .user-menu-dropdown #sessionSwitcher{display:flex;flex-direction:column;}
 
+.ps-list{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
+.ps-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
+.ps-row.done{opacity:0.6;}
+.ps-row.done .ps-text{text-decoration:line-through;}
+.ps-num{font-weight:700;color:var(--ink-faint);font-variant-numeric:tabular-nums;flex:none;min-width:1.6em;}
+.ps-row input[type="checkbox"]{width:18px;height:18px;flex:none;accent-color:var(--accent);}
+.ps-text{flex:1;font-size:0.92rem;color:var(--ink);cursor:default;padding:2px 4px;border-radius:5px;}
+.ps-controls[data-manager-only] .ps-text,
+.ps-text[tabindex]{cursor:text;}
+.ps-text:hover{background:var(--surface-2);}
+.ps-edit-input{width:100%;padding:4px 6px;border:1px solid var(--accent);border-radius:5px;font-size:0.92rem;background:var(--surface);color:var(--ink);}
+.ps-controls{display:flex;gap:4px;flex:none;}
+.ps-btn{padding:4px 8px;font-size:0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--surface-2);color:var(--ink-soft);}
+.ps-btn:hover{border-color:var(--accent);color:var(--ink);}
+.ps-btn:disabled{opacity:0.35;cursor:default;}
+.ps-btn.ps-del{color:var(--pay-unpaid);}
+.ps-add-row{display:flex;gap:8px;}
+.ps-add-row input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:0.9rem;box-shadow:var(--shadow);}
+
 .client-share-modal .modal-hint{font-size:0.82rem;color:var(--ink-soft);margin:0 0 14px;}
 .share-emp-list{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
 .share-emp-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--border);border-radius:9px;cursor:pointer;transition:border-color .12s ease, background .12s ease;}

@@ -27,6 +27,7 @@
       <button type="button" class="vs-btn" data-view="tasks">משימות</button>
       <button type="button" class="vs-btn" data-view="notifications">🔔 התראות</button>
       <button type="button" class="vs-btn" data-view="priceCatalog" data-manager-only>מחירון</button>
+      <button type="button" class="vs-btn" data-view="projectStages">שלבי פרויקט</button>
       <button type="button" class="vs-btn" data-view="workHours">שעות עבודה</button>
     </nav>
   </aside>
@@ -229,6 +230,20 @@
       </table>
     </div>
   </div><!-- /viewPriceCatalog -->
+
+  <div id="viewProjectStages" hidden>
+    <div class="sales-hd">
+      <div>
+        <h2>שלבי פרויקט</h2>
+        <p>רשימת שלבים קבועה לזרימת עבודה - אפשר לסמן, להוסיף ולסדר מחדש.</p>
+      </div>
+    </div>
+    <div id="projectStagesList" class="ps-list"></div>
+    <div class="ps-add-row" data-manager-only>
+      <input type="text" id="psAddInput" placeholder="הוספת שלב חדש...">
+      <button type="button" class="pill-btn" id="psAddBtn">+ הוספה</button>
+    </div>
+  </div><!-- /viewProjectStages -->
 
   <div id="viewWorkHours" hidden>
     <div class="sales-hd">
@@ -1667,6 +1682,46 @@
         return;
       }
     });
+    function submitPsAdd(){
+      var input = document.getElementById("psAddInput");
+      addProjectStage(input.value);
+      input.value = "";
+      input.focus();
+    }
+    document.getElementById("psAddBtn").addEventListener("click", submitPsAdd);
+    document.getElementById("psAddInput").addEventListener("keydown", function(e){
+      if(e.key==="Enter"){ e.preventDefault(); submitPsAdd(); }
+    });
+    document.getElementById("projectStagesList").addEventListener("click", function(e){
+      var upBtn = e.target.closest("[data-ps-up]");
+      if(upBtn){ moveProjectStage(upBtn.getAttribute("data-ps-up"), -1); return; }
+      var downBtn = e.target.closest("[data-ps-down]");
+      if(downBtn){ moveProjectStage(downBtn.getAttribute("data-ps-down"), 1); return; }
+      var delBtn = e.target.closest("[data-ps-del]");
+      if(delBtn){
+        if(confirm("למחוק את השלב הזה?")) deleteProjectStage(delBtn.getAttribute("data-ps-del"));
+        return;
+      }
+      var editSpan = e.target.closest("[data-ps-edit]");
+      if(editSpan && managerMode && !editSpan.querySelector("input")){
+        var stageId = editSpan.getAttribute("data-ps-edit");
+        var curText = editSpan.textContent;
+        editSpan.innerHTML = '<input type="text" class="ps-edit-input" value="'+escapeHtml(curText)+'">';
+        var inp = editSpan.querySelector("input");
+        inp.focus();
+        inp.select();
+        function commit(){ editProjectStageText(stageId, inp.value); }
+        inp.addEventListener("blur", commit);
+        inp.addEventListener("keydown", function(ev){
+          if(ev.key==="Enter"){ ev.preventDefault(); inp.blur(); }
+          if(ev.key==="Escape"){ inp.removeEventListener("blur", commit); renderProjectStagesView(); }
+        });
+      }
+    });
+    document.getElementById("projectStagesList").addEventListener("change", function(e){
+      var cb = e.target.closest("[data-ps-done]");
+      if(cb) toggleProjectStageDone(cb.getAttribute("data-ps-done"), cb.checked);
+    });
 
     /* drive upload */
     document.getElementById("driveFileInput").addEventListener("change", function(e){
@@ -1956,6 +2011,7 @@
     document.getElementById("viewClientsNew").hidden = view!=="clientsNew";
     document.getElementById("viewTasks").hidden = view!=="tasks";
     document.getElementById("viewNotifications").hidden = view!=="notifications";
+    document.getElementById("viewProjectStages").hidden = view!=="projectStages";
     document.querySelectorAll(".vs-btn").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-view")===view);
     });
@@ -1964,6 +2020,7 @@
     if(view==="clientsNew"){ clientsNewScreen = "list"; renderClientsNewList(); renderClientsNewDetail(); renderClientsNewScreen(); }
     if(view==="tasks") renderTasksScreen();
     if(view==="notifications"){ renderTaskNotifications(); renderNotificationsView(); }
+    if(view==="projectStages") renderProjectStagesView();
   }
 
 
@@ -2306,6 +2363,65 @@
   }
   function deleteCatalogItem(id){
     catalogCol().doc(id).delete();
+  }
+
+  /* ---------- project stages (fixed editable checklist) ---------- */
+  var projectStages = [];
+  function projectStagesDocRef(){ return db.collection("sites").doc(currentSiteId).collection("settings").doc("projectStages"); }
+  function attachProjectStagesListener(){
+    var unsub = projectStagesDocRef().onSnapshot(function(doc){
+      projectStages = (doc.data() && doc.data().items) || [];
+      if(currentView==="projectStages") renderProjectStagesView();
+    });
+    siteUnsubscribers.push(unsub);
+  }
+  function saveProjectStages(items){
+    projectStagesDocRef().set({items:items}, {merge:true});
+  }
+  function addProjectStage(text){
+    text = (text||"").trim();
+    if(!text) return;
+    saveProjectStages(projectStages.concat([{id:uid(), text:text, done:false}]));
+  }
+  function deleteProjectStage(id){
+    saveProjectStages(projectStages.filter(function(s){ return s.id!==id; }));
+  }
+  function editProjectStageText(id, text){
+    text = (text||"").trim();
+    if(!text) return;
+    saveProjectStages(projectStages.map(function(s){ return s.id===id ? Object.assign({}, s, {text:text}) : s; }));
+  }
+  function toggleProjectStageDone(id, done){
+    saveProjectStages(projectStages.map(function(s){ return s.id===id ? Object.assign({}, s, {done:done}) : s; }));
+  }
+  function moveProjectStage(id, dir){
+    var idx = projectStages.findIndex(function(s){ return s.id===id; });
+    var swapIdx = idx+dir;
+    if(idx<0 || swapIdx<0 || swapIdx>=projectStages.length) return;
+    var arr = projectStages.slice();
+    var tmp = arr[idx]; arr[idx] = arr[swapIdx]; arr[swapIdx] = tmp;
+    saveProjectStages(arr);
+  }
+  function renderProjectStagesView(){
+    var wrap = document.getElementById("projectStagesList");
+    if(!wrap) return;
+    if(!projectStages.length){
+      wrap.innerHTML = '<div class="empty">אין עדיין שלבים ברשימה. הוסף למטה.</div>';
+    } else {
+      wrap.innerHTML = projectStages.map(function(s, i){
+        return '<div class="ps-row'+(s.done?" done":"")+'">'+
+          '<span class="ps-num">'+(i+1)+'.</span>'+
+          '<input type="checkbox" data-ps-done="'+s.id+'"'+(s.done?" checked":"")+'>'+
+          '<span class="ps-text" data-ps-edit="'+s.id+'" tabindex="0">'+escapeHtml(s.text)+'</span>'+
+          '<span class="ps-controls" data-manager-only>'+
+            '<button type="button" class="ps-btn" data-ps-up="'+s.id+'"'+(i===0?" disabled":"")+'>▲</button>'+
+            '<button type="button" class="ps-btn" data-ps-down="'+s.id+'"'+(i===projectStages.length-1?" disabled":"")+'>▼</button>'+
+            '<button type="button" class="ps-btn ps-del" data-ps-del="'+s.id+'">🗑</button>'+
+          '</span>'+
+        '</div>';
+      }).join("");
+    }
+    applyAccessMode();
   }
 
   /* ---------- quote editor (per-lead) ---------- */
@@ -4916,6 +5032,7 @@
     attachTasksListener();
     attachServiceListener();
     attachCatalogListener();
+    attachProjectStagesListener();
     attachWorkHoursListener();
     attachClientsListener();
     attachPersonalTasksListener();
@@ -4934,6 +5051,7 @@
     clients = [];
     selectedClientId = null;
     selectedJobId = null;
+    projectStages = [];
     personalTasks = [];
     myTasks = [];
     sharedTasks = [];
