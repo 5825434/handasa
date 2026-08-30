@@ -76,7 +76,7 @@
     </div>
     <div class="toolbar">
       <div class="toolbar-row">
-        <button type="button" class="pill-btn add-lead-btn" id="clientsNewAddBtn"><span>+</span> לקוח חדש</button>
+        <button type="button" class="pill-btn add-lead-btn" id="clientsNewAddBtn" data-manager-only><span>+</span> לקוח חדש</button>
         <div class="search-box"><input type="text" id="clientsNewSearch" placeholder="חיפוש לפי שם, טלפון או כתובת..."></div>
         <select id="clientsNewSort">
           <option value="progress">מיון: לפי התקדמות</option>
@@ -417,6 +417,11 @@
         <label>אנשי קשר</label>
         <div id="ca-contacts-list" style="margin:8px 0;"></div>
         <button type="button" class="ghost-btn" id="ca-addContact">+ הוסף איש קשר</button>
+      </div>
+      <div class="field field-panel" data-manager-only>
+        <label>🔒 שיתוף</label>
+        <div id="ca-share-summary" style="color:var(--ink-faint);font-size:0.9rem;">לא משותף עם אף אחד עדיין</div>
+        <button type="button" class="ghost-btn" id="ca-shareBtn" style="margin-top:8px;">+ בחירת עובדים</button>
       </div>
     </div>
     <div class="modal-actions lead-actions">
@@ -1252,6 +1257,12 @@
       }
     });
     document.getElementById("ca-addContact").addEventListener("click", function(){ addContactToForm(); });
+    document.getElementById("ca-shareBtn").addEventListener("click", function(){
+      openClientShareModal(clientFormSharedWith, function(next){
+        clientFormSharedWith = next;
+        renderCaShareSummary();
+      });
+    });
     document.getElementById("ca-sourceBtn").addEventListener("click", function(){
       openSourceModal({
         source:document.getElementById("ca-source").value,
@@ -1298,8 +1309,9 @@
         return;
       }
       if(e.target.closest("#clientShareBtn")){
-        var shareClient = getClientNew(selectedClientId);
-        if(shareClient) openClientShareModal(shareClient);
+        var shareClientId = selectedClientId;
+        var shareClient = getClientNew(shareClientId);
+        if(shareClient) openClientShareModal(shareClient.sharedWith, function(next){ setClientField(shareClientId, "sharedWith", next); });
         return;
       }
       if(e.target.closest("[data-toggle-quote-archive]")){
@@ -1916,6 +1928,7 @@
   var leads = [];
   var currentView = "clientsNew";
   var clientFormContacts = [];
+  var clientFormSharedWith = [];
 
   function leadsCol(){ return db.collection("sites").doc(currentSiteId).collection("leads"); }
   function attachLeadsListener(){
@@ -2522,22 +2535,27 @@
       });
     });
   }
-  function openClientShareModal(client){
+  function openClientShareModal(sharedWithInitial, onChange){
     var employees = teamMembers.filter(function(m){ return !m.isOwner && m.role!=="manager"; });
-    var sharedWith = client.sharedWith || [];
+    var sharedWith = (sharedWithInitial || []).slice();
     var modal = document.createElement("div");
     modal.innerHTML = '<div class="overlay" style="display:flex;align-items:center;justify-content:center;">'+
-      '<div class="modal" style="max-width:380px;">'+
-      '<h3>שיתוף לקוח</h3>'+
-      '<p style="font-size:0.82rem;color:var(--ink-soft);">בחר אילו עובדים יוכלו לראות את הלקוח הזה. מנהלים תמיד רואים הכל.</p>'+
-      (employees.length ? '<div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">'+
+      '<div class="modal client-share-modal" style="max-width:380px;">'+
+      '<h3>🔒 שיתוף לקוח</h3>'+
+      '<p class="modal-hint">בחר אילו עובדים יוכלו לראות את הלקוח הזה. מנהלים תמיד רואים הכל.</p>'+
+      (employees.length ? '<div class="share-emp-list">'+
         employees.map(function(m){
           var checked = sharedWith.indexOf(m.email)!==-1;
-          return '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" data-share-client-email="'+escapeHtml(m.email)+'"'+(checked?" checked":"")+'> '+escapeHtml(m.name||m.email)+'</label>';
+          var initial = (m.name||m.email||"?").trim().charAt(0).toUpperCase();
+          return '<label class="share-emp-row'+(checked?" checked":"")+'">'+
+            '<span class="share-emp-avatar">'+escapeHtml(initial)+'</span>'+
+            '<span class="share-emp-name">'+escapeHtml(m.name||m.email)+'</span>'+
+            '<input type="checkbox" data-share-client-email="'+escapeHtml(m.email)+'"'+(checked?" checked":"")+'>'+
+          '</label>';
         }).join("")+
       '</div>' : '<div class="empty">אין עדיין עובדים באתר. הוסף עובדים דרך "שיתוף האתר".</div>')+
       '<div class="modal-actions">'+
-      '<button type="button" id="clientShareClose">סגירה</button>'+
+      '<button type="button" class="primary" id="clientShareClose">סגירה</button>'+
       '</div>'+
       '</div>'+
       '</div>';
@@ -2547,9 +2565,9 @@
       var cb = e.target.closest("[data-share-client-email]");
       if(!cb) return;
       var email = cb.getAttribute("data-share-client-email");
-      var cur = (getClientNew(client.id)||{}).sharedWith || [];
-      var next = cb.checked ? cur.concat([email]).filter(function(v,i,a){return a.indexOf(v)===i;}) : cur.filter(function(x){return x!==email;});
-      setClientField(client.id, "sharedWith", next);
+      cb.closest(".share-emp-row").classList.toggle("checked", cb.checked);
+      sharedWith = cb.checked ? sharedWith.concat([email]).filter(function(v,i,a){return a.indexOf(v)===i;}) : sharedWith.filter(function(x){return x!==email;});
+      if(onChange) onChange(sharedWith.slice());
     });
     document.getElementById("clientShareClose").addEventListener("click", function(){ modal.remove(); });
     overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
@@ -2591,6 +2609,7 @@
   }
   function openClientAddModal(){
     clientFormContacts = [];
+    clientFormSharedWith = [];
     ["name","phone","whatsapp","email","idNumber","address","customerType","type","workType","source","sourcePhone","sourceEmail"].forEach(function(f){
       document.getElementById("ca-"+f).value = "";
     });
@@ -2600,7 +2619,21 @@
     document.getElementById("ca-inquiryDate").value = todayStr();
     renderClientContacts();
     renderCaSourceSummary();
+    renderCaShareSummary();
     document.getElementById("clientAddOverlay").hidden = false;
+  }
+  function renderCaShareSummary(){
+    var summaryEl = document.getElementById("ca-share-summary");
+    if(!summaryEl) return;
+    if(!clientFormSharedWith.length){
+      summaryEl.textContent = "לא משותף עם אף אחד עדיין";
+    } else {
+      var names = clientFormSharedWith.map(function(email){
+        var m = teamMembers.find(function(t){ return t.email===email; });
+        return m ? (m.name||m.email) : email;
+      });
+      summaryEl.textContent = "משותף עם: " + names.join(", ");
+    }
   }
   function renderCaSourceSummary(){
     var source = document.getElementById("ca-source").value;
@@ -2638,7 +2671,8 @@
       sourcePhone:document.getElementById("ca-sourcePhone").value,
       sourceEmail:document.getElementById("ca-sourceEmail").value,
       inquiryDate:document.getElementById("ca-inquiryDate").value,
-      contacts:clientFormContacts
+      contacts:clientFormContacts,
+      sharedWith:clientFormSharedWith
     });
     closeClientAddModal();
     renderClientsNewList();
