@@ -306,6 +306,10 @@
       <div class="login-divider"><span>או</span></div>
       <button type="button" id="showEmailFormBtn" class="login-pill login-pill-dark">המשך עם הדוא"ל</button>
       <div class="login-signup-hint">משתמש חדש? <button type="button" id="showSignUpBtn">הרשמה</button></div>
+      <div class="login-signup-hint" style="margin-top:6px;">
+        <button type="button" id="continueAsGuestBtn">המשך ללא הרשמה</button>
+        <div style="color:var(--ink-faint);font-size:0.74rem;margin-top:2px;">תצוגה עם נתוני דוגמה בלבד - שום דבר לא יישמר</div>
+      </div>
     </div>
 
     <div id="loginEmailForm" hidden>
@@ -569,6 +573,7 @@
   var myWorkEntries = [];
   var myPaidByMonth = {};
   var demoMode = false;
+  var guestMode = false;
   var realProjects = null;
   var realLeads = null;
 
@@ -1021,6 +1026,15 @@
     }
     document.getElementById("showEmailFormBtn").addEventListener("click", function(){ showLoginEmailForm("signin"); });
     document.getElementById("showSignUpBtn").addEventListener("click", function(){ showLoginEmailForm("signup"); });
+    document.getElementById("continueAsGuestBtn").addEventListener("click", function(){
+      guestMode = true;
+      document.getElementById("loginOverlay").hidden = true;
+      document.getElementById("appShell").hidden = false;
+      var mgrToggle = document.querySelector(".mgr-toggle");
+      if(mgrToggle) mgrToggle.hidden = true;
+      enableDemoMode();
+      document.getElementById("demoExitBtn").textContent = "התחברות / הרשמה";
+    });
     document.getElementById("backToMethodsBtn").addEventListener("click", showLoginMethodPicker);
     document.getElementById("togglePasswordBtn").addEventListener("click", function(){
       var pwInput = document.getElementById("emailLoginPassword");
@@ -1089,7 +1103,19 @@
     document.getElementById("demoModeBtn").addEventListener("click", function(){
       demoMode ? disableDemoMode() : enableDemoMode();
     });
-    document.getElementById("demoExitBtn").addEventListener("click", disableDemoMode);
+    document.getElementById("demoExitBtn").addEventListener("click", function(){
+      if(guestMode){
+        guestMode = false;
+        disableDemoMode();
+        document.getElementById("demoExitBtn").textContent = "חזרה לנתונים האמיתיים";
+        document.getElementById("appShell").hidden = true;
+        var mgrToggle = document.querySelector(".mgr-toggle");
+        if(mgrToggle) mgrToggle.hidden = false;
+        document.getElementById("loginOverlay").hidden = false;
+        return;
+      }
+      disableDemoMode();
+    });
     document.getElementById("shareBtn").addEventListener("click", openShareModal);
     document.getElementById("shareCloseBtn").addEventListener("click", closeShareModal);
     document.getElementById("shareOverlay").addEventListener("click", function(e){
