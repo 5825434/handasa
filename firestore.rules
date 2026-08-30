@@ -9,14 +9,26 @@ service cloud.firestore {
       return request.auth.token.email in
         get(/databases/$(database)/documents/sites/$(siteId)).data.sharedEmails;
     }
+    function isManagerDoc(siteId) {
+      return request.auth.token.email in
+        get(/databases/$(database)/documents/sites/$(siteId)).data.managerEmails;
+    }
     match /sites/{siteId} {
       allow read: if request.auth != null && (isOwner(siteId) || isShared(siteId));
       allow create: if request.auth != null && request.auth.uid == siteId;
       allow update: if request.auth != null && isOwner(siteId);
     }
     match /sites/{siteId}/{col}/{doc=**} {
-      allow read, write: if request.auth != null && col != "workHours" && col != "tasks" &&
+      allow read, write: if request.auth != null && col != "workHours" && col != "tasks" && col != "clients" &&
         (isOwner(siteId) || isSharedDoc(siteId));
+    }
+    match /sites/{siteId}/clients/{clientId} {
+      allow create: if request.auth != null && (isOwner(siteId) || isManagerDoc(siteId));
+      allow delete: if request.auth != null && (isOwner(siteId) || isManagerDoc(siteId));
+      allow read, update: if request.auth != null && (
+        isOwner(siteId) || isManagerDoc(siteId) ||
+        (isSharedDoc(siteId) && request.auth.token.email in resource.data.sharedWith)
+      );
     }
     match /sites/{siteId}/tasks/{taskId} {
       allow create: if request.auth != null && (isOwner(siteId) || isSharedDoc(siteId)) &&

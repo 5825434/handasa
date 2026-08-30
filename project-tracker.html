@@ -290,7 +290,16 @@
     <h2>ניהול פרויקטים</h2>
     <p>התחבר עם Google כדי להמשיך. ההתחברות הראשונה יוצרת עבורך אתר משלך.</p>
     <button type="button" class="primary" id="googleSignInBtn" style="width:100%;padding:11px;margin-top:8px;">התחברות עם Google</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--ink-faint);font-size:0.8rem;">
+      <div style="flex:1;border-top:1px solid var(--border);"></div>או<div style="flex:1;border-top:1px solid var(--border);"></div>
+    </div>
+    <div class="field" style="text-align:right;margin-bottom:8px;"><label>מייל</label><input type="email" id="emailLoginEmail"></div>
+    <div class="field" style="text-align:right;margin-bottom:4px;"><label>סיסמה</label><input type="password" id="emailLoginPassword"></div>
+    <div style="text-align:left;margin-bottom:10px;"><button type="button" id="forgotPasswordBtn" style="padding:2px 4px;font-size:0.76rem;border:none;background:transparent;color:var(--accent);text-decoration:underline;">שכחת סיסמה?</button></div>
+    <button type="button" class="pill-btn" id="emailSignInBtn" style="width:100%;padding:10px;">התחברות עם מייל וסיסמה</button>
+    <button type="button" class="ghost-btn" id="emailSignUpBtn" style="width:100%;padding:10px;margin-top:8px;">הרשמה עם מייל חדש</button>
     <div class="err" id="loginErr"></div>
+    <div class="err" id="loginMsg" style="color:var(--pay-paid);"></div>
   </div>
 </div>
 
@@ -557,6 +566,7 @@
 
   var projects = [];
   var managerMode = false;
+  var isSiteOwner = false;
   var teamMembers = [];
   var filters = {search:"", quadrant:"all", status:"all", sort:"due", group:false};
 
@@ -631,6 +641,19 @@
     return String(s==null?"":s).replace(/[&<>"']/g, function(c){
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
+  }
+  function authErrorHebrew(err){
+    var map = {
+      "auth/wrong-password": "סיסמה שגויה.",
+      "auth/user-not-found": "לא נמצא משתמש עם המייל הזה. אולי צריך להירשם?",
+      "auth/email-already-in-use": "כבר קיים חשבון עם המייל הזה. נסה/י להתחבר במקום להירשם.",
+      "auth/weak-password": "הסיסמה חלשה מדי - נדרשים לפחות 6 תווים.",
+      "auth/invalid-email": "כתובת מייל לא תקינה.",
+      "auth/too-many-requests": "יותר מדי ניסיונות. נסה/י שוב בעוד כמה דקות.",
+      "auth/invalid-credential": "מייל או סיסמה שגויים.",
+      "auth/missing-password": "יש להזין סיסמה."
+    };
+    return map[err.code] || ("שגיאת התחברות: " + err.message);
   }
   function toggleDlDropdown(input){
     var existing = document.querySelector(".dl-dropdown");
@@ -712,6 +735,8 @@
           ownerEmail: currentUser.email,
           ownerName: currentUser.displayName || currentUser.email,
           sharedEmails: [],
+          sharedEmailNames: [],
+          managerEmails: [],
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).then(function(){ seedCatalogForNewSite(currentUser.uid); seedTaskCategoriesForNewSite(currentUser.uid); });
       }
@@ -778,8 +803,10 @@
     updateLogoDisplay();
     db.collection("sites").doc(currentSiteId).get().then(function(doc){
       var data = doc.data() || {};
-      managerMode = (data.ownerUid === currentUser.uid);
-      document.getElementById("shareBtn").hidden = !managerMode;
+      var myEmailLower = (currentUser.email||"").trim().toLowerCase();
+      managerMode = (data.ownerUid === currentUser.uid) || (data.managerEmails||[]).indexOf(myEmailLower)!==-1;
+      isSiteOwner = (data.ownerUid === currentUser.uid);
+      document.getElementById("shareBtn").hidden = !isSiteOwner;
       if(data.logo && !companyLogo){
         companyLogo = data.logo;
         updateLogoDisplay();
@@ -793,6 +820,7 @@
     }).catch(function(err){
       console.warn("Error loading site data:", err.message);
       managerMode = false;
+      isSiteOwner = false;
       attachTaskNotificationsListener();
       applyAccessMode();
     });
@@ -801,12 +829,12 @@
   }
   function buildTeamMembersFromSiteData(data){
     var namesArr = data.sharedEmailNames || [];
-    var namesMap = {};
-    namesArr.forEach(function(x){ namesMap[x.email] = x.name; });
+    var namesMap = {}, rolesMap = {};
+    namesArr.forEach(function(x){ namesMap[x.email] = x.name; rolesMap[x.email] = x.role||"employee"; });
     var ownerEmail = (data.ownerEmail||"").toLowerCase();
-    teamMembers = [{email:ownerEmail, name:data.ownerName||data.ownerEmail||"מנהל", isOwner:true}];
+    teamMembers = [{email:ownerEmail, name:data.ownerName||data.ownerEmail||"מנהל", isOwner:true, role:"manager"}];
     (data.sharedEmails||[]).forEach(function(em){
-      teamMembers.push({email:em.toLowerCase(), name:namesMap[em]||em, isOwner:false});
+      teamMembers.push({email:em.toLowerCase(), name:namesMap[em]||em, isOwner:false, role:rolesMap[em]||"employee"});
     });
   }
   function loadTeamMembers(){
@@ -858,10 +886,11 @@
       var data = doc.data()||{};
       var emails = data.sharedEmails || [];
       var namesArr = data.sharedEmailNames || [];
-      var names = {};
-      namesArr.forEach(function(x){ names[x.email] = x.name; });
+      var names = {}, roles = {};
+      namesArr.forEach(function(x){ names[x.email] = x.name; roles[x.email] = x.role||"employee"; });
       var wrap = document.getElementById("shareList");
       wrap.innerHTML = emails.length ? emails.map(function(em){
+        var role = roles[em]||"employee";
         return '<div class="share-row" style="flex-direction:column;align-items:stretch;gap:6px;">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">'+
             '<span style="direction:ltr;">'+escapeHtml(em)+'</span>'+
@@ -871,6 +900,12 @@
             '</span>'+
           '</div>'+
           '<input type="text" data-share-name="'+escapeHtml(em)+'" value="'+escapeHtml(names[em]||"")+'" placeholder="שם לעובד הזה (לדוגמה: נחמיה)" style="padding:6px 8px;font-size:0.85rem;border:1px solid var(--border);border-radius:6px;">'+
+          '<label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--ink-soft);">תפקיד: '+
+            '<select data-share-role="'+escapeHtml(em)+'" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;">'+
+              '<option value="employee"'+(role==="employee"?" selected":"")+'>עובד (רואה רק מה ששותף איתו)</option>'+
+              '<option value="manager"'+(role==="manager"?" selected":"")+'>מנהל (רואה הכל)</option>'+
+            '</select>'+
+          '</label>'+
         '</div>';
       }).join("") : '<div class="empty">עדיין לא שיתפת עם אף אחד.</div>';
     });
@@ -884,8 +919,13 @@
     }).then(function(){ input.value=""; renderShareList(); });
   }
   function removeShareEmail(email){
-    db.collection("sites").doc(currentUser.uid).update({
-      sharedEmails: firebase.firestore.FieldValue.arrayRemove(email)
+    var ref = db.collection("sites").doc(currentUser.uid);
+    ref.update({sharedEmails: firebase.firestore.FieldValue.arrayRemove(email)});
+    ref.get().then(function(doc){
+      var d = doc.data()||{};
+      var arr = (d.sharedEmailNames||[]).filter(function(x){ return x.email!==email; });
+      var mgrs = (d.managerEmails||[]).filter(function(x){ return x!==email; });
+      return ref.update({sharedEmailNames: arr, managerEmails: mgrs});
     }).then(renderShareList);
   }
   function updateShareEmailName(email, name){
@@ -893,13 +933,22 @@
     ref.get().then(function(doc){
       var arr = ((doc.data()||{}).sharedEmailNames || []).slice();
       var idx = arr.findIndex(function(x){ return x.email === email; });
-      if(name){
-        if(idx>=0) arr[idx] = {email:email, name:name};
-        else arr.push({email:email, name:name});
-      } else if(idx>=0){
-        arr.splice(idx,1);
-      }
+      if(idx>=0) arr[idx] = Object.assign({}, arr[idx], {name:name});
+      else arr.push({email:email, name:name, role:"employee"});
       return ref.update({sharedEmailNames: arr});
+    }).then(function(){ if(currentSiteId===currentUser.uid) loadTeamMembers(); });
+  }
+  function updateShareEmailRole(email, role){
+    var ref = db.collection("sites").doc(currentUser.uid);
+    ref.get().then(function(doc){
+      var d = doc.data()||{};
+      var arr = (d.sharedEmailNames||[]).slice();
+      var idx = arr.findIndex(function(x){ return x.email === email; });
+      if(idx>=0) arr[idx] = Object.assign({}, arr[idx], {role:role});
+      else arr.push({email:email, name:"", role:role});
+      var mgrs = (d.managerEmails||[]).filter(function(x){ return x!==email; });
+      if(role==="manager") mgrs.push(email);
+      return ref.update({sharedEmailNames: arr, managerEmails: mgrs});
     }).then(function(){ if(currentSiteId===currentUser.uid) loadTeamMembers(); });
   }
 
@@ -918,8 +967,40 @@
   function bindStatic(){
     document.getElementById("googleSignInBtn").addEventListener("click", function(){
       document.getElementById("loginErr").textContent = "";
+      document.getElementById("loginMsg").textContent = "";
       auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(err){
         document.getElementById("loginErr").textContent = "שגיאת התחברות: " + err.message;
+      });
+    });
+    document.getElementById("emailSignInBtn").addEventListener("click", function(){
+      var email = document.getElementById("emailLoginEmail").value.trim();
+      var password = document.getElementById("emailLoginPassword").value;
+      document.getElementById("loginErr").textContent = "";
+      document.getElementById("loginMsg").textContent = "";
+      if(!email || !password){ document.getElementById("loginErr").textContent = "יש להזין מייל וסיסמה."; return; }
+      auth.signInWithEmailAndPassword(email, password).catch(function(err){
+        document.getElementById("loginErr").textContent = authErrorHebrew(err);
+      });
+    });
+    document.getElementById("emailSignUpBtn").addEventListener("click", function(){
+      var email = document.getElementById("emailLoginEmail").value.trim();
+      var password = document.getElementById("emailLoginPassword").value;
+      document.getElementById("loginErr").textContent = "";
+      document.getElementById("loginMsg").textContent = "";
+      if(!email || !password){ document.getElementById("loginErr").textContent = "יש להזין מייל וסיסמה."; return; }
+      auth.createUserWithEmailAndPassword(email, password).catch(function(err){
+        document.getElementById("loginErr").textContent = authErrorHebrew(err);
+      });
+    });
+    document.getElementById("forgotPasswordBtn").addEventListener("click", function(){
+      var email = document.getElementById("emailLoginEmail").value.trim();
+      document.getElementById("loginErr").textContent = "";
+      document.getElementById("loginMsg").textContent = "";
+      if(!email){ document.getElementById("loginErr").textContent = "יש להזין קודם את כתובת המייל שלך בשדה למעלה."; return; }
+      auth.sendPasswordResetEmail(email).then(function(){
+        document.getElementById("loginMsg").textContent = "נשלח מייל לאיפוס סיסמה ל-" + email + ". בדוק/י גם בתיקיית ספאם.";
+      }).catch(function(err){
+        document.getElementById("loginErr").textContent = authErrorHebrew(err);
       });
     });
     document.getElementById("signOutBtn").addEventListener("click", function(){ auth.signOut(); });
@@ -983,7 +1064,9 @@
     });
     document.getElementById("shareList").addEventListener("change", function(e){
       var inp = e.target.closest("[data-share-name]");
-      if(inp) updateShareEmailName(inp.getAttribute("data-share-name"), inp.value.trim());
+      if(inp){ updateShareEmailName(inp.getAttribute("data-share-name"), inp.value.trim()); return; }
+      var roleSel = e.target.closest("[data-share-role]");
+      if(roleSel) updateShareEmailRole(roleSel.getAttribute("data-share-role"), roleSel.value);
     });
 
     /* view switch */
@@ -1125,6 +1208,11 @@
       if(e.target.closest("#clientExpandBtn")){
         clientDetailExpanded = !clientDetailExpanded;
         renderClientsNewDetail();
+        return;
+      }
+      if(e.target.closest("#clientShareBtn")){
+        var shareClient = getClientNew(selectedClientId);
+        if(shareClient) openClientShareModal(shareClient);
         return;
       }
       if(e.target.closest("[data-toggle-quote-archive]")){
@@ -2234,7 +2322,7 @@
     var ref = clientsCol().doc();
     var firstJob = newJobObj((data && data.workType) || "עבודה חדשה");
     ref.set(Object.assign({name:"", phone:"", whatsapp:"", email:"", idNumber:"", address:"", customerType:"",
-      type:"", workType:"", source:"", sourcePhone:"", sourceEmail:"", inquiryDate:"", contacts:[],
+      type:"", workType:"", source:"", sourcePhone:"", sourceEmail:"", inquiryDate:"", contacts:[], sharedWith:[],
       createdAt:new Date().toISOString().slice(0,10), notes:"", jobs:[firstJob]}, data));
     selectedClientId = ref.id;
     selectedJobId = firstJob.id;
@@ -2300,6 +2388,38 @@
       if(typeof onSave==="function"){ onSave(contact); } else { clientFormContacts.push(contact); renderClientContacts(); }
       modal.remove();
     });
+    overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
+  }
+  function openClientShareModal(client){
+    var employees = teamMembers.filter(function(m){ return !m.isOwner && m.role!=="manager"; });
+    var sharedWith = client.sharedWith || [];
+    var modal = document.createElement("div");
+    modal.innerHTML = '<div class="overlay" style="display:flex;align-items:center;justify-content:center;">'+
+      '<div class="modal" style="max-width:380px;">'+
+      '<h3>שיתוף לקוח</h3>'+
+      '<p style="font-size:0.82rem;color:var(--ink-soft);">בחר אילו עובדים יוכלו לראות את הלקוח הזה. מנהלים תמיד רואים הכל.</p>'+
+      (employees.length ? '<div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">'+
+        employees.map(function(m){
+          var checked = sharedWith.indexOf(m.email)!==-1;
+          return '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" data-share-client-email="'+escapeHtml(m.email)+'"'+(checked?" checked":"")+'> '+escapeHtml(m.name||m.email)+'</label>';
+        }).join("")+
+      '</div>' : '<div class="empty">אין עדיין עובדים באתר. הוסף עובדים דרך "שיתוף האתר".</div>')+
+      '<div class="modal-actions">'+
+      '<button type="button" id="clientShareClose">סגירה</button>'+
+      '</div>'+
+      '</div>'+
+      '</div>';
+    document.body.appendChild(modal);
+    var overlay = modal.querySelector(".overlay");
+    modal.addEventListener("change", function(e){
+      var cb = e.target.closest("[data-share-client-email]");
+      if(!cb) return;
+      var email = cb.getAttribute("data-share-client-email");
+      var cur = (getClientNew(client.id)||{}).sharedWith || [];
+      var next = cb.checked ? cur.concat([email]).filter(function(v,i,a){return a.indexOf(v)===i;}) : cur.filter(function(x){return x!==email;});
+      setClientField(client.id, "sharedWith", next);
+    });
+    document.getElementById("clientShareClose").addEventListener("click", function(){ modal.remove(); });
     overlay.addEventListener("click", function(e){ if(e.target===overlay) modal.remove(); });
   }
   function openSourceModal(initial, onSave){
@@ -3317,6 +3437,7 @@
         '<div style="flex:1;min-width:0;">'+
           '<div class="detail-title">'+escapeHtml(c.name||"(ללא שם)")+
             ' <button type="button" class="ghost-btn expand-toggle-btn" id="clientExpandBtn">'+(clientDetailExpanded?"▲ צמצום":"▼ הרחבה")+'</button>'+
+            ' <button type="button" class="ghost-btn" id="clientShareBtn" data-manager-only'+(managerMode?"":" hidden")+'>🔒 שיתוף</button>'+
           '</div>'+
           (summaryLine && !clientDetailExpanded ? '<div class="detail-sub">'+escapeHtml(summaryLine)+'</div>' : '')+
         '</div>'+
