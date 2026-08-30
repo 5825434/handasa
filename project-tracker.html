@@ -492,13 +492,14 @@
           <option value="">ללא</option><option value="easy">קל</option><option value="medium">בינוני</option><option value="hard">קשה</option>
         </select></div>
         <div class="field"><label>סוג משימה</label><select id="pm-taskCategory">
-          <option value="personal">אישי</option><option value="work">עבודה</option><option value="shared">משותף</option>
+          <option value="personal">אישי</option><option value="work">עבודה</option><option value="shared">משותף</option><option value="client">לקוח</option>
         </select></div>
         <div class="field" id="pm-sharedWithField" style="display:none;"><label>שתף עם</label><select id="pm-sharedWith">
           <option value="">בחר עובד או צוות</option>
         </select></div>
         <div class="field"><label>קטגוריה</label><select id="pm-category"></select></div>
         <div class="field"><label>שייך ללקוח (אופציונלי)</label><input type="text" id="pm-client" list="pm-client-list" placeholder="חפש לפי שם לקוח או איש קשר..."><datalist id="pm-client-list"></datalist></div>
+        <div class="field" id="pm-jobField" style="display:none;"><label>עבודה</label><select id="pm-job"></select></div>
         <div class="field full"><label>תגיות (לסינון וחיפוש)</label><input type="text" id="pm-tags" placeholder="#general #client-אהרון #urgent (הפרד ברווח)"><div id="pm-tagsDisplay" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div></div>
         <div class="field ptask-when"><label>חזרתיות</label><select id="pm-recurrence">
           <option value="none">ללא חזרה</option><option value="daily">יומי</option>
@@ -1996,7 +1997,17 @@
       } else {
         sharedField.style.display = "none";
       }
+      var jobField = document.getElementById("pm-jobField");
+      if(cat === "client"){
+        jobField.style.display = "";
+        populateJobOptions(taskModal.data ? taskModal.data.jobId : "");
+      } else {
+        jobField.style.display = "none";
+      }
       if(taskModal.data) taskModal.data.taskCategory = cat;
+    });
+    document.getElementById("pm-client").addEventListener("input", function(){
+      if(document.getElementById("pm-taskCategory").value === "client") populateJobOptions("");
     });
     document.getElementById("pm-category").addEventListener("change", function(e){
       if(e.target.value!=="__add__") return;
@@ -4362,7 +4373,7 @@
   function blankTaskData(type){
     var defaultCat = taskCategories.find(function(c){ return c.name==="עבודה"; }) || taskCategories[0];
     return {type:type||"task", title:"", description:"", dueDate:"", dueTime:"",
-      quadrant:"n", difficulty:"easy", categoryId:(defaultCat?defaultCat.id:""), clientId:"",
+      quadrant:"n", difficulty:"easy", categoryId:(defaultCat?defaultCat.id:""), clientId:"", jobId:"",
       recurrence:"none", estMin:0, reminder:"attime", subtasks:[], shared:false, ownerName:"", assignedTo:"", tags:"",
       taskCategory:"work", sharedWith:null};
   }
@@ -4372,7 +4383,7 @@
       taskModal={open:true, id:id, type:t.type||"task", owner:isTaskOwner(t),
         data:{type:t.type||"task", title:t.title||"", description:t.description||"",
           dueDate:t.dueDate||"", dueTime:t.dueTime||"", quadrant:t.quadrant||"n", difficulty:t.difficulty||"",
-          categoryId:t.categoryId||"", clientId:t.clientId||"", recurrence:t.recurrence||"none",
+          categoryId:t.categoryId||"", clientId:t.clientId||"", jobId:t.jobId||"", recurrence:t.recurrence||"none",
           estMin:t.estMin||0, reminder:t.reminder||"none",
           subtasks:(t.subtasks||[]).map(function(s){return {text:s.text||"",done:!!s.done};}),
           shared:!!t.shared, ownerName:t.ownerName||"", assignedTo:t.assignedTo||"", tags:t.tags||"",
@@ -4411,6 +4422,20 @@
     });
     select.innerHTML = html;
   }
+  function populateJobOptions(selectedJobId){
+    var select = document.getElementById("pm-job");
+    if(!select) return;
+    var clientName = document.getElementById("pm-client").value.trim();
+    var client = clients.find(function(c){ return c.name === clientName; });
+    var jobs = client ? (client.jobs||[]) : [];
+    if(!jobs.length){
+      select.innerHTML = '<option value="">בחר לקוח עם עבודה קודם</option>';
+      return;
+    }
+    select.innerHTML = '<option value="">בחר עבודה</option>'+jobs.map(function(j){
+      return '<option value="'+j.id+'"'+(selectedJobId===j.id?" selected":"")+'>'+escapeHtml(j.title||"עבודה")+'</option>';
+    }).join("");
+  }
   function fillTaskModal(){
     var d=taskModal.data, isIdea=(taskModal.type==="idea"), owner=taskModal.owner;
     document.getElementById("ptaskModalTitle").textContent =
@@ -4439,6 +4464,13 @@
       var displayText = escapeHtml(c.name||"(ללא שם)") + (contacts ? " • "+escapeHtml(contacts) : "");
       return '<option value="'+escapeHtml(c.name||"")+'">'+displayText+'</option>';
     }).join("");
+    var jobField = document.getElementById("pm-jobField");
+    if(taskCat === "client"){
+      jobField.style.display = "";
+      populateJobOptions(d.jobId||"");
+    } else {
+      jobField.style.display = "none";
+    }
     document.getElementById("pm-tags").value = d.tags;
     renderModalQuadrant();
     renderModalSubtasks();
@@ -4495,12 +4527,13 @@
     if(d.reminder!=="none") requestReminderPermission();
     if(taskModal.id){
       d.taskCategory = document.getElementById("pm-taskCategory").value;
+      d.jobId = (d.taskCategory==="client") ? (document.getElementById("pm-job").value||"") : "";
       var sharing = computeSharingFields(d.taskCategory);
       d.assignedTo = sharing.assignedTo;
-      d.shared = !!sharing.sharedWith || !!d.shared;
+      d.shared = d.taskCategory==="client" ? true : (!!sharing.sharedWith || !!d.shared);
       personalTasksCol().doc(taskModal.id).update({
         title:d.title, description:d.description, dueDate:d.dueDate, dueTime:d.dueTime,
-        quadrant:d.quadrant, difficulty:d.difficulty, categoryId:d.categoryId, clientId:d.clientId, recurrence:d.recurrence,
+        quadrant:d.quadrant, difficulty:d.difficulty, categoryId:d.categoryId, clientId:d.clientId, jobId:d.jobId, recurrence:d.recurrence,
         estMin:d.estMin, reminder:d.reminder, subtasks:d.subtasks, assignedTo:d.assignedTo, tags:d.tags,
         taskCategory:d.taskCategory, sharedWith:sharing.sharedWith, shared:d.shared
       });
@@ -4508,14 +4541,15 @@
       var maxPriority = 0;
       personalTasks.forEach(function(t){ if(!t.done && t.priority) maxPriority = Math.max(maxPriority, t.priority); });
       d.taskCategory = document.getElementById("pm-taskCategory").value;
+      d.jobId = (d.taskCategory==="client") ? (document.getElementById("pm-job").value||"") : "";
       var sharing = computeSharingFields(d.taskCategory);
       d.assignedTo = sharing.assignedTo;
-      var isShared = sharing.sharedWith ? true : !managerMode;
+      var isShared = d.taskCategory==="client" ? true : (sharing.sharedWith ? true : !managerMode);
       personalTasksCol().add({
         ownerUid:currentUser.uid, ownerName:(currentUser.displayName||currentUser.email||""),
         type:taskModal.type, title:d.title, description:d.description,
         dueDate:d.dueDate, dueTime:d.dueTime, quadrant:d.quadrant, difficulty:d.difficulty, categoryId:d.categoryId,
-        clientId:d.clientId, done:false, shared:isShared, subtasks:d.subtasks, recurrence:d.recurrence,
+        clientId:d.clientId, jobId:d.jobId, done:false, shared:isShared, subtasks:d.subtasks, recurrence:d.recurrence,
         estMin:d.estMin, reminder:d.reminder, assignedTo:d.assignedTo, tags:d.tags, priority:maxPriority+1,
         taskCategory:d.taskCategory, sharedWith:sharing.sharedWith,
         timer:{elapsedSec:0,running:false,runStartedAt:null},
