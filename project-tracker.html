@@ -1576,6 +1576,12 @@
         renderClientsNewDetail();
         return;
       }
+      var jpsBox = e.target.closest("[data-jps-done]");
+      if(jpsBox){
+        setProjectStageDone(jpsBox.getAttribute("data-proj"), jpsBox.getAttribute("data-key"), jpsBox.checked);
+        renderClientsNewDetail();
+        return;
+      }
       handleClientFieldChange(e);
     });
     clientsNewDetailEl.addEventListener("input", function(e){
@@ -1713,10 +1719,6 @@
           if(ev.key==="Escape"){ inp.removeEventListener("blur", commit); renderProjectStagesView(); }
         });
       }
-    });
-    document.getElementById("projectStagesList").addEventListener("change", function(e){
-      var cb = e.target.closest("[data-ps-done]");
-      if(cb) toggleProjectStageDone(cb.getAttribute("data-ps-done"), cb.checked);
     });
     (function(){
       var psList = document.getElementById("projectStagesList");
@@ -2422,7 +2424,7 @@
   function addProjectStage(text){
     text = (text||"").trim();
     if(!text) return;
-    saveProjectStages(projectStages.concat([{id:uid(), text:text, done:false}]));
+    saveProjectStages(projectStages.concat([{id:uid(), text:text}]));
   }
   function deleteProjectStage(id){
     saveProjectStages(projectStages.filter(function(s){ return s.id!==id; }));
@@ -2432,8 +2434,24 @@
     if(!text) return;
     saveProjectStages(projectStages.map(function(s){ return s.id===id ? Object.assign({}, s, {text:text}) : s; }));
   }
-  function toggleProjectStageDone(id, done){
-    saveProjectStages(projectStages.map(function(s){ return s.id===id ? Object.assign({}, s, {done:done}) : s; }));
+  var projectStageState = {};
+  function projectStageStateCol(){ return db.collection("sites").doc(currentSiteId).collection("projectStageState"); }
+  function attachProjectStageStateListener(){
+    var unsub = projectStageStateCol().onSnapshot(function(snap){
+      projectStageState = {};
+      snap.forEach(function(d){ projectStageState[d.id] = d.data(); });
+    });
+    siteUnsubscribers.push(unsub);
+  }
+  function isProjectStageDone(jobId, stageId){
+    return !!(projectStageState[jobId] && projectStageState[jobId][stageId]);
+  }
+  function setProjectStageDone(jobId, stageId, val){
+    if(!projectStageState[jobId]) projectStageState[jobId] = {};
+    projectStageState[jobId][stageId] = val;
+    var update = {};
+    update[stageId] = val;
+    projectStageStateCol().doc(jobId).set(update, {merge:true});
   }
   function renderProjectStagesView(){
     var wrap = document.getElementById("projectStagesList");
@@ -2442,10 +2460,9 @@
       wrap.innerHTML = '<div class="empty">אין עדיין שלבים ברשימה. הוסף למטה.</div>';
     } else {
       wrap.innerHTML = projectStages.map(function(s, i){
-        return '<div class="ps-row'+(s.done?" done":"")+'" data-ps-row="'+s.id+'">'+
+        return '<div class="ps-row" data-ps-row="'+s.id+'">'+
           '<span class="ps-drag-handle" data-manager-only draggable="true" title="גרירה לשינוי סדר">⠿</span>'+
           '<span class="ps-num">'+(i+1)+'.</span>'+
-          '<input type="checkbox" data-ps-done="'+s.id+'"'+(s.done?" checked":"")+'>'+
           '<span class="ps-text" data-ps-edit="'+s.id+'" tabindex="0">'+escapeHtml(s.text)+'</span>'+
           '<span class="ps-controls" data-manager-only>'+
             '<button type="button" class="ps-btn ps-del" data-ps-del="'+s.id+'">🗑</button>'+
@@ -2961,7 +2978,8 @@
       {id:"quote", label:"הצעת מחיר"},
       {id:"documents", label:"מסמכים"},
       {id:"tasks", label:"משימות"},
-      {id:"service", label:"שירות ואספקה"}
+      {id:"service", label:"שירות ואספקה"},
+      {id:"projectStagesJob", label:"שלבי פרויקט"}
     ];
     var tabsHtml = tabs.map(function(t){
       var isActive = clientJobTab===t.id || (t.submenu && t.submenu.some(function(s){return clientJobTab===s.id;}));
@@ -3109,6 +3127,27 @@
   }
   function jobServiceTabHtml(job){
     return SERVICE_SECTIONS.map(function(s){ return serviceSectionHtml(job.id, s); }).join("");
+  }
+  function jobProjectStagesTabHtml(job){
+    if(!projectStages.length){
+      return '<div class="empty">אין עדיין שלבים מוגדרים. אפשר להגדיר אותם בעמוד "שלבי פרויקט" בתפריט הצד.</div>';
+    }
+    var total = projectStages.length;
+    var doneCount = projectStages.filter(function(s){ return isProjectStageDone(job.id, s.id); }).length;
+    var pct = total ? Math.round(doneCount/total*100) : 0;
+    var rows = projectStages.map(function(s, i){
+      var done = isProjectStageDone(job.id, s.id);
+      return '<div class="ps-row'+(done?" done":"")+'">'+
+        '<span class="ps-num">'+(i+1)+'.</span>'+
+        '<input type="checkbox" data-jps-done data-proj="'+job.id+'" data-key="'+s.id+'"'+(done?" checked":"")+'>'+
+        '<span class="ps-text">'+escapeHtml(s.text)+'</span>'+
+      '</div>';
+    }).join("");
+    return '<div class="ps-progress-wrap">'+
+        '<div class="ps-progress-bar"><div class="ps-progress-fill" style="width:'+pct+'%;"></div></div>'+
+        '<div class="ps-progress-label">'+doneCount+' מתוך '+total+' הושלמו ('+pct+'%)</div>'+
+      '</div>'+
+      '<div class="ps-list">'+rows+'</div>';
   }
   function docLinkRowHtml(catId, link, idx){
     var name = link.name||"", url = link.url||"";
@@ -3728,6 +3767,7 @@
     else if(clientJobTab==="quote") body = jobQuoteTabHtml(job);
     else if(clientJobTab==="tasks") body = jobTasksTabHtml(job);
     else if(clientJobTab==="service") body = jobServiceTabHtml(job);
+    else if(clientJobTab==="projectStagesJob") body = jobProjectStagesTabHtml(job);
     else if(clientJobTab==="documents") body = jobDocumentsTabHtml(job);
     return jobSubTabsHtml()+'<div class="job-tab-body">'+body+'</div>';
   }
@@ -5065,6 +5105,7 @@
     attachServiceListener();
     attachCatalogListener();
     attachProjectStagesListener();
+    attachProjectStageStateListener();
     attachWorkHoursListener();
     attachClientsListener();
     attachPersonalTasksListener();
@@ -5084,6 +5125,7 @@
     selectedClientId = null;
     selectedJobId = null;
     projectStages = [];
+    projectStageState = {};
     personalTasks = [];
     myTasks = [];
     sharedTasks = [];

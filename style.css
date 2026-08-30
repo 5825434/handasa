@@ -465,6 +465,10 @@ h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;text-wrap:balance;ma
 .ps-btn.ps-del{color:var(--pay-unpaid);}
 .ps-add-row{display:flex;gap:8px;}
 .ps-add-row input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:0.9rem;box-shadow:var(--shadow);}
+.ps-progress-wrap{margin-bottom:16px;}
+.ps-progress-bar{width:100%;height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden;}
+.ps-progress-fill{height:100%;background:var(--accent);border-radius:999px;transition:width .2s ease;}
+.ps-progress-label{margin-top:6px;font-size:0.82rem;color:var(--ink-soft);font-weight:600;}
 
 .client-share-modal .modal-hint{font-size:0.82rem;color:var(--ink-soft);margin:0 0 14px;}
 .share-emp-list{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
