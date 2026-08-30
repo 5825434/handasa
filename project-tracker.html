@@ -1939,14 +1939,7 @@
     document.getElementById("tasksList").addEventListener("click", handleTaskCardClick);
     document.getElementById("ptaskCalDayList").addEventListener("click", handleTaskCardClick);
 
-    document.getElementById("clientTasksList").addEventListener("click", function(e){
-      var openEl = e.target.closest("[data-open-client-task]");
-      if(openEl){ openTaskModal(openEl.getAttribute("data-open-client-task")); }
-    });
-    document.getElementById("clientTasksList").addEventListener("change", function(e){
-      var doneBox = e.target.closest("[data-client-task-done]");
-      if(doneBox){ setPersonalTaskField(doneBox.getAttribute("data-client-task-done"), "done", doneBox.checked); renderClientTasksPanel(); }
-    });
+    document.getElementById("clientTasksList").addEventListener("click", handleTaskCardClick);
 
     /* task modal */
     document.getElementById("ptaskModalClose").addEventListener("click", closeTaskModal);
@@ -4335,6 +4328,7 @@
   function isTaskOwner(t){ return t && currentUser && t.ownerUid===currentUser.uid; }
   function canCompleteTask(t){
     if(isTaskOwner(t)) return true;
+    if(t && t.taskCategory==="client") return true;
     if(!t || !t.assignedTo) return false;
     var myEmailL = (currentUser.email||"").toLowerCase();
     return t.assignedTo==="כל הצוות" || t.assignedTo===currentUser.displayName || t.assignedTo.toLowerCase()===myEmailL;
@@ -4803,8 +4797,8 @@
     if(p.showDue && t.dueDate) meta.push('<span class="ptask-mi'+(late?" late":"")+'">📅 '+fmtDate(t.dueDate)+(t.dueTime?" · "+escapeHtml(t.dueTime):"")+'</span>');
     if(t.recurrence && t.recurrence!=="none") meta.push('<span class="ptask-mi" title="חוזרת">🔁</span>');
     var taskCat = t.taskCategory || (t.clientId ? "work" : "personal");
-    var taskCatIcon = taskCat === "shared" ? "👥" : (taskCat === "work" ? "💼" : "🏠");
-    var taskCatLabel = taskCat === "shared" ? "משותף" : (taskCat === "work" ? "עבודה" : "אישי");
+    var taskCatIcon = taskCat === "client" ? "👤" : (taskCat === "shared" ? "👥" : (taskCat === "work" ? "💼" : "🏠"));
+    var taskCatLabel = taskCat === "client" ? "לקוח" : (taskCat === "shared" ? "משותף" : (taskCat === "work" ? "עבודה" : "אישי"));
     meta.push('<span class="ptask-mi" title="'+taskCatLabel+'">'+taskCatIcon+'</span>');
     if(p.showCategory && cat) meta.push('<span class="ptask-cat-chip" style="background:'+cat.color+'22;color:'+cat.color+'">'+escapeHtml((cat.icon||"")+" "+cat.name)+'</span>');
     var clientName = "";
@@ -5101,11 +5095,9 @@
       });
       var jobsHtml = Object.keys(byJob).map(function(jid){
         var job = c && (c.jobs||[]).find(function(j){ return j.id===jid; });
-        var rows = byJob[jid].map(clientTaskRowHtml).join("");
-        return '<div class="svc-section">'+
-          (job?'<div class="svc-section-hd">'+escapeHtml(job.title||"עבודה")+'</div>':'')+
-          rows+
-        '</div>';
+        var rows = byJob[jid].map(personalTaskCardHtml).join("");
+        return (job?'<div style="font-size:0.8rem;font-weight:600;color:var(--ink-soft);margin:10px 0 6px;">'+escapeHtml(job.title||"עבודה")+'</div>':'')+
+          rows;
       }).join("");
       return '<div class="group-hd"><span class="t">'+escapeHtml(clientName)+'</span><span class="c">'+tasksForClient.length+'</span></div>'+jobsHtml;
     }).join("");
